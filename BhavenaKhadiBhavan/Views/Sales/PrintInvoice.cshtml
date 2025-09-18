@@ -1,0 +1,451 @@
+﻿@model Sale
+@{
+    ViewData["Title"] = $"Invoice - {Model.InvoiceNumber}";
+    Layout = null; // No layout for printing
+    var storeSettings = ViewBag.StoreSettings as Dictionary<string, string>;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Invoice - @Model.InvoiceNumber</title>
+
+    <!-- Bootstrap CSS for printing -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        @@media print {
+            .row {
+                display: flex !important;
+                flex-wrap: wrap !important;
+            }
+
+            .col-md-6 {
+                flex: 0 0 50% !important;
+                max-width: 50% !important;
+            }
+
+            .text-md-end {
+                text-align: right !important;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            .print-break {
+                page-break-after: always;
+            }
+
+            body {
+                font-size: 12px;
+            }
+
+            .invoice-header {
+                border-bottom: 2px solid #000;
+            }
+
+            .invoice-footer {
+                border-top: 1px solid #000;
+                margin-top: 2rem;
+            }
+
+            table {
+                border-collapse: collapse;
+            }
+
+            th, td {
+                border: 1px solid #000 !important;
+                padding: 8px !important;
+            }
+        }
+
+        @@media screen {
+            body {
+                background-color: #f8f9fa;
+                padding: 2rem;
+            }
+
+            .invoice-container {
+                background: white;
+                max-width: 800px;
+                margin: 0 auto;
+                padding: 2rem;
+                box-shadow: 0 0 20px rgba(0,0,0,0.1);
+                border-radius: 8px;
+            }
+        }
+
+        .invoice-header {
+            padding-bottom: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .store-logo {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #8B4513;
+            text-align: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .store-details {
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .invoice-title {
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin: 1rem 0;
+            color: #333;
+        }
+
+        .invoice-details {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .table-invoice th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .table-invoice td {
+            vertical-align: middle;
+        }
+
+        .totals-section {
+            background-color: #f8f9fa;
+            padding: 1rem;
+            border-radius: 5px;
+        }
+
+        .signature-section {
+            margin-top: 2rem;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .signature-box {
+            text-align: center;
+            padding: 1rem;
+            border-top: 1px solid #333;
+            width: 200px;
+        }
+
+        .footer-text {
+            text-align: center;
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 2rem;
+            font-style: italic;
+        }
+
+        .gst-info {
+            font-size: 0.85rem;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="invoice-container">
+        <!-- Print Button (only visible on screen) -->
+        <div class="no-print text-end mb-3">
+            <button onclick="window.print()" class="btn btn-primary">
+                <i class="fas fa-print"></i> Print Invoice
+            </button>
+            <button onclick="window.close()" class="btn btn-outline-secondary ms-2">
+                <i class="fas fa-times"></i> Close
+            </button>
+        </div>
+
+        <!-- Store Header -->
+        <div class="invoice-header">
+            <div class="store-logo">
+                @(storeSettings?.GetValueOrDefault("StoreName", "Khadi Store"))
+            </div>
+            <div class="store-details">
+                @if (storeSettings != null)
+                {
+                    @if (storeSettings.ContainsKey("StoreAddress"))
+                    {
+                        <div>@storeSettings["StoreAddress"]</div>
+                    }
+                    <div>
+                        @if (storeSettings.ContainsKey("StorePhone"))
+                        {
+                            <span>Phone: @storeSettings["StorePhone"]</span>
+                        }
+                        @if (storeSettings.ContainsKey("StoreEmail"))
+                        {
+                            <span class="ms-3">Email: @storeSettings["StoreEmail"]</span>
+                        }
+                    </div>
+                    @if (storeSettings.ContainsKey("GSTIN"))
+                    {
+                        <div><strong>GSTIN: @storeSettings["GSTIN"]</strong></div>
+                    }
+                }
+            </div>
+        </div>
+
+        <!-- Invoice Title -->
+        <div class="invoice-title">
+            TAX INVOICE
+        </div>
+
+        <!-- Invoice Details -->
+        <div class="row invoice-details">
+            <div class="col-md-6">
+                <h6>Bill To:</h6>
+                <strong>@Model.CustomerDisplayName</strong>
+                @if (!string.IsNullOrEmpty(Model.CustomerPhone))
+                {
+                    <br>
+                    @Model.CustomerPhone
+                }
+                @if (Model.Customer != null && !string.IsNullOrEmpty(Model.Customer.Email))
+                {
+                    <br>
+                    @Model.Customer.Email
+                }
+                @if (Model.Customer != null && !string.IsNullOrEmpty(Model.Customer.Address))
+                {
+                    <br>
+                    @Model.Customer.Address
+                }
+            </div>
+            <div class="col-md-6 text-md-end">
+                <div class="mb-2">
+                    <strong>Invoice #:</strong> @Model.InvoiceNumber
+                </div>
+                <div class="mb-2">
+                    <strong>Date:</strong> @Model.SaleDate.ToString("dd/MM/yyyy")
+                </div>
+                <div class="mb-2">
+                    <strong>Payment Method:</strong> @Model.PaymentMethod
+                </div>
+            </div>
+        </div>
+
+        <!-- Items Table -->
+        <div class="table-responsive">
+            <table class="table table-bordered table-invoice">
+                <thead>
+                    <tr>
+                        <th style="width: 5%;">#</th>
+                        <th style="width: 40%;">Description</th>
+                        <th style="width: 10%;">Qty</th>
+                        <th style="width: 15%;">Rate</th>
+                        <th style="width: 10%;">GST %</th>
+                        <th style="width: 20%;">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{
+                        var itemNumber = 1;
+                        decimal totalQty = 0;
+                        var totalTaxableAmount = 0m;
+                        var totalGSTAmount = 0m;
+                    }
+                    @foreach (var item in Model.SaleItems)
+                    {
+                        var itemTaxableAmount = item.UnitPrice * item.Quantity;
+                        var itemGSTAmount = itemTaxableAmount * item.GSTRate / 100;
+                        var itemTotal = itemTaxableAmount + itemGSTAmount;
+
+                        totalQty += item.Quantity;
+                        totalTaxableAmount += itemTaxableAmount;
+                        totalGSTAmount += itemGSTAmount;
+
+                        <tr>
+                            <td class="text-center">@itemNumber</td>
+                            <td>
+                                <strong>@item.ProductName</strong>
+                                @if (item.Product != null)
+                                {
+                                    @if (!string.IsNullOrEmpty(item.Product.Color) || !string.IsNullOrEmpty(item.Product.Size))
+                                    {
+                                        <br>
+                                        <small class="text-muted">
+                                            @(!string.IsNullOrEmpty(item.Product.Color) ? $"Color: {item.Product.Color}" : "")
+                                            @(!string.IsNullOrEmpty(item.Product.Size) ? $" | Size: {item.Product.Size}" : "")
+                                        </small>
+                                    }
+                                }
+                            </td>
+                            <td class="text-center">@item.Quantity</td>
+                            <td class="text-center">₹@item.UnitPrice.ToString("N2")</td>
+                            <td class="text-center">@item.GSTRate%</td>
+                            <td class="text-end">₹@itemTotal.ToString("N2")</td>
+                        </tr>
+
+                        itemNumber++;
+                    }
+                </tbody>
+                <tfoot>
+                    <tr class="table-light">
+                        <th colspan="2" class="text-end">Total:</th>
+                        <th class="text-center">@totalQty</th>
+                        <th></th>
+                        <th></th>
+                        <th class="text-end">@("₹" + (totalTaxableAmount + totalGSTAmount).ToString("N2"))</th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <!-- Totals Section -->
+        <div class="row">
+            <div class="col-md-6">
+                <!-- Terms and Conditions -->
+                <div class="mt-4">
+                    <h6>Terms & Conditions:</h6>
+                    <div class="small">
+                        <ul class="mb-0">
+                            <li>Items can be returned within 30 days of purchase with receipt.</li>
+                            <li>All disputes are subject to local jurisdiction only.</li>
+                            <li>This is a computer generated invoice.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="totals-section">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Subtotal (Before Tax):</span>
+                        <span>₹@Model.SubTotal.ToString("N2")</span>
+                    </div>
+
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Total GST:</span>
+                        <span>₹@Model.GSTAmount.ToString("N2")</span>
+                    </div>
+
+                    @if (Model.DiscountAmount > 0)
+                    {
+                        <div class="d-flex justify-content-between mb-2 text-success">
+                            <span>Discount (@Model.DiscountPercentage%):</span>
+                            <span>-₹@Model.DiscountAmount.ToString("N2")</span>
+                        </div>
+                    }
+
+                    <hr>
+
+                    <div class="d-flex justify-content-between mb-3">
+                        <strong style="font-size: 1.1rem;">Grand Total:</strong>
+                        <strong style="font-size: 1.2rem; color: #28a745;">₹@Model.TotalAmount.ToString("N2")</strong>
+                    </div>
+
+                    <div class="text-muted small">
+                        Amount in Words: <strong>@ConvertToWords((long)Model.TotalAmount) Rupees Only</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        
+
+        <!-- Signature Section -->
+        <div class="signature-section no-print">
+            <div class="signature-box">
+                <div>Customer Signature</div>
+            </div>
+            <div class="signature-box">
+                <div>Authorized Signatory</div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer-text">
+            <div>Thank you for supporting Khadi and promoting Make in India.</div>
+            <div class="mt-1">Generated on @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS for printing -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <script>
+        // Auto print when page loads (optional)
+        // window.onload = function() { window.print(); }
+
+        // Print shortcut
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'p') {
+                e.preventDefault();
+                window.print();
+            }
+        });
+    </script>
+</body>
+</html>
+
+@functions {
+    private string ConvertToWords(long number)
+    {
+        if (number == 0)
+            return "Zero";
+
+        string[] ones = {"", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine",
+                        "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen",
+                        "Seventeen", "Eighteen", "Nineteen"};
+
+        string[] tens = { "", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety" };
+
+        string[] thousands = { "", "Thousand", "Lakh", "Crore" };
+
+        if (number < 0)
+            return "Minus " + ConvertToWords(-number);
+
+        string words = "";
+        int groupIndex = 0;
+
+        while (number > 0)
+        {
+            if (number % 1000 != 0)
+            {
+                string groupWords = ConvertGroupToWords((int)(number % 1000), ones, tens);
+                words = groupWords + thousands[groupIndex] + " " + words;
+            }
+            number /= 1000;
+            groupIndex++;
+        }
+
+        return words.Trim();
+    }
+
+    private string ConvertGroupToWords(int number, string[] ones, string[] tens)
+    {
+        string result = "";
+
+        if (number >= 100)
+        {
+            result += ones[number / 100] + " Hundred ";
+            number %= 100;
+        }
+
+        if (number >= 20)
+        {
+            result += tens[number / 10] + " ";
+            number %= 10;
+        }
+
+        if (number > 0)
+        {
+            result += ones[number] + " ";
+        }
+
+        return result;
+    }
+}

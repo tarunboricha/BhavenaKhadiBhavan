@@ -1,0 +1,893 @@
+﻿@model SalesViewModel
+@{
+    ViewData["Title"] = "New Sale";
+}
+
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2><i class="fas fa-cash-register me-2"></i>New Sale</h2>
+            <div>
+                <button type="button" class="btn btn-outline-secondary" onclick="clearCart()">
+                    <i class="fas fa-trash me-1"></i>Clear Cart
+                </button>
+                <a href="@Url.Action("Index", "Sales")" class="btn btn-outline-primary">
+                    <i class="fas fa-list me-1"></i>View Sales
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Product Selection Area -->
+    <div class="col-lg-8">
+        <!-- Search and Filters -->
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-search"></i></span>
+                            <input type="text" class="form-control search-box" id="productSearch"
+                                   placeholder="Search products by name, fabric, or color...">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <select class="form-select" id="categoryFilter">
+                            <option value="">All Categories</option>
+                            @foreach (var category in Model.Categories)
+                            {
+                                <option value="@category.Id">@category.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <select class="form-select" id="stockFilter">
+                            <option value="">All Stock</option>
+                            <option value="instock">In Stock</option>
+                            <option value="lowstock">Low Stock</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Products Grid -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-box me-2"></i>Products
+                    <span class="badge bg-secondary ms-2" id="productCount">Loading...</span>
+                    <small class="text-muted ms-2">(Grouped by product name)</small>
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="productsContainer">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading products...</span>
+                        </div>
+                        <p class="mt-2 text-muted">Loading products...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Shopping Cart Sidebar -->
+    <div class="col-lg-4">
+        <div class="card cart-sidebar">
+            <div class="card-header bg-khadi text-white" style="background-color: var(--khadi-primary);">
+                <h5 class="mb-0">
+                    <i class="fas fa-shopping-cart me-2"></i>Shopping Cart
+                    <span class="badge bg-light text-dark float-end" id="cartItemCount">0</span>
+                </h5>
+            </div>
+
+            <!-- Cart Items -->
+            <div class="card-body p-0">
+                <div id="cartItems" style="max-height: 300px; overflow-y: auto;">
+                    <div class="p-3 text-center text-muted" id="emptyCart">
+                        <i class="fas fa-shopping-cart fa-2x mb-2"></i>
+                        <p>Cart is empty</p>
+                        <small>Add products to start billing</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cart Summary -->
+            <div class="card-footer">
+                <div id="cartSummary" style="display: none;">
+                    <div class="row small mb-2">
+                        <div class="col">Subtotal:</div>
+                        <div class="col text-end" id="cartSubtotal">₹0</div>
+                    </div>
+                    <div class="row small mb-2">
+                        <div class="col">GST:</div>
+                        <div class="col text-end" id="cartGST">₹0</div>
+                    </div>
+                    <div class="row small mb-2">
+                        <div class="col">
+                            Discount:
+                            <input type="number" class="form-control form-control-sm d-inline-block"
+                                   style="width: 60px;" min="0" max="100" value="0" id="discountPercent">%
+                        </div>
+                        <div class="col text-end" id="cartDiscount">₹0</div>
+                    </div>
+                    <hr>
+                    <div class="row fw-bold">
+                        <div class="col">Total:</div>
+                        <div class="col text-end text-success" id="cartTotal">₹0</div>
+                    </div>
+
+                    <button class="btn btn-success w-100 mt-3" type="button" onclick="showCheckoutModal()" id="checkoutBtn">
+                        <i class="fas fa-credit-card me-1"></i>Checkout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Size/Color Selection Modal -->
+<div class="modal fade" id="variantSelectionModal" tabindex="-1" aria-labelledby="variantSelectionModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="variantSelectionModalLabel">
+                    <i class="fas fa-tshirt me-2"></i>Select Product Variant
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="productVariantDetails">
+                    <h6 id="modalProductName"></h6>
+                    <p class="text-muted" id="modalProductInfo"></p>
+
+                    <!-- Variant Selection -->
+                    <div class="mb-3">
+                        <label class="form-label">Available Variants:</label>
+                        <div id="variantOptions" class="row">
+                            <!-- Variant options will be populated here -->
+                        </div>
+                    </div>
+
+                    <!-- Selected Variant Info -->
+                    <div id="selectedVariantInfo" class="alert alert-info" style="display: none;">
+                        <div class="row">
+                            <div class="col-sm-6">
+                                <strong>Selected:</strong>
+                                <div id="selectedVariantDisplay"></div>
+                            </div>
+                            <div class="col-sm-6">
+                                <strong>Available Stock:</strong>
+                                <div id="selectedVariantStock"></div>
+                            </div>
+                        </div>
+                        <div class="row mt-2">
+                            <div class="col-sm-6">
+                                <strong>Unit Price:</strong>
+                                <div id="selectedVariantPrice"></div>
+                            </div>
+                            <div class="col-sm-6">
+                                <strong>Price + GST:</strong>
+                                <div id="selectedVariantPriceWithGST"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quantity Input -->
+                    <div class="mb-3" id="quantitySection" style="display: none;">
+                        <label class="form-label">Quantity:</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" id="modalQuantity"
+                                   min="0.001" step="0.001" value="1" placeholder="Enter quantity">
+                            <span class="input-group-text" id="modalUnitOfMeasure">Piece</span>
+                        </div>
+                        <div class="form-text">
+                            Maximum available: <span id="modalMaxQuantity">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" id="addSelectedVariantBtn" disabled>
+                    <i class="fas fa-plus me-1"></i>Add to Cart
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Checkout Modal (same as before) -->
+<div class="modal fade" id="checkoutModal" tabindex="-1" aria-labelledby="checkoutModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="checkoutModalLabel">
+                    <i class="fas fa-credit-card me-2"></i>Complete Sale
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <form id="saleForm" action="@Url.Action("Create", "Sales")" method="post" novalidate>
+                @Html.AntiForgeryToken()
+
+                <div class="modal-body">
+                    <div class="row">
+                        <!-- Customer Information -->
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-user me-2"></i>Customer Information</h6>
+                            <div class="mb-3">
+                                <label class="form-label">Customer Name</label>
+                                <input type="text" class="form-control" id="customerName" name="Sale.CustomerName"
+                                       placeholder="Enter customer name (optional)">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Phone Number</label>
+                                <input type="tel" class="form-control" id="customerPhone" name="Sale.CustomerPhone"
+                                       placeholder="10-digit mobile number" maxlength="10">
+                                <div class="form-text">Leave blank for walk-in customer</div>
+                            </div>
+                        </div>
+
+                        <!-- Payment Information -->
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-credit-card me-2"></i>Payment Details</h6>
+                            <div class="mb-3">
+                                <label class="form-label">Payment Method *</label>
+                                <select class="form-select" name="Sale.PaymentMethod" required>
+                                    <option value="Cash" selected>Cash</option>
+                                    <option value="Card">Card</option>
+                                    <option value="UPI">UPI</option>
+                                    <option value="Bank Transfer">Bank Transfer</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Payment Reference</label>
+                                <input type="text" class="form-control" name="Sale.PaymentReference"
+                                       placeholder="Transaction ID, Cheque No, etc (optional)">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Order Summary -->
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <h6><i class="fas fa-receipt me-2"></i>Order Summary</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Item</th>
+                                            <th>Qty</th>
+                                            <th>Price</th>
+                                            <th>Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="checkoutItems">
+                                    </tbody>
+                                    <tfoot>
+                                        <tr>
+                                            <th colspan="3">Subtotal</th>
+                                            <th id="checkoutSubtotal">₹0</th>
+                                        </tr>
+                                        <tr>
+                                            <th colspan="3">GST</th>
+                                            <th id="checkoutGST">₹0</th>
+                                        </tr>
+                                        <tr>
+                                            <th colspan="3">Discount (<span id="checkoutDiscountPercent">0</span>%)</th>
+                                            <th id="checkoutDiscountAmount">₹0</th>
+                                        </tr>
+                                        <tr class="table-success">
+                                            <th colspan="3">Final Total</th>
+                                            <th id="checkoutTotal">₹0</th>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Hidden fields for cart data -->
+                    <input type="hidden" name="Sale.DiscountPercentage" id="hiddenDiscountPercent" value="0">
+                    <div id="hiddenCartItems"></div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success btn-lg" id="submitSaleBtn">
+                        <i class="fas fa-check me-1"></i>Complete Sale
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let cart = [];
+        let allGroupedProducts = [];
+        let selectedProductGroup = null;
+        let selectedVariant = null;
+
+        $(document).ready(function() {
+            initializeSalesPage();
+            loadGroupedProducts();
+        });
+
+        function initializeSalesPage() {
+            // Search and filters
+            $('#productSearch').on('input', filterProducts);
+            $('#categoryFilter').on('change', filterProducts);
+            $('#stockFilter').on('change', filterProducts);
+
+            // Variant selection
+            $(document).on('click', '.variant-option', selectVariant);
+            $('#addSelectedVariantBtn').on('click', addSelectedVariantToCart);
+
+            // Quantity validation
+            $('#modalQuantity').on('input change', validateModalQuantity);
+
+            // Discount calculation
+            $('#discountPercent').on('input', updateCartSummary);
+
+            // Customer phone formatting
+            $('#customerPhone').on('input', function() {
+                let value = $(this).val().replace(/\D/g, '');
+                if (value.length > 10) {
+                    value = value.substring(0, 10);
+                }
+                $(this).val(value);
+            });
+
+            // Form submission
+            $('#saleForm').on('submit', function(e) {
+                console.log('Form submit event triggered');
+                e.preventDefault();
+
+                if (cart.length === 0) {
+                    showToast('Please add items to cart', 'error');
+                    return false;
+                }
+
+                const paymentMethod = $('select[name="Sale.PaymentMethod"]').val();
+                if (!paymentMethod) {
+                    showToast('Please select a payment method', 'error');
+                    return false;
+                }
+
+                prepareFormData();
+
+                const $submitBtn = $('#submitSaleBtn');
+                const originalText = $submitBtn.html();
+                $submitBtn.prop('disabled', true)
+                          .html('<i class="fas fa-spinner fa-spin me-1"></i>Processing...');
+
+                console.log('Submitting form...');
+                this.submit();
+            });
+        }
+
+        // Load grouped products via AJAX
+        function loadGroupedProducts() {
+            $.ajax({
+                url: '@Url.Action("GetGroupedProductsForSales", "Products")',
+                type: 'GET',
+                data: { categoryId: 0 },
+                success: function(data) {
+                    if (data.error) {
+                        showToast('Error loading products: ' + data.error, 'error');
+                        return;
+                    }
+
+                    allGroupedProducts = data;
+                    displayGroupedProducts(allGroupedProducts);
+                    updateProductCount();
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error loading products:', error);
+                    showToast('Error loading products: ' + error, 'error');
+                    $('#productsContainer').html('<div class="alert alert-danger">Error loading products. Please refresh the page.</div>');
+                }
+            });
+        }
+
+        // Display grouped products
+        function displayGroupedProducts(productGroups) {
+            let html = '<div class="row" id="productsGrid">';
+
+            productGroups.forEach(function(group) {
+                const stockBadgeClass = !group.hasStock ? 'bg-danger' :
+                                       group.minStock <= 5 ? 'bg-warning text-dark' : 'bg-success';
+
+                const cardClass = !group.hasStock ? 'bg-light' : '';
+
+                html += `
+                    <div class="col-lg-4 col-md-6 mb-3 product-group-item"
+                         data-category="${group.categoryId}"
+                         data-name="${group.baseName.toLowerCase()}"
+                         data-fabric="${group.fabricType.toLowerCase()}"
+                         data-stock="${group.hasStock ? 'instock' : 'outofstock'}">
+                        <div class="card h-100 ${cardClass}">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h6 class="card-title mb-1">${group.baseName}</h6>
+                                    <span class="badge ${stockBadgeClass}">
+                                        ${group.totalVariants} variants
+                                    </span>
+                                </div>
+
+                                <p class="card-text small text-muted mb-2">
+                                    ${group.category}
+                                    ${group.fabricType ? '<br><strong>Fabric:</strong> ' + group.fabricType : ''}
+                                </p>
+
+                                <!-- Variants Preview -->
+                                <div class="mb-2">
+                                    <small class="text-muted">Available variants:</small>
+                                    <div class="d-flex flex-wrap gap-1 mt-1">
+                                        ${group.variants.slice(0, 3).map(v =>
+                                            `<span class="badge ${v.canSell ? 'bg-light text-dark' : 'bg-secondary'} small">
+                                                ${v.displayVariant} ${v.canSell ? '(' + v.stock.toFixed(3) + ')' : '(Out)'}
+                                            </span>`
+                                        ).join('')}
+                                        ${group.variants.length > 3 ?
+                                            '<span class="badge bg-info small">+' + (group.variants.length - 3) + ' more</span>' : ''}
+                                    </div>
+                                </div>
+
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <div>
+                                        <strong class="text-primary">₹${group.price.toLocaleString()}</strong>
+                                        <br>
+                                        <small class="text-muted">per ${group.unitOfMeasure} +GST ${group.gstRate}%</small>
+                                    </div>
+                                    <div class="text-end">
+                                        <small class="text-success">₹${group.priceWithGST.toLocaleString()}</small>
+                                        <br>
+                                        <small class="text-muted">Total per ${group.unitOfMeasure}</small>
+                                    </div>
+                                </div>
+
+                                ${group.hasStock ? `
+                                    <button class="btn btn-khadi w-100" type="button"
+                                            onclick="showVariantSelection('${group.baseName}')">
+                                        <i class="fas fa-plus me-1"></i>Select Variant & Add
+                                    </button>
+                                ` : `
+                                    <button class="btn btn-outline-secondary w-100" disabled>
+                                        All Variants Out of Stock
+                                    </button>
+                                `}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+            $('#productsContainer').html(html);
+        }
+
+        // Show variant selection modal
+        function showVariantSelection(baseName) {
+            selectedProductGroup = allGroupedProducts.find(g => g.baseName === baseName);
+            if (!selectedProductGroup) {
+                showToast('Product group not found', 'error');
+                return;
+            }
+
+            // Populate modal
+            $('#modalProductName').text(selectedProductGroup.baseName);
+            $('#modalProductInfo').html(`
+                <strong>Category:</strong> ${selectedProductGroup.category}<br>
+                <strong>Base Price:</strong> ₹${selectedProductGroup.price.toFixed(2)} per ${selectedProductGroup.unitOfMeasure}<br>
+                ${selectedProductGroup.fabricType ? '<strong>Fabric:</strong> ' + selectedProductGroup.fabricType + '<br>' : ''}
+                <strong>Available Variants:</strong> ${selectedProductGroup.variants.length}
+            `);
+
+            // Populate variant options
+            let variantHtml = '';
+            selectedProductGroup.variants.forEach((variant, index) => {
+                const isDisabled = !variant.canSell;
+                const stockInfo = variant.canSell ?
+                    `<small class="text-success">Stock: ${variant.stock.toFixed(3)} ${selectedProductGroup.unitOfMeasure}</small>` :
+                    '<small class="text-danger">Out of Stock</small>';
+
+                variantHtml += `
+                    <div class="col-md-6 mb-2">
+                        <div class="card variant-option ${isDisabled ? 'disabled' : ''}"
+                             data-variant-index="${index}"
+                             style="cursor: ${isDisabled ? 'not-allowed' : 'pointer'}; opacity: ${isDisabled ? '0.6' : '1'}">
+                            <div class="card-body p-2">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio"
+                                           name="selectedVariant" value="${index}"
+                                           id="variant${index}" ${isDisabled ? 'disabled' : ''}>
+                                    <label class="form-check-label w-100" for="variant${index}">
+                                        <div class="fw-bold">${variant.displayVariant}</div>
+                                        ${stockInfo}
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            $('#variantOptions').html(variantHtml);
+
+            // Reset modal state
+            selectedVariant = null;
+            $('#selectedVariantInfo').hide();
+            $('#quantitySection').hide();
+            $('#addSelectedVariantBtn').prop('disabled', true);
+
+            $('#variantSelectionModal').modal('show');
+        }
+
+        // Handle variant selection
+        function selectVariant(e) {
+            const $card = $(e.currentTarget);
+
+            if ($card.hasClass('disabled')) return;
+
+            const variantIndex = parseInt($card.data('variant-index'));
+            selectedVariant = selectedProductGroup.variants[variantIndex];
+
+            // Update radio button
+            $(`#variant${variantIndex}`).prop('checked', true);
+
+            // Show variant info
+            $('#selectedVariantDisplay').text(selectedVariant.displayVariant);
+            $('#selectedVariantStock').text(`${selectedVariant.stock.toFixed(3)} ${selectedProductGroup.unitOfMeasure}`);
+            $('#selectedVariantPrice').text(`₹${selectedProductGroup.price.toFixed(2)}`);
+            $('#selectedVariantPriceWithGST').text(`₹${selectedProductGroup.priceWithGST.toFixed(2)}`);
+
+            $('#selectedVariantInfo').show();
+
+            // Setup quantity section
+            $('#modalUnitOfMeasure').text(selectedProductGroup.unitOfMeasure);
+            $('#modalMaxQuantity').text(selectedVariant.stock.toFixed(3));
+            $('#modalQuantity').attr('max', selectedVariant.stock).val('1');
+
+            $('#quantitySection').show();
+            $('#addSelectedVariantBtn').prop('disabled', false);
+
+            // Highlight selected variant
+            $('.variant-option').removeClass('border-primary');
+            $card.addClass('border-primary');
+        }
+
+        // Validate modal quantity
+        function validateModalQuantity() {
+            if (!selectedVariant) return;
+
+            const quantity = parseFloat($('#modalQuantity').val()) || 0;
+            const maxQuantity = selectedVariant.stock;
+
+            if (quantity > maxQuantity) {
+                $('#modalQuantity').val(maxQuantity);
+                showToast(`Maximum available quantity is ${maxQuantity}`, 'warning');
+            }
+
+            if (quantity <= 0) {
+                $('#modalQuantity').val('1');
+            }
+        }
+
+        // Add selected variant to cart
+        function addSelectedVariantToCart() {
+            if (!selectedVariant || !selectedProductGroup) {
+                showToast('Please select a variant', 'error');
+                return;
+            }
+
+            const quantity = parseFloat($('#modalQuantity').val());
+
+            if (quantity <= 0 || quantity > selectedVariant.stock) {
+                showToast('Invalid quantity', 'error');
+                return;
+            }
+
+            // Check if this specific variant is already in cart
+            const existingItem = cart.find(item => item.ProductId === selectedVariant.id);
+
+            if (existingItem) {
+                const newQuantity = existingItem.Quantity + quantity;
+                if (newQuantity > selectedVariant.stock) {
+                    showToast(`Maximum ${selectedVariant.stock} ${selectedProductGroup.unitOfMeasure} available for this variant`, 'warning');
+                    return;
+                }
+                existingItem.Quantity = Math.round(newQuantity * 1000) / 1000;
+            } else {
+                cart.push({
+                    ProductId: selectedVariant.id,
+                    ProductName: selectedVariant.fullName,
+                    Quantity: quantity,
+                    UnitPrice: selectedProductGroup.price,
+                    GSTRate: selectedProductGroup.gstRate,
+                    UnitOfMeasure: selectedProductGroup.unitOfMeasure
+                });
+            }
+
+            updateCartDisplay();
+            showToast(`Added ${quantity} ${selectedProductGroup.unitOfMeasure} of ${selectedVariant.fullName} to cart`, 'success');
+
+            // Close modal
+            $('#variantSelectionModal').modal('hide');
+        }
+
+        // Filter products (updated for grouped products)
+        function filterProducts() {
+            const searchTerm = $('#productSearch').val().toLowerCase();
+            const categoryId = $('#categoryFilter').val();
+            const stockFilter = $('#stockFilter').val();
+
+            $('.product-group-item').each(function() {
+                const $item = $(this);
+                const itemName = $item.data('name');
+                const itemFabric = $item.data('fabric');
+                const itemCategory = $item.data('category').toString();
+                const itemStock = $item.data('stock');
+
+                let show = true;
+
+                // Search filter
+                if (searchTerm) {
+                    if (!itemName.includes(searchTerm) && !itemFabric.includes(searchTerm)) {
+                        show = false;
+                    }
+                }
+
+                // Category filter
+                if (categoryId && itemCategory !== categoryId) {
+                    show = false;
+                }
+
+                // Stock filter
+                if (stockFilter === 'instock' && itemStock !== 'instock') {
+                    show = false;
+                }
+
+                $item.toggle(show);
+            });
+
+            updateProductCount();
+        }
+
+        function updateProductCount() {
+            const visibleCount = $('.product-group-item:visible').length;
+            $('#productCount').text(visibleCount);
+        }
+
+        // Rest of the cart functions remain the same as in the previous implementation
+        function removeFromCart(productId) {
+            cart = cart.filter(item => item.ProductId !== productId);
+            updateCartDisplay();
+            showToast('Item removed from cart', 'info');
+        }
+
+        function updateCartQuantity(productId, newQuantity) {
+            newQuantity = parseFloat(newQuantity);
+
+            if (isNaN(newQuantity) || newQuantity <= 0) {
+                removeFromCart(productId);
+                return;
+            }
+
+            newQuantity = Math.round(newQuantity * 1000) / 1000;
+
+            const item = cart.find(item => item.ProductId === productId);
+            if (item) {
+                item.Quantity = newQuantity;
+                updateCartDisplay();
+            }
+        }
+
+        function updateCartDisplay() {
+            const $cartItems = $('#cartItems');
+            const $emptyCart = $('#emptyCart');
+            const $cartSummary = $('#cartSummary');
+
+            if (cart.length === 0) {
+                $emptyCart.show();
+                $cartSummary.hide();
+                $('#cartItemCount').text(0);
+                return;
+            }
+
+            $emptyCart.hide();
+            $cartSummary.show();
+
+            let cartHtml = '';
+            let totalItems = 0;
+
+            cart.forEach(item => {
+                const itemSubtotal = item.UnitPrice * item.Quantity;
+                const itemGST = itemSubtotal * item.GSTRate / 100;
+                const lineTotal = itemSubtotal + itemGST;
+
+                totalItems += item.Quantity;
+
+                cartHtml += `
+                    <div class="border-bottom p-2">
+                        <div class="d-flex justify-content-between align-items-start mb-1">
+                            <small class="fw-bold">${item.ProductName}</small>
+                            <button class="btn btn-sm btn-outline-danger" onclick="removeFromCart(${item.ProductId})">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="input-group input-group-sm" style="width: 100px;">
+                                <input type="number" class="form-control" min="0.001" step="0.001"
+                                       value="${item.Quantity}"
+                                       onchange="updateCartQuantity(${item.ProductId}, this.value)">
+                                <span class="input-group-text">${item.UnitOfMeasure || 'Pc'}</span>
+                            </div>
+                            <div class="text-end">
+                                <div class="small">₹${item.UnitPrice.toFixed(2)} per ${item.UnitOfMeasure || 'piece'}</div>
+                                <div class="fw-bold">₹${lineTotal.toFixed(2)}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            $cartItems.html(cartHtml);
+            $('#cartItemCount').text(totalItems.toFixed(3));
+
+            updateCartSummary();
+        }
+
+        function updateCartSummary() {
+            let subtotal = 0;
+            let gstAmount = 0;
+
+            cart.forEach(item => {
+                const itemSubtotal = item.UnitPrice * item.Quantity;
+                const itemGST = itemSubtotal * item.GSTRate / 100;
+
+                subtotal += itemSubtotal;
+                gstAmount += itemGST;
+            });
+
+            const discountPercent = parseFloat($('#discountPercent').val()) || 0;
+            const totalBeforeDiscount = subtotal + gstAmount;
+            const discountAmount = totalBeforeDiscount * discountPercent / 100;
+            const finalTotal = totalBeforeDiscount - discountAmount;
+
+            $('#cartSubtotal').text(formatCurrency(subtotal));
+            $('#cartGST').text(formatCurrency(gstAmount));
+            $('#cartDiscount').text(formatCurrency(discountAmount));
+            $('#cartTotal').text(formatCurrency(finalTotal));
+        }
+
+        function clearCart() {
+            if (cart.length === 0) return;
+
+            if (confirm('Are you sure you want to clear the cart?')) {
+                cart = [];
+                updateCartDisplay();
+                showToast('Cart cleared', 'info');
+            }
+        }
+
+        function showCheckoutModal() {
+            if (cart.length === 0) {
+                showToast('Cart is empty', 'error');
+                return;
+            }
+
+            updateCheckoutModal();
+            $('#checkoutModal').modal('show');
+        }
+
+        function updateCheckoutModal() {
+            let checkoutHtml = '';
+            let subtotal = 0;
+            let gstAmount = 0;
+
+            cart.forEach(item => {
+                const itemSubtotal = item.UnitPrice * item.Quantity;
+                const itemGST = itemSubtotal * item.GSTRate / 100;
+                const itemTotal = itemSubtotal + itemGST;
+
+                subtotal += itemSubtotal;
+                gstAmount += itemGST;
+
+                checkoutHtml += `
+                    <tr>
+                        <td>
+                            ${item.ProductName}
+                            <br><small class="text-muted">${item.Quantity.toFixed(3)} ${item.UnitOfMeasure || 'Piece'}</small>
+                        </td>
+                        <td>${item.Quantity.toFixed(3)}</td>
+                        <td>₹${item.UnitPrice.toFixed(2)}</td>
+                        <td>₹${itemTotal.toFixed(2)}</td>
+                    </tr>
+                `;
+            });
+
+            const discountPercent = parseFloat($('#discountPercent').val()) || 0;
+            const totalBeforeDiscount = subtotal + gstAmount;
+            const discountAmount = totalBeforeDiscount * discountPercent / 100;
+            const finalTotal = totalBeforeDiscount - discountAmount;
+
+            $('#checkoutItems').html(checkoutHtml);
+            $('#checkoutSubtotal').text(formatCurrency(subtotal));
+            $('#checkoutGST').text(formatCurrency(gstAmount));
+            $('#checkoutDiscountPercent').text(discountPercent.toFixed(1));
+            $('#checkoutDiscountAmount').text(formatCurrency(discountAmount));
+            $('#checkoutTotal').text(formatCurrency(finalTotal));
+
+            $('#hiddenDiscountPercent').val(discountPercent);
+        }
+
+        function prepareFormData() {
+            console.log('Preparing form data for cart:', cart);
+
+            let cartItemsHtml = '';
+
+            cart.forEach((item, index) => {
+                cartItemsHtml += `
+                    <input type="hidden" name="CartItems[${index}].ProductId" value="${item.ProductId}">
+                    <input type="hidden" name="CartItems[${index}].ProductName" value="${item.ProductName}">
+                    <input type="hidden" name="CartItems[${index}].Quantity" value="${item.Quantity}">
+                    <input type="hidden" name="CartItems[${index}].UnitPrice" value="${item.UnitPrice}">
+                    <input type="hidden" name="CartItems[${index}].GSTRate" value="${item.GSTRate}">
+                    <input type="hidden" name="CartItems[${index}].UnitOfMeasure" value="${item.UnitOfMeasure || 'Piece'}">
+                `;
+            });
+
+            $('#hiddenCartItems').html(cartItemsHtml);
+            console.log('Hidden cart items HTML:', cartItemsHtml);
+        }
+
+        function formatCurrency(amount, showDecimals = true) {
+            const options = {
+                minimumFractionDigits: showDecimals ? 2 : 0,
+                maximumFractionDigits: showDecimals ? 2 : 0,
+                useGrouping: true
+            };
+
+            return '₹' + parseFloat(amount || 0).toLocaleString('en-IN', options);
+        }
+    </script>
+}
+
+<style>
+    .variant-option {
+        transition: all 0.2s ease;
+    }
+
+        .variant-option:hover:not(.disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .variant-option.border-primary {
+            border-width: 2px !important;
+        }
+
+        .variant-option.disabled {
+            background-color: #f8f9fa !important;
+        }
+
+    .product-group-item {
+        transition: all 0.2s ease;
+    }
+
+        .product-group-item:hover {
+            transform: translateY(-2px);
+        }
+
+    .variant-preview-badge {
+        font-size: 0.7em;
+    }
+</style>

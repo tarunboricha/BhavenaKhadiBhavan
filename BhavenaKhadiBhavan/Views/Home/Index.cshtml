@@ -1,0 +1,264 @@
+﻿@model DashboardViewModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2><i class="fas fa-tachometer-alt me-2"></i>Dashboard</h2>
+            <div class="text-muted">
+                <i class="fas fa-calendar-alt me-1"></i>
+                @DateTime.Now.ToString("dddd, dd MMMM yyyy")
+            </div>
+        </div>
+        <hr>
+    </div>
+</div>
+
+<!-- Key Metrics Cards -->
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card metric-card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-rupee-sign fa-2x mb-3"></i>
+                <h3 class="card-title">₹@Model.TodaySales.ToString("N0")</h3>
+                <p class="card-text">Today's Sales</p>
+                <small class="text-light">@Model.TodayOrders orders</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card bg-success text-white h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-shopping-cart fa-2x mb-3"></i>
+                <h3 class="card-title">@Model.TodayOrders</h3>
+                <p class="card-text">Orders Today</p>
+                <small>₹@((Model.TodayOrders > 0 ? Model.TodaySales / Model.TodayOrders : 0).ToString("N0")) avg</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card bg-warning text-dark h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                <h3 class="card-title">@Model.LowStockCount</h3>
+                <p class="card-text">Low Stock Items</p>
+                <a href="@Url.Action("LowStock", "Products")" class="btn btn-outline-dark btn-sm">View Details</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card bg-info text-white h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-users fa-2x mb-3"></i>
+                <h3 class="card-title">@Model.TotalCustomers</h3>
+                <p class="card-text">Total Customers</p>
+                <small>Growing database</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title"><i class="fas fa-bolt me-2"></i>Quick Actions</h5>
+                <div class="row">
+                    <div class="col-lg-3 col-md-6 mb-2">
+                        <a href="@Url.Action("Create", "Sales")" class="btn btn-khadi btn-lg w-100">
+                            <i class="fas fa-plus me-2"></i>New Sale
+                        </a>
+                    </div>
+                    <div class="col-lg-3 col-md-6 mb-2">
+                        <a href="@Url.Action("Create", "Products")" class="btn btn-outline-primary btn-lg w-100">
+                            <i class="fas fa-box me-2"></i>Add Product
+                        </a>
+                    </div>
+                    <div class="col-lg-3 col-md-6 mb-2">
+                        <a href="@Url.Action("Create", "Customers")" class="btn btn-outline-success btn-lg w-100">
+                            <i class="fas fa-user-plus me-2"></i>Add Customer
+                        </a>
+                    </div>
+                    <div class="col-lg-3 col-md-6 mb-2">
+                        <a href="@Url.Action("DailySales", "Reports")" class="btn btn-outline-info btn-lg w-100">
+                            <i class="fas fa-chart-line me-2"></i>Today's Report
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Recent Sales -->
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-clock me-2"></i>Recent Sales</h5>
+                <a href="@Url.Action("Index", "Sales")" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body">
+                @if (Model.RecentSales.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Invoice</th>
+                                    <th>Customer</th>
+                                    <th>Amount</th>
+                                    <th>Time</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var sale in Model.RecentSales)
+                                {
+                                    <tr>
+                                        <td>
+                                            <a href="@Url.Action("Details", "Sales", new { id = sale.Id })" class="text-decoration-none">
+                                                @sale.InvoiceNumber
+                                            </a>
+                                        </td>
+                                        <td>
+                                            <small>@sale.CustomerDisplayName</small>
+                                        </td>
+                                        <td>
+                                            <strong class="text-success">₹@sale.TotalAmount.ToString("N0")</strong>
+                                        </td>
+                                        <td>
+                                            <small class="text-muted">@sale.SaleDate.ToString("HH:mm")</small>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-shopping-cart fa-3x mb-3"></i>
+                        <p>No recent sales</p>
+                        <a href="@Url.Action("Create", "Sales")" class="btn btn-khadi">Create First Sale</a>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Low Stock Alert -->
+    <div class="col-lg-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Low Stock Alert</h5>
+                <a href="@Url.Action("LowStock", "Products")" class="btn btn-sm btn-outline-warning">View All</a>
+            </div>
+            <div class="card-body">
+                @if (Model.LowStockProducts.Any())
+                {
+                    <div class="list-group list-group-flush">
+                        @foreach (var product in Model.LowStockProducts.Take(5))
+                        {
+                            <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                <div>
+                                    <h6 class="mb-1">@product.Name</h6>
+                                    <small class="text-muted">@product.Category?.Name</small>
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge @(product.StockQuantity == 0 ? "bg-danger" : "bg-warning text-dark") rounded-pill">
+                                        @product.StockQuantity
+                                    </span>
+                                    <br>
+                                    <small class="text-muted">Min: @product.MinimumStock</small>
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    @if (Model.LowStockProducts.Count > 5)
+                    {
+                        <div class="text-center mt-3">
+                            <small class="text-muted">and @(Model.LowStockProducts.Count - 5) more items</small>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-check-circle fa-3x mb-3 text-success"></i>
+                        <p>All items are well stocked!</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Month Overview -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>This Month Overview</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-3">
+                        <div class="border-end">
+                            <h4 class="text-primary">₹@Model.MonthSales.ToString("N0")</h4>
+                            <p class="text-muted mb-0">Monthly Sales</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="border-end">
+                            <h4 class="text-success">@Model.RecentCustomers.Count</h4>
+                            <p class="text-muted mb-0">New Customers</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="border-end">
+                            <h4 class="text-info">@Model.LowStockCount</h4>
+                            <p class="text-muted mb-0">Items to Restock</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <h4 class="text-warning">@((Model.TodayOrders > 0 ? Model.TodaySales / Model.TodayOrders : 0).ToString("N0"))</h4>
+                        <p class="text-muted mb-0">Avg Order Value</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Auto-refresh dashboard every 5 minutes
+            setInterval(function() {
+                location.reload();
+            }, 300000); // 5 minutes
+
+            // Add keyboard shortcut for new sale
+            $(document).keydown(function(e) {
+                if (e.ctrlKey && e.key === 'n') {
+                    e.preventDefault();
+                    window.location.href = '@Url.Action("Create", "Sales")';
+                }
+            });
+
+            // Add some animation to metric cards
+            $('.metric-card, .bg-success, .bg-warning, .bg-info').hover(
+                function() { $(this).addClass('shadow-lg'); },
+                function() { $(this).removeClass('shadow-lg'); }
+            );
+        });
+    </script>
+}

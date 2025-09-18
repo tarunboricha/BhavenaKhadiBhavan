@@ -1,0 +1,353 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Khadi Store Management</title>
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+
+    <style>
+        :root {
+            --khadi-primary: #8B4513;
+            --khadi-secondary: #D2B48C;
+            --khadi-accent: #F5E6D3;
+            --khadi-success: #28a745;
+            --khadi-warning: #ffc107;
+            --khadi-danger: #dc3545;
+        }
+
+        .navbar-brand {
+            font-weight: bold;
+            color: var(--khadi-primary) !important;
+        }
+
+        .btn-khadi {
+            background-color: var(--khadi-primary);
+            border-color: var(--khadi-primary);
+            color: white;
+        }
+
+        .btn-khadi:hover {
+            background-color: #654321;
+            border-color: #654321;
+            color: white;
+        }
+
+        .card-khadi {
+            border-left: 4px solid var(--khadi-primary);
+        }
+
+        .sidebar {
+            background-color: #f8f9fa;
+            min-height: calc(100vh - 56px);
+        }
+
+        .nav-pills .nav-link.active {
+            background-color: var(--khadi-primary);
+        }
+
+        .nav-pills .nav-link:hover {
+            background-color: var(--khadi-secondary);
+            color: var(--khadi-primary);
+        }
+
+        .table-khadi thead {
+            background-color: var(--khadi-accent);
+            color: var(--khadi-primary);
+        }
+
+        .badge-low-stock {
+            background-color: var(--khadi-warning);
+            color: #000;
+        }
+
+        .badge-out-stock {
+            background-color: var(--khadi-danger);
+        }
+
+        .badge-in-stock {
+            background-color: var(--khadi-success);
+        }
+
+        .cart-sidebar {
+            background-color: #f8f9fa;
+            border-left: 1px solid #dee2e6;
+            height: calc(100vh - 56px);
+            overflow-y: auto;
+        }
+
+        .search-box {
+            border-radius: 25px;
+        }
+
+        .metric-card {
+            background: linear-gradient(45deg, var(--khadi-primary), var(--khadi-secondary));
+            color: white;
+            border-radius: 15px;
+        }
+
+        @@media (max-width: 768px) {
+            .sidebar {
+                min-height: auto;
+            }
+
+            .cart-sidebar {
+                height: auto;
+            }
+        }
+
+        .loading {
+            display: none;
+        }
+
+        .loading.show {
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-lg navbar-light bg-light shadow-sm">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="@Url.Action("Index", "Home")">
+                    <i class="fas fa-store me-2"></i>
+                    Khadi Store
+                </a>
+
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav me-auto">
+                        <li class="nav-item">
+                            <a class="nav-link" href="@Url.Action("Index", "Home")">
+                                <i class="fas fa-home me-1"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="@Url.Action("Create", "Sales")">
+                                <i class="fas fa-cash-register me-1"></i> Sales
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="@Url.Action("Index", "Products")">
+                                <i class="fas fa-box me-1"></i> Products
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="@Url.Action("Index", "Customers")">
+                                <i class="fas fa-users me-1"></i> Customers
+                            </a>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="reportsDropdown" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-chart-bar me-1"></i> Reports
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="@Url.Action("Sales", "Reports")">Sales Report</a></li>
+                                <li><a class="dropdown-item" href="@Url.Action("Stock", "Reports")">Stock Report</a></li>
+                                <li><a class="dropdown-item" href="@Url.Action("GST", "Reports")">GST Report</a></li>
+                                <li><a class="dropdown-item" href="@Url.Action("DailySales", "Reports")">Daily Sales</a></li>
+                            </ul>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="@Url.Action("Index", "Returns")">
+                                <i class="fas fa-undo me-1"></i> Returns
+                            </a>
+                        </li>
+                    </ul>
+
+                    <ul class="navbar-nav">
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="settingsDropdown" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-cog me-1"></i> Settings
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="@Url.Action("Index", "Categories")">Categories</a></li>
+                                <li><a class="dropdown-item" href="@Url.Action("LowStock", "Products")">Low Stock</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#" onclick="showHelp()">Help</a></li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <!-- Alert Messages -->
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show m-3" role="alert">
+                <i class="fas fa-check-circle me-2"></i>@TempData["Success"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show m-3" role="alert">
+                <i class="fas fa-exclamation-circle me-2"></i>@TempData["Error"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        @if (TempData["Warning"] != null)
+        {
+            <div class="alert alert-warning alert-dismissible fade show m-3" role="alert">
+                <i class="fas fa-exclamation-triangle me-2"></i>@TempData["Warning"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        @if (TempData["Info"] != null)
+        {
+            <div class="alert alert-info alert-dismissible fade show m-3" role="alert">
+                <i class="fas fa-info-circle me-2"></i>@TempData["Info"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        <!-- Main Content -->
+        <div class="container-fluid">
+            @RenderBody()
+        </div>
+    </main>
+
+    <!-- Loading Spinner Modal -->
+    <div class="modal fade" id="loadingModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-sm modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-body text-center py-4">
+                    <div class="spinner-border text-primary mb-3" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <div>Processing...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Help Modal -->
+    <div class="modal fade" id="helpModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-question-circle me-2"></i>Quick Help</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <h6>Navigation Tips:</h6>
+                    <ul>
+                        <li><strong>Dashboard:</strong> View today's sales and low stock alerts</li>
+                        <li><strong>Sales:</strong> Create new sales with easy product selection</li>
+                        <li><strong>Products:</strong> Manage inventory and product information</li>
+                        <li><strong>Customers:</strong> Manage customer database</li>
+                        <li><strong>Reports:</strong> View sales, stock, and GST reports</li>
+                        <li><strong>Returns:</strong> Process customer returns</li>
+                    </ul>
+                    <h6>Keyboard Shortcuts:</h6>
+                    <ul>
+                        <li><strong>Ctrl + N:</strong> New Sale (on sales page)</li>
+                        <li><strong>Ctrl + F:</strong> Focus search box</li>
+                        <li><strong>F1:</strong> Show this help</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+
+    <script>
+        // Global JavaScript functions
+        function showLoading() {
+            $('#loadingModal').modal('show');
+        }
+
+        function hideLoading() {
+            $('#loadingModal').modal('hide');
+        }
+
+        function showHelp() {
+            $('#helpModal').modal('show');
+        }
+
+        function formatCurrency(amount) {
+            return '₹' + parseFloat(amount).toLocaleString('en-IN', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+
+        function showToast(message, type = 'success') {
+            const toast = $(`
+                <div class="toast align-items-center text-white bg-${type} border-0" role="alert">
+                    <div class="d-flex">
+                        <div class="toast-body">${message}</div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    </div>
+                </div>
+            `);
+
+            if (!$('.toast-container').length) {
+                $('body').append('<div class="toast-container position-fixed bottom-0 end-0 p-3"></div>');
+            }
+
+            $('.toast-container').append(toast);
+            const bsToast = new bootstrap.Toast(toast[0]);
+            bsToast.show();
+        }
+
+        // Auto-dismiss alerts after 5 seconds
+        setTimeout(function() {
+            $('.alert').fadeOut();
+        }, 5000);
+
+        // Global keyboard shortcuts
+        $(document).keydown(function(e) {
+            if (e.key === 'F1') {
+                e.preventDefault();
+                showHelp();
+            }
+
+            if (e.ctrlKey && e.key === 'f') {
+                e.preventDefault();
+                $('input[type="search"], .search-box').first().focus();
+            }
+        });
+
+        // Form validation enhancement
+        $(document).ready(function() {
+            // Auto-focus first input
+            $('input:visible:first').focus();
+
+            // Confirm delete actions
+            $('button[type="submit"]:contains("Delete"), a:contains("Delete")').click(function(e) {
+                if (!confirm('Are you sure you want to delete this item?')) {
+                    e.preventDefault();
+                    return false;
+                }
+            });
+
+            // Auto-save forms on change (for drafts)
+            $('form[data-auto-save]').find('input, select, textarea').change(function() {
+                localStorage.setItem('form_' + $(this).closest('form').attr('id'), JSON.stringify($(this).closest('form').serializeArray()));
+            });
+        });
+    </script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

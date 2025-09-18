@@ -1,0 +1,424 @@
+﻿@model List<Sale>
+@{
+    ViewData["Title"] = "Sales";
+    var fromDate = ViewBag.FromDate as string;
+    var toDate = ViewBag.ToDate as string;
+    var search = ViewBag.Search as string;
+    var totalSales = ViewBag.TotalSales as decimal? ?? 0;
+    var totalOrders = ViewBag.TotalOrders as int? ?? 0;
+}
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2><i class="fas fa-chart-line me-2"></i>Sales History</h2>
+            <div>
+                <a href="@Url.Action("Create", "Sales")" class="btn btn-success">
+                    <i class="fas fa-plus me-1"></i>New Sale
+                </a>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown">
+                        <i class="fas fa-download me-1"></i>Export
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <a class="dropdown-item" href="@Url.Action("ExportToCSV", "Reports", new { fromDate, toDate })">
+                                <i class="fas fa-file-csv me-1"></i>Export to CSV
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="#" onclick="printSalesReport()">
+                                <i class="fas fa-print me-1"></i>Print Report
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Search and Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">From Date</label>
+                <input type="date" class="form-control" name="fromDate" value="@fromDate">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">To Date</label>
+                <input type="date" class="form-control" name="toDate" value="@toDate">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Search</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                    <input type="text" class="form-control search-box" name="search"
+                           value="@search" placeholder="Invoice, customer, phone...">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">&nbsp;</label>
+                <button type="submit" class="btn btn-primary w-100 d-block">
+                    <i class="fas fa-filter me-1"></i>Filter
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Sales Summary -->
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card metric-card text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-rupee-sign fa-2x mb-2"></i>
+                <h4>₹@totalSales.ToString("N0")</h4>
+                <small>Total Sales</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-shopping-cart fa-2x mb-2"></i>
+                <h4>@totalOrders</h4>
+                <small>Total Orders</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card bg-info text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-calculator fa-2x mb-2"></i>
+                <h4>₹@((totalOrders > 0 ? totalSales / totalOrders : 0).ToString("N0"))</h4>
+                <small>Average Order Value</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card bg-warning text-dark">
+            <div class="card-body text-center">
+                <i class="fas fa-calendar-day fa-2x mb-2"></i>
+                <h4>@Model.Where(s => s.SaleDate.Date == DateTime.Today).Count()</h4>
+                <small>Today's Orders</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (Model.Any())
+{
+    <!-- Sales Table -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                Sales List (@Model.Count)
+                @if (!string.IsNullOrEmpty(search))
+                {
+                    <span class="text-muted">- Filtered by "@search"</span>
+                }
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover sortable-table">
+                    <thead class="table-light">
+                        <tr>
+                            <th data-sort="invoice" data-sort-type="string">Invoice #</th>
+                            <th data-sort="date" data-sort-type="date">Date</th>
+                            <th data-sort="customer" data-sort-type="string">Customer</th>
+                            <th data-sort="items" data-sort-type="number">Items</th>
+                            <th data-sort="payment" data-sort-type="string">Payment</th>
+                            <th data-sort="amount" data-sort-type="currency">Amount</th>
+                            <th data-sort="status" data-sort-type="string">Status</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var sale in Model)
+                        {
+                            <tr>
+                                <td>
+                                    <a href="@Url.Action("Details", "Sales", new { id = sale.Id })"
+                                       class="text-decoration-none fw-bold">
+                                        @sale.InvoiceNumber
+                                    </a>
+                                </td>
+                                <td>
+                                    <div>@sale.SaleDate.ToString("dd/MM/yyyy")</div>
+                                    <small class="text-muted">@sale.SaleDate.ToString("HH:mm")</small>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-circle bg-primary text-white me-2">
+                                            @sale.CustomerDisplayName.Substring(0, 1).ToUpper()
+                                        </div>
+                                        <div>
+                                            <strong>@sale.CustomerDisplayName</strong>
+                                            @if (!string.IsNullOrEmpty(sale.CustomerPhone))
+                                            {
+                                                <br>
+                                                <small class="text-muted">
+                                                    <i class="fas fa-phone text-success me-1"></i>
+                                                    @sale.CustomerPhone
+                                                </small>
+                                            }
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge bg-info rounded-pill">@sale.ItemCount</span>
+                                </td>
+                                <td>
+                                    <span class="badge @(sale.PaymentMethod switch
+                                          {
+                                              "Cash" => "bg-success",
+                                              "Card" => "bg-primary",
+                                              "UPI" => "bg-warning text-dark",
+                                              _ => "bg-secondary"
+                                          })">
+                                @sale.PaymentMethod
+                            </span>
+                            @if (!string.IsNullOrEmpty(sale.PaymentReference))
+                                    {
+                                        <br>
+                            
+                                        <small class="text-muted">@sale.PaymentReference</small>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="text-success fw-bold">₹@sale.TotalAmount.ToString("N2")</div>
+                                    @if (sale.DiscountAmount > 0)
+                                    {
+                                        <small class="text-muted">
+                                            <i class="fas fa-tag"></i> @sale.DiscountPercentage% off
+                                        </small>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="badge @(sale.Status == "Completed" ? "bg-success" : "bg-warning")">
+                                        @sale.Status
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    <div class="btn-group" role="group">
+                                        <a href="@Url.Action("Details", "Sales", new { id = sale.Id })"
+                                           class="btn btn-sm btn-outline-info" title="View Details">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="@Url.Action("PrintInvoice", "Sales", new { id = sale.Id })"
+                                           class="btn btn-sm btn-outline-primary" title="Print Invoice" target="_blank">
+                                            <i class="fas fa-print"></i>
+                                        </a>
+                                        <div class="btn-group">
+                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle"
+                                                    data-bs-toggle="dropdown" title="More Actions">
+                                                <i class="fas fa-ellipsis-v"></i>
+                                            </button>
+                                            <ul class="dropdown-menu">
+                                                <li>
+                                                    <a class="dropdown-item"
+                                                       href="@Url.Action("Create", "Returns", new { saleId = sale.Id })">
+                                                        <i class="fas fa-undo me-2"></i>Process Return
+                                                    </a>
+                                                </li>
+                                                @if (!string.IsNullOrEmpty(sale.CustomerPhone))
+                                                {
+                                                    <li>
+                                                        <a class="dropdown-item"
+                                                           href="@Url.Action("Create", "Sales", new { customerPhone = sale.CustomerPhone })">
+                                                            <i class="fas fa-plus me-2"></i>New Sale (Same Customer)
+                                                        </a>
+                                                    </li>
+                                                }
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li>
+                                                    <a class="dropdown-item text-muted" href="#" onclick="copySaleDetails(@sale.Id)">
+                                                        <i class="fas fa-copy me-2"></i>Copy Details
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Pagination (if needed) -->
+        @if (Model.Count >= 50)
+        {
+            <div class="card-footer">
+                <div class="text-center">
+                    <small class="text-muted">
+                        Showing @Model.Count sales.
+                        <a href="#" onclick="loadMoreSales()" class="text-primary">Load more...</a>
+                    </small>
+                </div>
+            </div>
+        }
+    </div>
+}
+else
+{
+    <!-- No Sales Found -->
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
+            <h4>No Sales Found</h4>
+            <p class="text-muted">
+                @if (!string.IsNullOrEmpty(search) || !string.IsNullOrEmpty(fromDate) || !string.IsNullOrEmpty(toDate))
+                {
+                    <span>No sales match your search criteria.</span>
+                    <br>
+                    <a href="@Url.Action("Index", "Sales")" class="btn btn-outline-primary mt-2">
+                        <i class="fas fa-times me-1"></i>Clear Filters
+                    </a>
+                }
+                else
+                {
+                    <span>You haven't made any sales yet.</span>
+                    <br>
+                    <a href="@Url.Action("Create", "Sales")" class="btn btn-khadi mt-2">
+                        <i class="fas fa-plus me-1"></i>Create Your First Sale
+                    </a>
+                }
+            </p>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Auto-focus search box
+            $('.search-box').focus();
+
+            // Submit form on Enter key
+            $('.search-box').keypress(function(e) {
+                if (e.which === 13) {
+                    $(this).closest('form').submit();
+                }
+            });
+
+            // Initialize sortable table
+            if (typeof KhadiStore !== 'undefined' && KhadiStore.components.sortableTable) {
+                KhadiStore.components.sortableTable('.sortable-table');
+            }
+
+            // Quick date filters
+            $('.quick-filter').click(function(e) {
+                e.preventDefault();
+                const days = $(this).data('days');
+                const toDate = new Date();
+                const fromDate = new Date();
+                fromDate.setDate(fromDate.getDate() - days);
+
+                $('input[name="fromDate"]').val(fromDate.toISOString().split('T')[0]);
+                $('input[name="toDate"]').val(toDate.toISOString().split('T')[0]);
+                $('form').submit();
+            });
+
+            // Row click to view details
+            $('tbody tr').click(function(e) {
+                if ($(e.target).closest('button, a').length === 0) {
+                    const link = $(this).find('a[href*="/Details/"]').first();
+                    if (link.length > 0) {
+                        window.location.href = link.attr('href');
+                    }
+                }
+            });
+
+            // Add hover effect
+            $('tbody tr').hover(
+                function() { $(this).addClass('table-active'); },
+                function() { $(this).removeClass('table-active'); }
+            );
+        });
+
+        function printSalesReport() {
+            const fromDate = '@fromDate';
+            const toDate = '@toDate';
+            const search = '@search';
+
+            let url = '@Url.Action("PrintSalesReport", "Reports")';
+            const params = new URLSearchParams();
+
+            if (fromDate) params.append('fromDate', fromDate);
+            if (toDate) params.append('toDate', toDate);
+            if (search) params.append('search', search);
+
+            if (params.toString()) {
+                url += '?' + params.toString();
+            }
+
+            window.open(url, '_blank');
+        }
+
+        function copySaleDetails(saleId) {
+            // Copy sale details to clipboard (invoice number, amount, etc.)
+            const row = $(`a[href*="${saleId}"]`).closest('tr');
+            const invoice = row.find('td:first a').text().trim();
+            const amount = row.find('.text-success').text().trim();
+            const customer = row.find('strong').text().trim();
+
+            const details = `Invoice: ${invoice}\nCustomer: ${customer}\nAmount: ${amount}`;
+
+            navigator.clipboard.writeText(details).then(function() {
+                showToast('Sale details copied to clipboard!', 'success');
+            });
+        }
+
+        function loadMoreSales() {
+            // Placeholder for pagination
+            showToast('All sales are already loaded', 'info');
+        }
+    </script>
+}
+
+<!-- Quick Filter Buttons (can be added to the search card if needed) -->
+<div class="d-none" id="quickFilters">
+    <div class="btn-group btn-group-sm">
+        <a href="#" class="btn btn-outline-secondary quick-filter" data-days="1">Today</a>
+        <a href="#" class="btn btn-outline-secondary quick-filter" data-days="7">Last 7 Days</a>
+        <a href="#" class="btn btn-outline-secondary quick-filter" data-days="30">Last 30 Days</a>
+        <a href="#" class="btn btn-outline-secondary quick-filter" data-days="90">Last 3 Months</a>
+    </div>
+</div>
+
+<style>
+    .avatar-circle {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        flex-shrink: 0;
+        font-size: 0.75rem;
+    }
+
+    tbody tr {
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+        tbody tr:hover {
+            background-color: rgba(139, 69, 19, 0.05);
+            transform: translateX(2px);
+        }
+
+    .sortable-header {
+        user-select: none;
+    }
+
+        .sortable-header:hover {
+            background-color: var(--khadi-accent);
+        }
+</style>

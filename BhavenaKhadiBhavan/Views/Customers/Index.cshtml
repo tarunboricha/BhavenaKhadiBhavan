@@ -1,0 +1,299 @@
+﻿@model List<Customer>
+@{
+    ViewData["Title"] = "Customers";
+    var currentSearch = ViewBag.CurrentSearch as string;
+    var currentCustomerType = ViewBag.CurrentCustomerType as string;
+}
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2><i class="fas fa-users me-2"></i>Customer Management</h2>
+            <div>
+                <a href="@Url.Action("Analytics", "Customers")" class="btn btn-outline-info">
+                    <i class="fas fa-chart-bar me-1"></i>Analytics
+                </a>
+                <a href="@Url.Action("ExportToCSV", "Customers")" class="btn btn-outline-success">
+                    <i class="fas fa-download me-1"></i>Export
+                </a>
+                <a href="@Url.Action("Create", "Customers")" class="btn btn-khadi">
+                    <i class="fas fa-user-plus me-1"></i>Add Customer
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Search and Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-6">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                    <input type="text" class="form-control search-box" name="search"
+                           value="@currentSearch" placeholder="Search by name, phone, or email...">
+                </div>
+            </div>
+            <div class="col-md-4">
+                <select class="form-select" name="customerType">
+                    <option value="">All Customer Types</option>
+                    <option value="new" selected="@(currentCustomerType == "new")">New Customers</option>
+                    <option value="regular" selected="@(currentCustomerType == "regular")">Regular Customers</option>
+                    <option value="loyal" selected="@(currentCustomerType == "loyal")">Loyal Customers</option>
+                    <option value="inactive" selected="@(currentCustomerType == "inactive")">Inactive Customers</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-search me-1"></i>Search
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Customer Statistics -->
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-users fa-2x mb-2"></i>
+                <h4>@ViewBag.TotalCustomers</h4>
+                <small>Total Customers</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-user-plus fa-2x mb-2"></i>
+                <h4>@ViewBag.NewCustomers</h4>
+                <small>New Customers</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card bg-info text-white">
+            <div class="card-body text-center">
+                <i class="fas fa-heart fa-2x mb-2"></i>
+                <h4>@ViewBag.RegularCustomers</h4>
+                <small>Regular Customers</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="card bg-warning text-dark">
+            <div class="card-body text-center">
+                <i class="fas fa-crown fa-2x mb-2"></i>
+                <h4>@ViewBag.LoyalCustomers</h4>
+                <small>Loyal Customers</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (Model.Any())
+{
+    <!-- Customers Table -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                Customer List
+                <span class="badge bg-secondary ms-2">@Model.Count</span>
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Customer</th>
+                            <th>Contact</th>
+                            <th>Orders</th>
+                            <th>Total Spent</th>
+                            <th>Last Purchase</th>
+                            <th>Type</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var customer in Model)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-circle bg-primary text-white me-3">
+                                            @customer.Name.Substring(0, 1).ToUpper()
+                                        </div>
+                                        <div>
+                                            <strong>@customer.Name</strong>
+                                            @if (!string.IsNullOrEmpty(customer.Email))
+                                            {
+                                                <br>
+                                    
+                                                <small class="text-muted">@customer.Email</small>
+                                            }
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(customer.Phone))
+                                    {
+                                        <i class="fas fa-phone text-success me-1"></i>
+                                        <a href="tel:@customer.Phone" class="text-decoration-none">@customer.Phone</a>
+                                        <br>
+                                    }
+                                    @if (!string.IsNullOrEmpty(customer.Address))
+                                    {
+                                        <small class="text-muted">
+                                            <i class="fas fa-map-marker-alt me-1"></i>
+                                            @customer.Address.Substring(0, Math.Min(30, customer.Address.Length))@(customer.Address.Length > 30 ? "..." : "")
+                                        </small>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="badge bg-info rounded-pill">@customer.TotalOrders</span>
+                                    @if (customer.TotalOrders > 0)
+                                    {
+                                        <br>
+                            
+                                        <small class="text-muted">Avg: ₹@customer.AverageOrderValue.ToString("N0")</small>
+                                    }
+                                </td>
+                                <td>
+                                    <strong class="text-success">₹@customer.TotalPurchases.ToString("N0")</strong>
+                                </td>
+                                <td>
+                                    @if (customer.LastPurchaseDate.HasValue)
+                                    {
+                                        <span>@customer.LastPurchaseDate.Value.ToString("dd/MM/yyyy")</span>
+                                        <br>
+
+                                        <small class="text-muted">@customer.DaysSinceLastPurchase days ago</small>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Never</span>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="badge @(customer.CustomerType switch
+                                          {
+                                              "New" => "bg-light text-dark",
+                                              "Second-time" => "bg-info",
+                                              "Regular" => "bg-success",
+                                              "Loyal" => "bg-warning text-dark",
+                                              _ => "bg-secondary"
+                                          })">
+                                @customer.CustomerType
+                            </span>
+                        </td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <a href="@Url.Action("Details", "Customers", new { id = customer.Id })"
+                                   class="btn btn-sm btn-outline-info" title="View Details">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="@Url.Action("Edit", "Customers", new { id = customer.Id })"
+                                   class="btn btn-sm btn-outline-primary" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                @if (!string.IsNullOrEmpty(customer.Phone))
+                                        {
+                                            <a href="@Url.Action("Create", "Sales")?customerPhone=@customer.Phone"
+                                               class="btn btn-sm btn-outline-success" title="New Sale">
+                                                <i class="fas fa-shopping-cart"></i>
+                                            </a>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <!-- No Customers Found -->
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <i class="fas fa-users fa-3x text-muted mb-3"></i>
+            <h4>No Customers Found</h4>
+            <p class="text-muted">
+                @if (!string.IsNullOrEmpty(currentSearch) || !string.IsNullOrEmpty(currentCustomerType))
+                {
+                    <span>No customers match your search criteria.</span>
+                    <br>
+                    <a href="@Url.Action("Index", "Customers")" class="btn btn-outline-primary mt-2">
+                        <i class="fas fa-times me-1"></i>Clear Filters
+                    </a>
+                }
+                else
+                {
+                    <span>You haven't added any customers yet.</span>
+                    <br>
+                    <a href="@Url.Action("Create", "Customers")" class="btn btn-khadi mt-2">
+                        <i class="fas fa-user-plus me-1"></i>Add Your First Customer
+                    </a>
+                }
+            </p>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Auto-focus search box
+            $('.search-box').focus();
+
+            // Submit form on Enter key
+            $('.search-box').keypress(function(e) {
+                if (e.which === 13) {
+                    $(this).closest('form').submit();
+                }
+            });
+
+            // Customer type color coding
+            $('.badge').each(function() {
+                const $badge = $(this);
+                const text = $badge.text().trim();
+
+                switch(text) {
+                    case 'New':
+                        if (!$badge.hasClass('bg-light')) {
+                            $badge.addClass('bg-light text-dark');
+                        }
+                        break;
+                    case 'Regular':
+                        if (!$badge.hasClass('bg-success')) {
+                            $badge.addClass('bg-success');
+                        }
+                        break;
+                    case 'Loyal':
+                        if (!$badge.hasClass('bg-warning')) {
+                            $badge.addClass('bg-warning text-dark');
+                        }
+                        break;
+                }
+            });
+        });
+    </script>
+}
+
+<style>
+    .avatar-circle {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        flex-shrink: 0;
+    }
+</style>

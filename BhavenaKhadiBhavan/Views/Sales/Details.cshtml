@@ -1,0 +1,483 @@
+﻿@model Sale
+@{
+    ViewData["Title"] = $"Sale Details - {Model.InvoiceNumber}";
+    var storeSettings = ViewBag.StoreSettings as Dictionary<string, string>;
+    var returnableQuantities = ViewBag.ReturnableQuantities as Dictionary<int, decimal> ?? new Dictionary<int, decimal>();
+    var hasReturnableItems = ViewBag.HasReturnableItems as bool? ?? false;
+}
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2>
+                <i class="fas fa-receipt me-2"></i>
+                Sale Details - @Model.InvoiceNumber
+                <span class="badge @(Model.Status == "Completed" ? "bg-success" : "bg-warning") ms-2">
+                    @Model.Status
+                </span>
+            </h2>
+            <div>
+                @if (hasReturnableItems)
+                {
+                    <a href="@Url.Action("Create", "Returns", new { saleId = Model.Id })" class="btn btn-outline-warning">
+                        <i class="fas fa-undo me-1"></i>Process Return
+                    </a>
+                }
+                <a href="@Url.Action("PrintInvoice", "Sales", new { id = Model.Id })"
+                   class="btn btn-outline-primary" target="_blank">
+                    <i class="fas fa-print me-1"></i>Print Invoice
+                </a>
+                <a href="@Url.Action("Index", "Sales")" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Back to Sales
+                </a>
+            </div>
+        </div>
+        <hr>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Sale Summary Card -->
+    <div class="col-lg-4 mb-4">
+        <div class="card card-khadi h-100">
+            <div class="card-header bg-khadi text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Sale Summary
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-sm-6">
+                        <strong>Invoice #:</strong>
+                    </div>
+                    <div class="col-sm-6">
+                        @Model.InvoiceNumber
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-sm-6">
+                        <strong>Date:</strong>
+                    </div>
+                    <div class="col-sm-6">
+                        @Model.SaleDate.ToString("dd/MM/yyyy HH:mm")
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-sm-6">
+                        <strong>Customer:</strong>
+                    </div>
+                    <div class="col-sm-6">
+                        @Model.CustomerDisplayName
+                        @if (!string.IsNullOrEmpty(Model.CustomerPhone))
+                        {
+                            <br>
+
+                            <small class="text-muted">@Model.CustomerPhone</small>
+                        }
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-sm-6">
+                        <strong>Payment:</strong>
+                    </div>
+                    <div class="col-sm-6">
+                        @Model.PaymentMethod
+                        @if (!string.IsNullOrEmpty(Model.PaymentReference))
+                        {
+                            <br>
+
+                            <small class="text-muted">Ref: @Model.PaymentReference</small>
+                        }
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-sm-6">
+                        <strong>Total Items:</strong>
+                    </div>
+                    <div class="col-sm-6">
+                        <span class="badge bg-info">@Model.ItemCount.ToString("0.###")</span>
+                    </div>
+                </div>
+
+                <hr>
+
+                <div class="row mb-2">
+                    <div class="col-sm-6">Subtotal:</div>
+                    <div class="col-sm-6 text-end">₹@Model.SubTotal.ToString("N2")</div>
+                </div>
+
+                <div class="row mb-2">
+                    <div class="col-sm-6">GST:</div>
+                    <div class="col-sm-6 text-end">₹@Model.GSTAmount.ToString("N2")</div>
+                </div>
+
+                @if (Model.DiscountAmount > 0)
+                {
+                    <div class="row mb-2">
+                        <div class="col-sm-6">Discount (@Model.DiscountPercentage%):</div>
+                        <div class="col-sm-6 text-end text-success">-₹@Model.DiscountAmount.ToString("N2")</div>
+                    </div>
+                }
+
+                <hr>
+
+                <div class="row">
+                    <div class="col-sm-6">
+                        <strong>Total Amount:</strong>
+                    </div>
+                    <div class="col-sm-6 text-end">
+                        <h4 class="text-success mb-0">₹@Model.TotalAmount.ToString("N2")</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sale Items -->
+    <div class="col-lg-8 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-shopping-cart me-2"></i>
+                    Items Sold (@Model.SaleItems.Count)
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Product</th>
+                                <th>Qty</th>
+                                <th>Unit Price</th>
+                                <th>GST</th>
+                                <th>Line Total</th>
+                                @if (hasReturnableItems)
+                                {
+                                    <th>Returnable</th>
+                                }
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model.SaleItems)
+                            {
+                                var returnableQty = returnableQuantities.ContainsKey(item.Id) ? returnableQuantities[item.Id] : 0;
+
+                                <tr>
+                                    <td>
+                                        <strong>@item.ProductName</strong>
+                                        @if (item.Product != null)
+                                        {
+                                            <br>
+                                            @if (!string.IsNullOrEmpty(item.Product.Color))
+                                            {
+                                                <span class="badge bg-light text-dark me-1">@item.Product.Color</span>
+                                            }
+                                            @if (!string.IsNullOrEmpty(item.Product.Size))
+                                            {
+                                                <span class="badge bg-light text-dark">@item.Product.Size</span>
+                                            }
+                                        }
+                                    </td>
+                                    <td>
+                                        <!-- FIXED: Display decimal quantity properly -->
+                                        <span class="badge bg-primary">@item.Quantity.ToString("0.###") @(item.UnitOfMeasure ?? "Piece")</span>
+                                        @if (item.ReturnedQuantity > 0)
+                                        {
+                                            <br>
+
+                                            <small class="text-muted">Returned: @item.ReturnedQuantity.ToString("0.###")</small>
+                                        }
+                                    </td>
+                                    <td>
+                                        ₹@item.UnitPrice.ToString("N2")
+                                        <br><small class="text-muted">per @(item.UnitOfMeasure ?? "piece")</small>
+                                    </td>
+                                    <td>
+                                        @item.GSTRate%
+                                        <br><small class="text-muted">₹@item.GSTAmount.ToString("N2")</small>
+                                    </td>
+                                    <td>
+                                        <strong>₹@item.LineTotal.ToString("N2")</strong>
+                                        <br><small class="text-muted">
+                                            ₹@((item.UnitPrice * item.Quantity).ToString("N2")) + ₹@item.GSTAmount.ToString("N2")
+                                        </small>
+                                    </td>
+                                    @if (hasReturnableItems)
+                                    {
+                                        <td>
+                                            @if (returnableQty > 0)
+                                            {
+                                                <span class="badge bg-warning text-dark">@returnableQty.ToString("0.###")</span>
+                                                <br>
+                                                <a href="@Url.Action("Create", "Returns", new { saleId = Model.Id, itemId = item.Id })"
+                                                   class="btn btn-sm btn-outline-warning mt-1">
+                                                    <i class="fas fa-undo"></i>
+                                                </a>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">None</span>
+                                            }
+                                        </td>
+                                    }
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot class="table-light">
+                            <tr>
+                                <th colspan="@(hasReturnableItems ? 4 : 3)">Totals:</th>
+                                <th>₹@Model.SaleItems.Sum(i => i.LineTotal).ToString("N2")</th>
+                                @if (hasReturnableItems)
+                                {
+                                    <th></th>
+                                }
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <!-- Calculation Breakdown -->
+                <div class="mt-3">
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-calculator me-2"></i>Calculation Breakdown:</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <small>
+                                    <strong>Items Subtotal:</strong> ₹@Model.SaleItems.Sum(i => i.UnitPrice * i.Quantity).ToString("N2")<br>
+                                    <strong>Total GST:</strong> ₹@Model.SaleItems.Sum(i => i.GSTAmount).ToString("N2")<br>
+                                    <strong>Before Discount:</strong> ₹@(Model.SubTotal + Model.GSTAmount).ToString("N2")
+                                </small>
+                            </div>
+                            <div class="col-md-6">
+                                <small>
+                                    -₹
+                                    @if (Model.DiscountAmount > 0)
+                                    {
+                                        <strong>Discount (@Model.DiscountPercentage%):</strong>
+                                        @Model.DiscountAmount.ToString("N2")
+                                    }
+                                    < br >
+                                    <strong class="text-success">Final Total:</strong> ₹@Model.TotalAmount.ToString("N2")
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Additional Information Row -->
+<div class="row">
+    <!-- Return History -->
+    @if (Model.SaleItems.Any(i => i.ReturnedQuantity > 0))
+    {
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history me-2"></i>Return History
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        This sale has processed returns.
+                        <a href="@Url.Action("Index", "Returns", new { search = Model.InvoiceNumber })"
+                           class="alert-link">View return details</a>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Returned Qty</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model.SaleItems.Where(i => i.ReturnedQuantity > 0))
+                                {
+                                    <tr>
+                                        <td>@item.ProductName</td>
+                                        <td>@item.ReturnedQuantity.ToString("0.###") @(item.UnitOfMeasure ?? "Piece")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Customer Information (if available) -->
+    @if (Model.Customer != null)
+    {
+        <div class="col-lg-6 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user me-2"></i>Customer Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-2">
+                        <div class="col-sm-4">
+                            <strong>Name:</strong>
+                        </div>
+                        <div class="col-sm-8">
+                            @Model.Customer.Name
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(Model.Customer.Phone))
+                    {
+                        <div class="row mb-2">
+                            <div class="col-sm-4">
+                                <strong>Phone:</strong>
+                            </div>
+                            <div class="col-sm-8">
+                                <a href="tel:@Model.Customer.Phone" class="text-decoration-none">
+                                    @Model.Customer.Phone
+                                </a>
+                            </div>
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(Model.Customer.Email))
+                    {
+                        <div class="row mb-2">
+                            <div class="col-sm-4">
+                                <strong>Email:</strong>
+                            </div>
+                            <div class="col-sm-8">
+                                <a href="mailto:@Model.Customer.Email" class="text-decoration-none">
+                                    @Model.Customer.Email
+                                </a>
+                            </div>
+                        </div>
+                    }
+
+                    <div class="row mb-2">
+                        <div class="col-sm-4">
+                            <strong>Total Orders:</strong>
+                        </div>
+                        <div class="col-sm-8">
+                            <span class="badge bg-info">@Model.Customer.TotalOrders</span>
+                        </div>
+                    </div>
+
+                    <div class="row mb-2">
+                        <div class="col-sm-4">
+                            <strong>Customer Type:</strong>
+                        </div>
+                        <div class="col-sm-8">
+                            <span class="badge @(Model.Customer.CustomerType switch
+                                  {
+                                      "New" => "bg-light text-dark",
+                                      "Regular" => "bg-success",
+                                      "Loyal" => "bg-warning text-dark",
+                                      _ => "bg-secondary"
+                                  })">
+                            @Model.Customer.CustomerType
+                        </span>
+                    </div>
+                </div>
+
+                    <div class="mt-3">
+                        <a href="@Url.Action("Details", "Customers", new { id = Model.Customer.Id })"
+                           class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-user me-1"></i>View Customer Profile
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        }
+</div>
+
+<!-- Action Buttons -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <h5><i class="fas fa-cogs me-2"></i>Quick Actions</h5>
+                <div class="btn-group" role="group">
+                    <a href="@Url.Action("PrintInvoice", "Sales", new { id = Model.Id })"
+                       class="btn btn-primary" target="_blank">
+                        <i class="fas fa-print me-1"></i>Print Invoice
+                    </a>
+
+                    @if (hasReturnableItems)
+                    {
+                        <a href="@Url.Action("Create", "Returns", new { saleId = Model.Id })"
+                           class="btn btn-warning">
+                            <i class="fas fa-undo me-1"></i>Process Return
+                        </a>
+                    }
+
+                    @if (!string.IsNullOrEmpty(Model.CustomerPhone))
+                    {
+                        <a href="@Url.Action("Create", "Sales", new { customerPhone = Model.CustomerPhone })"
+                           class="btn btn-success">
+                            <i class="fas fa-plus me-1"></i>New Sale (Same Customer)
+                        </a>
+                    }
+
+                    <a href="@Url.Action("Index", "Sales")" class="btn btn-outline-secondary">
+                        <i class="fas fa-list me-1"></i>All Sales
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Add hover effects to item rows
+            $('tbody tr').hover(
+                function() { $(this).addClass('table-active'); },
+                function() { $(this).removeClass('table-active'); }
+            );
+
+            // Keyboard shortcut to print (Ctrl+P)
+            $(document).keydown(function(e) {
+                if (e.ctrlKey && e.key === 'p') {
+                    e.preventDefault();
+                    window.open('@Url.Action("PrintInvoice", "Sales", new { id = Model.Id })', '_blank');
+                }
+            });
+
+            // Add tooltips to badges
+            $('[data-bs-toggle="tooltip"]').tooltip();
+
+            // Debug total calculation
+            console.log('Sale Details Debug:');
+            console.log('Subtotal: ₹@Model.SubTotal.ToString("N2")');
+            console.log('GST Amount: ₹@Model.GSTAmount.ToString("N2")');
+            console.log('Discount: ₹@Model.DiscountAmount.ToString("N2")');
+            console.log('Total: ₹@Model.TotalAmount.ToString("N2")');
+
+            @foreach (var item in Model.SaleItems)
+            {
+                        <text>
+                        console.log('Item: @item.ProductName');
+                        console.log('  Qty: @item.Quantity.ToString("0.###")');
+                        console.log('  Unit Price: ₹@item.UnitPrice.ToString("N2")');
+                        console.log('  Line Subtotal: ₹@((item.UnitPrice * item.Quantity).ToString("N2"))');
+                        console.log('  GST: ₹@item.GSTAmount.ToString("N2")');
+                        console.log('  Line Total: ₹@item.LineTotal.ToString("N2")');
+                        </text>
+            }
+        });
+    </script>
+}

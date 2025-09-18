@@ -1,0 +1,340 @@
+﻿@model List<Product>
+@{
+    ViewData["Title"] = "Products";
+    var categories = ViewBag.Categories as SelectList;
+    var currentSearch = ViewBag.CurrentSearch as string;
+    var currentCategory = ViewBag.CurrentCategory as int?;
+    var currentStockStatus = ViewBag.CurrentStockStatus as string;
+}
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2><i class="fas fa-box me-2"></i>Products Management</h2>
+            <div>
+                <a href="@Url.Action("LowStock", "Products")" class="btn btn-outline-warning">
+                    <i class="fas fa-exclamation-triangle me-1"></i>Low Stock
+                </a>
+                <a href="@Url.Action("Create", "Products")" class="btn btn-khadi">
+                    <i class="fas fa-plus me-1"></i>Add Product
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Search and Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                    <input type="text" class="form-control search-box" name="search"
+                           value="@currentSearch" placeholder="Search by name, SKU, color...">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" name="categoryId">
+                    <option value="">All Categories</option>
+                    @if (categories != null)
+                    {
+                        foreach (SelectListItem item in categories)
+                        {
+                            <option value="@item.Value" selected="@(item.Value == currentCategory?.ToString())">
+                                @item.Text
+                            </option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select" name="stockStatus">
+                    <option value="">All Stock Status</option>
+                    <option value="instock" selected="@(currentStockStatus == "instock")">In Stock</option>
+                    <option value="lowstock" selected="@(currentStockStatus == "lowstock")">Low Stock</option>
+                    <option value="outofstock" selected="@(currentStockStatus == "outofstock")">Out of Stock</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-search me-1"></i>Search
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Products Summary -->
+<div class="row mb-3">
+    <div class="col-12">
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            Showing <strong>@Model.Count</strong> products
+            @if (!string.IsNullOrEmpty(currentSearch))
+            {
+                <span>matching "<strong>@currentSearch</strong>"</span>
+            }
+            @if (currentCategory.HasValue)
+            {
+                var categoryName = categories?.FirstOrDefault(c => c.Value == currentCategory.ToString())?.Text;
+                <span>in category "<strong>@categoryName</strong>"</span>
+            }
+            @if (!string.IsNullOrEmpty(currentStockStatus))
+            {
+                <span>with status "<strong>@currentStockStatus.Replace("instock", "In Stock").Replace("lowstock", "Low Stock").Replace("outofstock", "Out of Stock")</strong>"</span>
+            }
+        </div>
+    </div>
+</div>
+
+@if (Model.Any())
+{
+    <!-- Products Table -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover table-khadi">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Category</th>
+                            <th>Details</th>
+                            <th>Pricing</th>
+                            <th>Stock</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var product in Model)
+                        {
+                            <tr class="@(product.StockQuantity == 0 ? "table-warning" : "")">
+                                <td>
+                                    <div>
+                                        <strong>@product.Name</strong>
+                                        @if (!string.IsNullOrEmpty(product.SKU))
+                                        {
+                                            <br>
+                                
+                                            <small class="text-muted">SKU: @product.SKU</small>
+                                        }
+                                    </div>
+                                </td>
+                                <td>
+                                    @product.Category?.Name
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(product.FabricType))
+                                    {
+                                        <span class="badge bg-secondary">@product.FabricType</span>
+                                    }
+                                    @if (!string.IsNullOrEmpty(product.Color))
+                                    {
+                                        <span class="badge bg-info">@product.Color</span>
+                                    }
+                                    @if (!string.IsNullOrEmpty(product.Size))
+                                    {
+                                        <span class="badge bg-light text-dark">@product.Size</span>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="text-success fw-bold">₹@product.SalePrice.ToString("N0")</div>
+                                    <small class="text-muted">
+                                        Cost: ₹@product.PurchasePrice.ToString("N0")
+                                        <br>
+                                        +@product.GSTRate% GST = ₹@product.PriceWithGST.ToString("N0")
+                                        <br>
+                                        Margin: @product.ProfitMargin.ToString("N1")%
+                                    </small>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <span class="fw-bold me-2">@product.StockQuantity</span>
+                                        <span class="badge @(product.StockQuantity == 0 ? "badge-out-stock" : product.IsLowStock ? "badge-low-stock" : "badge-in-stock")">
+                                            @product.StockStatus
+                                        </span>
+                                    </div>
+                                    <small class="text-muted">Min: @product.MinimumStock</small>
+                                </td>
+                                <td>
+                                    @if (product.IsActive)
+                                    {
+                                        <span class="badge bg-success">Active</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">Inactive</span>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <a href="@Url.Action("Details", "Products", new { id = product.Id })"
+                                           class="btn btn-sm btn-outline-info" title="View Details">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="@Url.Action("Edit", "Products", new { id = product.Id })"
+                                           class="btn btn-sm btn-outline-primary" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a href="@Url.Action("StockAdjustment", "Products", new { id = product.Id })"
+                                           class="btn btn-sm btn-outline-warning" title="Adjust Stock">
+                                            <i class="fas fa-boxes"></i>
+                                        </a>
+                                        @if (product.IsActive)
+                                        {
+                                            <a href="@Url.Action("Delete", "Products", new { id = product.Id })"
+                                               class="btn btn-sm btn-outline-danger" title="Delete">
+                                                <i class="fas fa-trash"></i>
+                                            </a>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <!-- No Products Found -->
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
+            <h4>No Products Found</h4>
+            <p class="text-muted">
+                @if (!string.IsNullOrEmpty(currentSearch) || currentCategory.HasValue || !string.IsNullOrEmpty(currentStockStatus))
+                {
+                    <span>No products match your search criteria.</span>
+                    <br>
+                    <a href="@Url.Action("Index", "Products")" class="btn btn-outline-primary mt-2">
+                        <i class="fas fa-times me-1"></i>Clear Filters
+                    </a>
+                }
+                else
+                {
+                    <span>You haven't added any products yet.</span>
+                    <br>
+                    <a href="@Url.Action("Create", "Products")" class="btn btn-khadi mt-2">
+                        <i class="fas fa-plus me-1"></i>Add Your First Product
+                    </a>
+                }
+            </p>
+        </div>
+    </div>
+}
+
+<!-- Quick Stats Cards -->
+@if (Model.Any())
+{
+    <div class="row mt-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-light">
+                <div class="card-body text-center">
+                    <h5 class="text-primary">@Model.Count</h5>
+                    <small class="text-muted">Total Products</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-light">
+                <div class="card-body text-center">
+                    <h5 class="text-success">@Model.Count(p => p.StockQuantity > p.MinimumStock)</h5>
+                    <small class="text-muted">Well Stocked</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-light">
+                <div class="card-body text-center">
+                    <h5 class="text-warning">@Model.Count(p => p.IsLowStock && p.StockQuantity > 0)</h5>
+                    <small class="text-muted">Low Stock</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card bg-light">
+                <div class="card-body text-center">
+                    <h5 class="text-danger">@Model.Count(p => p.StockQuantity == 0)</h5>
+                    <small class="text-muted">Out of Stock</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stock Value Summary -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h6><i class="fas fa-chart-pie me-2"></i>Inventory Value</h6>
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="text-center">
+                                <h5 class="text-primary">₹@Model.Sum(p => p.StockQuantity * p.PurchasePrice).ToString("N0")</h5>
+                                <small class="text-muted">Stock Value (Cost)</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center">
+                                <h5 class="text-success">₹@Model.Sum(p => p.StockQuantity * p.SalePrice).ToString("N0")</h5>
+                                <small class="text-muted">Stock Value (Sale)</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h6><i class="fas fa-percent me-2"></i>Average Profit Margin</h6>
+                    <div class="text-center">
+                        <h5 class="text-info">@(Model.Any() ? Model.Average(p => p.ProfitMargin).ToString("N1") : "0")%</h5>
+                        <small class="text-muted">Across all products</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Auto-focus search box
+            $('.search-box').focus();
+
+            // Submit form on Enter key
+            $('.search-box').keypress(function(e) {
+                if (e.which === 13) {
+                    $(this).closest('form').submit();
+                }
+            });
+
+            // Highlight low stock rows
+            $('tr').each(function() {
+                const $row = $(this);
+                const stockCell = $row.find('td:nth-child(5)');
+                if (stockCell.text().includes('Out of Stock') || stockCell.text().includes('Low Stock')) {
+                    $row.addClass('table-warning');
+                }
+            });
+
+            // Quick stock adjustment
+            $(document).on('click', '.btn-stock-adjust', function(e) {
+                e.preventDefault();
+                const productId = $(this).data('product-id');
+                const currentStock = $(this).data('current-stock');
+
+                const newStock = prompt(`Current stock: ${currentStock}\nEnter new stock quantity:`, currentStock);
+                if (newStock !== null && !isNaN(newStock) && parseInt(newStock) >= 0) {
+                    window.location.href = `@Url.Action("StockAdjustment", "Products")?id=${productId}&newStock=${newStock}`;
+                }
+            });
+        });
+    </script>
+}

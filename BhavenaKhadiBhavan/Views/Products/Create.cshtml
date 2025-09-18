@@ -1,0 +1,446 @@
+﻿@model Product
+@{
+    ViewData["Title"] = "Add New Product";
+    var categories = ViewBag.Categories as SelectList;
+    var fabricTypes = ViewBag.FabricTypes as List<SelectListItem>;
+    var sizes = ViewBag.Sizes as List<SelectListItem>;
+    var gstRates = ViewBag.GSTRates as List<SelectListItem>;
+}
+
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-plus me-2"></i>Add New Product</h2>
+            <a href="@Url.Action("Index", "Products")" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i>Back to Products
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <form asp-action="Create" method="post" class="needs-validation" novalidate>
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Product Information</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Basic Information -->
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="mb-3">
+                                <label asp-for="Name" class="form-label">Product Name *</label>
+                                <input asp-for="Name" class="form-control" placeholder="e.g., Cotton Khadi Kurta - White" required>
+                                <span asp-validation-for="Name" class="text-danger"></span>
+                                <div class="invalid-feedback">Please enter a product name.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label asp-for="CategoryId" class="form-label">Category *</label>
+                                <select asp-for="CategoryId" asp-items="categories" class="form-select" required>
+                                    <option value="">Select Category</option>
+                                </select>
+                                <span asp-validation-for="CategoryId" class="text-danger"></span>
+                                <div class="invalid-feedback">Please select a category.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="SKU" class="form-label">SKU (Stock Keeping Unit)</label>
+                                <input asp-for="SKU" class="form-control" placeholder="e.g., KHD-CK-W-001">
+                                <span asp-validation-for="SKU" class="text-danger"></span>
+                                <div class="form-text">Unique identifier for inventory tracking</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="FabricType" class="form-label">Fabric Type</label>
+                                <select asp-for="FabricType" asp-items="fabricTypes" class="form-select">
+                                </select>
+                                <span asp-validation-for="FabricType" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label asp-for="Color" class="form-label">Color</label>
+                                <input asp-for="Color" class="form-control" placeholder="e.g., White, Blue, Natural">
+                                <span asp-validation-for="Color" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label asp-for="Size" class="form-label">Size</label>
+                                <select asp-for="Size" asp-items="sizes" class="form-select">
+                                </select>
+                                <span asp-validation-for="Size" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label asp-for="Pattern" class="form-label">Pattern</label>
+                                <input asp-for="Pattern" class="form-control" placeholder="e.g., Solid, Printed, Striped">
+                                <span asp-validation-for="Pattern" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Description" class="form-label">Description</label>
+                        <textarea asp-for="Description" class="form-control" rows="3"
+                                  placeholder="Detailed description of the product..."></textarea>
+                        <span asp-validation-for="Description" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pricing Information -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-rupee-sign me-2"></i>Pricing & Tax</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label asp-for="PurchasePrice" class="form-label">Purchase Price (₹) *</label>
+                                <input asp-for="PurchasePrice" class="form-control" type="number"
+                                       step="0.01" min="0.01" placeholder="0.00" required>
+                                <span asp-validation-for="PurchasePrice" class="text-danger"></span>
+                                <div class="invalid-feedback">Please enter a valid purchase price.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label asp-for="SalePrice" class="form-label">Sale Price (₹) *</label>
+                                <input asp-for="SalePrice" class="form-control" type="number"
+                                       step="0.01" min="0.01" placeholder="0.00" required>
+                                <span asp-validation-for="SalePrice" class="text-danger"></span>
+                                <div class="invalid-feedback">Please enter a valid sale price.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label asp-for="GSTRate" class="form-label">GST Rate (%)</label>
+                                <select asp-for="GSTRate" asp-items="gstRates" class="form-select">
+                                </select>
+                                <span asp-validation-for="GSTRate" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pricing Preview -->
+                    <div class="alert alert-info">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <strong>Profit Margin:</strong>
+                                <div id="profitMargin" class="text-success fw-bold">0.0%</div>
+                            </div>
+                            <div class="col-md-3">
+                                <strong>Profit Amount:</strong>
+                                <div id="profitAmount" class="text-success fw-bold">₹0.00</div>
+                            </div>
+                            <div class="col-md-3">
+                                <strong>Price + GST:</strong>
+                                <div id="priceWithGST" class="text-primary fw-bold">₹0.00</div>
+                            </div>
+                            <div class="col-md-3">
+                                <strong>GST Amount:</strong>
+                                <div id="gstAmount" class="text-muted">₹0.00</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stock Information -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-boxes me-2"></i>Stock Management</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="StockQuantity" class="form-label">Initial Stock Quantity *</label>
+                                <input asp-for="StockQuantity" class="form-control" type="number"
+                                       min="0" value="0" required>
+                                <span asp-validation-for="StockQuantity" class="text-danger"></span>
+                                <div class="invalid-feedback">Please enter a valid stock quantity.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="MinimumStock" class="form-label">Minimum Stock Level</label>
+                                <input asp-for="MinimumStock" class="form-control" type="number"
+                                       min="0" value="5">
+                                <span asp-validation-for="MinimumStock" class="text-danger"></span>
+                                <div class="form-text">Alert when stock falls below this level</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Stock Value Preview -->
+                    <div class="alert alert-light">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>Stock Value (Cost):</strong>
+                                <div id="stockValueCost" class="text-warning fw-bold">₹0.00</div>
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Stock Value (Sale):</strong>
+                                <div id="stockValueSale" class="text-success fw-bold">₹0.00</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="card mt-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div class="form-check">
+                            <input asp-for="IsActive" class="form-check-input" type="checkbox" checked>
+                            <label asp-for="IsActive" class="form-check-label">
+                                Product is Active
+                            </label>
+                            <div class="form-text">Active products are available for sale</div>
+                        </div>
+
+                        <div>
+                            <button type="button" class="btn btn-outline-secondary me-2" onclick="resetForm()">
+                                <i class="fas fa-undo me-1"></i>Reset
+                            </button>
+                            <button type="submit" class="btn btn-khadi">
+                                <i class="fas fa-save me-1"></i>Save Product
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Help Sidebar -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-question-circle me-2"></i>Quick Help</h5>
+            </div>
+            <div class="card-body">
+                <h6><i class="fas fa-lightbulb me-2"></i>Tips for Adding Products:</h6>
+                <ul class="list-unstyled">
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success me-2"></i>
+                        <strong>Name:</strong> Use descriptive names including fabric, color, and type
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success me-2"></i>
+                        <strong>SKU:</strong> Create consistent naming like KHD-CK-W-001
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success me-2"></i>
+                        <strong>Pricing:</strong> Ensure sale price is higher than purchase price
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success me-2"></i>
+                        <strong>GST:</strong> Most Khadi products qualify for 5% GST rate
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-check text-success me-2"></i>
+                        <strong>Stock:</strong> Set appropriate minimum stock levels for reorder alerts
+                    </li>
+                </ul>
+
+                <hr>
+
+                <h6><i class="fas fa-palette me-2"></i>Common Khadi Product Types:</h6>
+                <div class="d-flex flex-wrap gap-1">
+                    <span class="badge bg-secondary">Cotton Khadi</span>
+                    <span class="badge bg-secondary">Silk Khadi</span>
+                    <span class="badge bg-secondary">Wool Khadi</span>
+                    <span class="badge bg-secondary">Handloom Cotton</span>
+                    <span class="badge bg-secondary">Organic Cotton</span>
+                </div>
+
+                <hr>
+
+                <h6><i class="fas fa-tags me-2"></i>Popular Sizes:</h6>
+                <div class="d-flex flex-wrap gap-1">
+                    <span class="badge bg-light text-dark">XS</span>
+                    <span class="badge bg-light text-dark">S</span>
+                    <span class="badge bg-light text-dark">M</span>
+                    <span class="badge bg-light text-dark">L</span>
+                    <span class="badge bg-light text-dark">XL</span>
+                    <span class="badge bg-light text-dark">XXL</span>
+                    <span class="badge bg-light text-dark">Free Size</span>
+                    <span class="badge bg-light text-dark">Per Meter</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-bolt me-2"></i>Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <a href="@Url.Action("Index", "Categories")" class="btn btn-outline-primary w-100 mb-2">
+                    <i class="fas fa-plus me-1"></i>Manage Categories
+                </a>
+                <button type="button" class="btn btn-outline-info w-100 mb-2" onclick="generateSKU()">
+                    <i class="fas fa-magic me-1"></i>Generate SKU
+                </button>
+                <button type="button" class="btn btn-outline-success w-100" onclick="calculateOptimalPrice()">
+                    <i class="fas fa-calculator me-1"></i>Price Calculator
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        $(document).ready(function() {
+            initializeProductForm();
+        });
+
+        function initializeProductForm() {
+            // Auto-focus first input
+            $('#Name').focus();
+
+            // Calculate pricing when values change
+            $('#PurchasePrice, #SalePrice, #GSTRate, #StockQuantity').on('input change', updateCalculations);
+
+            // Update calculations on page load
+            updateCalculations();
+
+            // Form validation
+            const form = $('form')[0];
+            form.addEventListener('submit', function(event) {
+                if (!form.checkValidity()) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+
+                // Business rules validation
+                const purchasePrice = parseFloat($('#PurchasePrice').val()) || 0;
+                const salePrice = parseFloat($('#SalePrice').val()) || 0;
+
+                if (salePrice <= purchasePrice) {
+                    event.preventDefault();
+                    showToast('Sale price must be greater than purchase price', 'error');
+                    $('#SalePrice').focus();
+                }
+
+                form.classList.add('was-validated');
+            }, false);
+        }
+
+        function updateCalculations() {
+            const purchasePrice = parseFloat($('#PurchasePrice').val()) || 0;
+            const salePrice = parseFloat($('#SalePrice').val()) || 0;
+            const gstRate = parseFloat($('#GSTRate').val()) || 0;
+            const stockQuantity = parseInt($('#StockQuantity').val()) || 0;
+
+            // Calculate profit
+            const profitAmount = salePrice - purchasePrice;
+            const profitMargin = salePrice > 0 ? (profitAmount / salePrice * 100) : 0;
+
+            // Calculate GST
+            const gstAmount = salePrice * gstRate / 100;
+            const priceWithGST = salePrice + gstAmount;
+
+            // Calculate stock values
+            const stockValueCost = stockQuantity * purchasePrice;
+            const stockValueSale = stockQuantity * salePrice;
+
+            // Update displays
+            $('#profitMargin').text(profitMargin.toFixed(1) + '%');
+            $('#profitAmount').text(formatCurrency(profitAmount));
+            $('#priceWithGST').text(formatCurrency(priceWithGST));
+            $('#gstAmount').text(formatCurrency(gstAmount));
+            $('#stockValueCost').text(formatCurrency(stockValueCost));
+            $('#stockValueSale').text(formatCurrency(stockValueSale));
+
+            // Color coding for profit margin
+            const $profitMargin = $('#profitMargin');
+            $profitMargin.removeClass('text-success text-warning text-danger');
+            if (profitMargin >= 30) {
+                $profitMargin.addClass('text-success');
+            } else if (profitMargin >= 15) {
+                $profitMargin.addClass('text-warning');
+            } else if (profitMargin > 0) {
+                $profitMargin.addClass('text-danger');
+            }
+        }
+
+        function generateSKU() {
+            const categorySelect = $('#CategoryId');
+            const fabricTypeSelect = $('#FabricType');
+            const colorInput = $('#Color');
+            const sizeSelect = $('#Size');
+
+            if (!categorySelect.val()) {
+                showToast('Please select a category first', 'warning');
+                categorySelect.focus();
+                return;
+            }
+
+            // Generate SKU pattern: KHD-{Category}-{Color}-{Counter}
+            const categoryCode = categorySelect.find('option:selected').text().substring(0, 2).toUpperCase();
+            const colorCode = colorInput.val() ? colorInput.val().substring(0, 1).toUpperCase() : 'X';
+            const counter = Math.floor(Math.random() * 999) + 1;
+
+            const sku = `KHD-${categoryCode}-${colorCode}-${counter.toString().padStart(3, '0')}`;
+            $('#SKU').val(sku);
+
+            showToast('SKU generated: ' + sku, 'success');
+        }
+
+        function calculateOptimalPrice() {
+            const purchasePrice = parseFloat($('#PurchasePrice').val());
+            if (!purchasePrice || purchasePrice <= 0) {
+                showToast('Please enter purchase price first', 'warning');
+                $('#PurchasePrice').focus();
+                return;
+            }
+
+            const targetMargin = prompt('Enter target profit margin (%):', '25');
+            if (targetMargin && !isNaN(targetMargin)) {
+                const margin = parseFloat(targetMargin);
+                const optimalPrice = purchasePrice / (1 - margin / 100);
+                $('#SalePrice').val(optimalPrice.toFixed(2));
+                updateCalculations();
+                showToast(`Optimal sale price calculated for ${margin}% margin`, 'success');
+            }
+        }
+
+        function resetForm() {
+            if (confirm('Are you sure you want to reset the form? All data will be lost.')) {
+                $('form')[0].reset();
+                updateCalculations();
+                $('#Name').focus();
+                $('.was-validated').removeClass('was-validated');
+            }
+        }
+
+        // Auto-generate SKU when category/fabric/color changes
+        $('#CategoryId, #FabricType, #Color').change(function() {
+            if ($('#SKU').val() === '') {
+                // Only auto-generate if SKU is empty
+                setTimeout(generateSKU, 100);
+            }
+        });
+    </script>
+}

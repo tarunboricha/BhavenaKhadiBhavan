@@ -1,0 +1,601 @@
+﻿@model CreateReturnViewModel
+@{
+    ViewData["Title"] = "Create Return";
+}
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2>
+                <i class="fas fa-undo me-2"></i>Create Return
+            </h2>
+            <div>
+                <a href="@Url.Action("Details", "Sales", new { id = Model.Sale?.Id })" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Back to Sale
+                </a>
+                <a href="@Url.Action("Index", "Returns")" class="btn btn-outline-primary">
+                    <i class="fas fa-list me-1"></i>All Returns
+                </a>
+            </div>
+        </div>
+        <hr>
+    </div>
+</div>
+
+<!-- Sale Information -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-receipt me-2"></i>Original Sale Details
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-2">
+                    <div class="col-4"><strong>Invoice:</strong></div>
+                    <div class="col-8">@Model.Sale?.InvoiceNumber</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-4"><strong>Date:</strong></div>
+                    <div class="col-8">@Model.Sale?.SaleDate.ToString("dd/MM/yyyy HH:mm")</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-4"><strong>Customer:</strong></div>
+                    <div class="col-8">
+                        @Model.Sale?.CustomerDisplayName
+                        @if (!string.IsNullOrEmpty(Model.Sale?.CustomerPhone))
+                        {
+                            <br>
+                        
+                            <small class="text-muted">@Model.Sale.CustomerPhone</small>
+                        }
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-4"><strong>Total:</strong></div>
+                    <div class="col-8 text-success">₹@Model.Sale?.TotalAmount.ToString("N2")</div>
+                </div>
+                @if (Model.Sale?.TotalItemDiscounts > 0)
+                {
+                    <div class="row mb-2">
+                        <div class="col-4"><strong>Original Discounts:</strong></div>
+                        <div class="col-8 text-info">₹@Model.Sale.TotalItemDiscounts.ToString("N2")</div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Return Guidelines
+                </h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li><i class="fas fa-check text-success me-2"></i>Items can be returned within policy period</li>
+                    <li><i class="fas fa-check text-success me-2"></i>Partial quantities are allowed</li>
+                    <li><i class="fas fa-check text-success me-2"></i>Original discounts will be proportionally refunded</li>
+                    <li><i class="fas fa-check text-success me-2"></i>GST will be calculated on discounted amount</li>
+                    <li><i class="fas fa-exclamation-triangle text-warning me-2"></i>Items must be in acceptable condition</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Return Form -->
+<form id="returnForm" method="post" novalidate>
+    @Html.AntiForgeryToken()
+
+    <!-- Return Details -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-edit me-2"></i>Return Information
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label">Return Reason *</label>
+                        <select class="form-select" name="Return.Reason" required>
+                            <option value="">Select reason for return...</option>
+                            @foreach (var reason in ViewBag.ReturnReasons as List<string>)
+                            {
+                                <option value="@reason" selected="@(reason == Model.Return.Reason)">@reason</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label">Refund Method</label>
+                        <select class="form-select" name="Return.RefundMethod">
+                            @foreach (var method in ViewBag.RefundMethods as string[])
+                            {
+                                <option value="@method" selected="@(method == Model.Return.RefundMethod)">@method</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Additional Notes</label>
+                <textarea class="form-control" name="Return.Notes" rows="3"
+                          placeholder="Any additional information about this return...">@Model.Return.Notes</textarea>
+            </div>
+        </div>
+    </div>
+
+    <!-- Returnable Items -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-box me-2"></i>Select Items to Return
+                </h5>
+                <div>
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="selectAllItems()">
+                        Select All
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearAllSelections()">
+                        Clear All
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            @if (Model.ReturnableItems.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th width="5%">Select</th>
+                                <th>Product</th>
+                                <th>Original Qty</th>
+                                <th>Already Returned</th>
+                                <th>Available to Return</th>
+                                <th>Return Qty</th>
+                                <th>Original Discount</th>
+                                <th>Estimated Refund</th>
+                                <th>Condition</th>
+                            </tr>
+                        </thead>
+                        <tbody id="returnableItemsTable">
+                            @for (int i = 0; i < Model.ReturnableItems.Count; i++)
+                            {
+                                var item = Model.ReturnableItems[i];
+                                var isSelected = Model.SelectedItems.Any(s => s.SaleItemId == item.SaleItemId);
+                                var selectedItem = isSelected ? Model.SelectedItems.First(s => s.SaleItemId == item.SaleItemId) : null;
+
+                                <tr class="returnable-item" data-sale-item-id="@item.SaleItemId">
+                                    <td>
+                                        <input type="checkbox" class="form-check-input item-selector"
+                                               data-index="@i" onchange="toggleItemSelection(@i)"
+                                               @(isSelected ? "checked" : "")>
+                                    </td>
+                                    <td>
+                                        <strong>@item.ProductName</strong>
+                                        <br>
+                                        <small class="text-muted">
+                                            Unit Price: ₹@item.UnitPrice.ToString("N2") | GST: @item.GSTRate%
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-primary">@item.OriginalQuantity.ToString("0.###") @item.UnitOfMeasure</span>
+                                    </td>
+                                    <td>
+                                        @if (item.ReturnedQuantity > 0)
+                                        {
+                                            <span class="badge bg-warning text-dark">@item.ReturnedQuantity.ToString("0.###") @item.UnitOfMeasure</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">None</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-success">@item.ReturnableQuantity.ToString("0.###") @item.UnitOfMeasure</span>
+                                    </td>
+                                    <td>
+                                        <div class="return-quantity-container" style="@(isSelected ? "" : "display:none;")">
+                                            <div class="input-group input-group-sm" style="width: 120px;">
+                                                <input type="number" class="form-control return-quantity-input"
+                                                       data-index="@i"
+                                                       min="0.001"
+                                                       max="@item.ReturnableQuantity"
+                                                       step="@(item.UnitOfMeasure == "Meter" ? "0.1" : "1")"
+                                                       value="@(selectedItem?.ReturnQuantity ?? item.ReturnableQuantity)"
+                                                       onchange="updateReturnQuantity(@i)">
+                                                <span class="input-group-text">@item.UnitOfMeasure</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        @if (item.HasOriginalDiscount)
+                                        {
+                                            <span class="text-success">
+                                                @item.OriginalItemDiscountPercentage.ToString("0.##")%
+                                                <br>
+                                                <small>Max: ₹@item.MaxProportionalDiscount.ToString("N2")</small>
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">No Discount</span>
+                                        }
+                                    </td>
+                                    <td class="estimated-refund" data-index="@i">
+                                        <div style="@(isSelected ? "" : "display:none;")">
+                                            <strong class="text-success refund-amount">₹@(selectedItem?.LineTotal.ToString("N2") ?? item.MaxRefundTotal.ToString("N2"))</strong>
+                                            @if (item.HasOriginalDiscount)
+                                            {
+                                                <br>
+                                                <small class="text-muted">
+                                                    After discount: ₹<span class="refund-after-discount">@(selectedItem?.LineAfterDiscount.ToString("N2") ?? item.MaxRefundAfterDiscount.ToString("N2"))</span>
+                                                </small>
+                                            }
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="return-condition-container" style="@(isSelected ? "" : "display:none;")">
+                                            <select class="form-select form-select-sm return-condition-select" data-index="@i">
+                                                @foreach (var condition in ViewBag.ItemConditions as List<string>)
+                                                {
+                                                    <option value="@condition" selected="@(condition == (selectedItem?.Condition ?? ItemCondition.Good))">@condition</option>
+                                                }
+                                            </select>
+                                        </div>
+                                    </td>
+                                </tr>
+
+                                <!-- Hidden fields for selected items -->
+                                @if (isSelected)
+                                {
+                                    <input type="hidden" name="SelectedItems[@Model.SelectedItems.IndexOf(selectedItem)].SaleItemId" value="@selectedItem.SaleItemId">
+                                    <input type="hidden" name="SelectedItems[@Model.SelectedItems.IndexOf(selectedItem)].ProductId" value="@selectedItem.ProductId">
+                                    <input type="hidden" name="SelectedItems[@Model.SelectedItems.IndexOf(selectedItem)].ProductName" value="@selectedItem.ProductName">
+                                    <input type="hidden" name="SelectedItems[@Model.SelectedItems.IndexOf(selectedItem)].ReturnQuantity" value="@selectedItem.ReturnQuantity" class="hidden-return-quantity">
+                                    <input type="hidden" name="SelectedItems[@Model.SelectedItems.IndexOf(selectedItem)].UnitPrice" value="@selectedItem.UnitPrice">
+                                    <input type="hidden" name="SelectedItems[@Model.SelectedItems.IndexOf(selectedItem)].GSTRate" value="@selectedItem.GSTRate">
+                                    <input type="hidden" name="SelectedItems[@Model.SelectedItems.IndexOf(selectedItem)].UnitOfMeasure" value="@selectedItem.UnitOfMeasure">
+                                    <input type="hidden" name="SelectedItems[@Model.SelectedItems.IndexOf(selectedItem)].OriginalItemDiscountPercentage" value="@selectedItem.OriginalItemDiscountPercentage">
+                                    <input type="hidden" name="SelectedItems[@Model.SelectedItems.IndexOf(selectedItem)].Condition" value="@selectedItem.Condition" class="hidden-condition">
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-4">
+                    <i class="fas fa-info-circle fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No Returnable Items</h5>
+                    <p class="text-muted">All items from this sale have already been returned or cannot be returned.</p>
+                    <a href="@Url.Action("Details", "Sales", new { id = Model.Sale?.Id })" class="btn btn-primary">
+                        <i class="fas fa-arrow-left me-1"></i>Back to Sale
+                    </a>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Return Summary -->
+    <div class="card mb-4" id="returnSummaryCard" style="display: none;">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-calculator me-2"></i>Return Summary
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="row mb-2">
+                        <div class="col-6">Items Subtotal:</div>
+                        <div class="col-6 text-end" id="summarySubtotal">₹0.00</div>
+                    </div>
+                    <div class="row mb-2" id="summaryDiscountRow" style="display: none;">
+                        <div class="col-6 text-success">Item Discounts:</div>
+                        <div class="col-6 text-end text-success" id="summaryDiscounts">-₹0.00</div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-6">After Discount:</div>
+                        <div class="col-6 text-end" id="summaryAfterDiscount">₹0.00</div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-6">GST Amount:</div>
+                        <div class="col-6 text-end" id="summaryGST">₹0.00</div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-6"><strong>Total Refund:</strong></div>
+                        <div class="col-6 text-end"><h5 class="text-success mb-0" id="summaryTotal">₹0.00</h5></div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="alert alert-info mb-0">
+                        <h6><i class="fas fa-info-circle me-2"></i>Refund Breakdown</h6>
+                        <ul class="mb-0" id="refundBreakdown">
+                            <li>Refund will be processed as: <strong id="refundMethod">Cash</strong></li>
+                            <li>Original item discounts are proportionally applied</li>
+                            <li>GST is calculated on discounted amounts</li>
+                            <li>Stock will be restored upon processing</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Form Actions -->
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <a href="@Url.Action("Details", "Sales", new { id = Model.Sale?.Id })" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-1"></i>Cancel
+                    </a>
+                </div>
+                <div>
+                    <button type="submit" class="btn btn-success btn-lg" id="submitReturnBtn" disabled>
+                        <i class="fas fa-check me-1"></i>Create Return
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden dynamic form fields will be added here by JavaScript -->
+    <div id="dynamicFormFields"></div>
+</form>
+
+@section Scripts {
+    <script>
+        let returnableItems = @Html.Raw(Json.Serialize(Model.ReturnableItems));
+        let selectedItems = [];
+
+        $(document).ready(function() {
+            console.log('Return creation page loaded');
+            console.log('Returnable items:', returnableItems);
+
+            // Initialize form
+            initializeReturnForm();
+
+            // Update summary if items are pre-selected
+            updateReturnSummary();
+        });
+
+        function initializeReturnForm() {
+            // Refund method change
+            $('select[name="Return.RefundMethod"]').on('change', function() {
+                $('#refundMethod').text($(this).val());
+            });
+
+            // Form submission
+            $('#returnForm').on('submit', function(e) {
+                if (selectedItems.length === 0) {
+                    e.preventDefault();
+                    showToast('Please select at least one item to return', 'error');
+                    return false;
+                }
+
+                // Prepare form data
+                prepareDynamicFormFields();
+
+                const $submitBtn = $('#submitReturnBtn');
+                $submitBtn.prop('disabled', true)
+                          .html('<i class="fas fa-spinner fa-spin me-1"></i>Creating Return...');
+            });
+        }
+
+        function toggleItemSelection(index) {
+            const $checkbox = $(`.item-selector[data-index="${index}"]`);
+            const isChecked = $checkbox.is(':checked');
+            const item = returnableItems[index];
+
+            if (isChecked) {
+                // Add to selection
+                const returnItem = {
+                    SaleItemId: item.SaleItemId,
+                    ProductId: item.ProductId,
+                    ProductName: item.ProductName,
+                    ReturnQuantity: item.ReturnableQuantity,
+                    UnitPrice: item.UnitPrice,
+                    GSTRate: item.GSTRate,
+                    UnitOfMeasure: item.UnitOfMeasure,
+                    OriginalItemDiscountPercentage: item.OriginalItemDiscountPercentage,
+                    ProportionalDiscountAmount: calculateProportionalDiscount(item, item.ReturnableQuantity),
+                    Condition: 'Good'
+                };
+
+                selectedItems.push(returnItem);
+
+                // Show controls
+                $(`.return-quantity-container[data-index="${index}"], .return-condition-container[data-index="${index}"], .estimated-refund[data-index="${index}"] > div`).show();
+
+                // Update quantity input
+                $(`.return-quantity-input[data-index="${index}"]`).val(item.ReturnableQuantity);
+            } else {
+                // Remove from selection
+                selectedItems = selectedItems.filter(si => si.SaleItemId !== item.SaleItemId);
+
+                // Hide controls
+                $(`.return-quantity-container[data-index="${index}"], .return-condition-container[data-index="${index}"], .estimated-refund[data-index="${index}"] > div`).hide();
+            }
+
+            updateReturnSummary();
+        }
+
+        function updateReturnQuantity(index) {
+            const item = returnableItems[index];
+            const newQuantity = parseFloat($(`.return-quantity-input[data-index="${index}"]`).val()) || 0;
+
+            if (newQuantity > item.ReturnableQuantity) {
+                showToast(`Maximum ${item.ReturnableQuantity} ${item.UnitOfMeasure} can be returned`, 'warning');
+                $(`.return-quantity-input[data-index="${index}"]`).val(item.ReturnableQuantity);
+                return;
+            }
+
+            if (newQuantity <= 0) {
+                showToast('Return quantity must be greater than 0', 'error');
+                $(`.return-quantity-input[data-index="${index}"]`).val(1);
+                return;
+            }
+
+            // Update selected item
+            const selectedItem = selectedItems.find(si => si.SaleItemId === item.SaleItemId);
+            if (selectedItem) {
+                selectedItem.ReturnQuantity = newQuantity;
+                selectedItem.ProportionalDiscountAmount = calculateProportionalDiscount(item, newQuantity);
+
+                // Update estimated refund display
+                updateEstimatedRefund(index, selectedItem);
+                updateReturnSummary();
+            }
+        }
+
+        function calculateProportionalDiscount(item, returnQuantity) {
+            if (item.OriginalItemDiscountAmount > 0 && item.OriginalQuantity > 0) {
+                return (item.OriginalItemDiscountAmount * returnQuantity) / item.OriginalQuantity;
+            }
+            return 0;
+        }
+
+        function updateEstimatedRefund(index, selectedItem) {
+            const subtotal = selectedItem.UnitPrice * selectedItem.ReturnQuantity;
+            const afterDiscount = subtotal - selectedItem.ProportionalDiscountAmount;
+            const gst = afterDiscount * selectedItem.GSTRate / 100;
+            const total = afterDiscount + gst;
+
+            $(`.estimated-refund[data-index="${index}"] .refund-amount`).text(`₹${total.toFixed(2)}`);
+            $(`.estimated-refund[data-index="${index}"] .refund-after-discount`).text(`₹${afterDiscount.toFixed(2)}`);
+        }
+
+        function updateReturnSummary() {
+            if (selectedItems.length === 0) {
+                $('#returnSummaryCard').hide();
+                $('#submitReturnBtn').prop('disabled', true);
+                return;
+            }
+
+            let subtotal = 0;
+            let totalDiscounts = 0;
+            let totalGST = 0;
+            let finalTotal = 0;
+
+            selectedItems.forEach(item => {
+                const itemSubtotal = item.UnitPrice * item.ReturnQuantity;
+                const itemAfterDiscount = itemSubtotal - item.ProportionalDiscountAmount;
+                const itemGST = itemAfterDiscount * item.GSTRate / 100;
+
+                subtotal += itemSubtotal;
+                totalDiscounts += item.ProportionalDiscountAmount;
+                totalGST += itemGST;
+                finalTotal += itemAfterDiscount + itemGST;
+            });
+
+            // Update summary display
+            $('#summarySubtotal').text(`₹${subtotal.toFixed(2)}`);
+            $('#summaryDiscounts').text(`₹${totalDiscounts.toFixed(2)}`);
+            $('#summaryAfterDiscount').text(`₹${(subtotal - totalDiscounts).toFixed(2)}`);
+            $('#summaryGST').text(`₹${totalGST.toFixed(2)}`);
+            $('#summaryTotal').text(`₹${finalTotal.toFixed(2)}`);
+
+            // Show/hide discount row
+            if (totalDiscounts > 0) {
+                $('#summaryDiscountRow').show();
+            } else {
+                $('#summaryDiscountRow').hide();
+            }
+
+            $('#returnSummaryCard').show();
+            $('#submitReturnBtn').prop('disabled', false);
+        }
+
+        function selectAllItems() {
+            $('.item-selector:not(:checked)').each(function() {
+                $(this).prop('checked', true).trigger('change');
+            });
+        }
+
+        function clearAllSelections() {
+            $('.item-selector:checked').each(function() {
+                $(this).prop('checked', false).trigger('change');
+            });
+        }
+
+        function prepareDynamicFormFields() {
+            let html = '';
+
+            selectedItems.forEach((item, index) => {
+                html += `
+                    <input type="hidden" name="SelectedItems[${index}].SaleItemId" value="${item.SaleItemId}">
+                    <input type="hidden" name="SelectedItems[${index}].ProductId" value="${item.ProductId}">
+                    <input type="hidden" name="SelectedItems[${index}].ProductName" value="${item.ProductName}">
+                    <input type="hidden" name="SelectedItems[${index}].ReturnQuantity" value="${item.ReturnQuantity}">
+                    <input type="hidden" name="SelectedItems[${index}].UnitPrice" value="${item.UnitPrice}">
+                    <input type="hidden" name="SelectedItems[${index}].GSTRate" value="${item.GSTRate}">
+                    <input type="hidden" name="SelectedItems[${index}].UnitOfMeasure" value="${item.UnitOfMeasure}">
+                    <input type="hidden" name="SelectedItems[${index}].OriginalItemDiscountPercentage" value="${item.OriginalItemDiscountPercentage}">
+                    <input type="hidden" name="SelectedItems[${index}].ProportionalDiscountAmount" value="${item.ProportionalDiscountAmount}">
+                    <input type="hidden" name="SelectedItems[${index}].Condition" value="${$(`.return-condition-select[data-index="${returnableItems.findIndex(ri => ri.SaleItemId === item.SaleItemId)}"]`).val()}">
+                `;
+            });
+
+            $('#dynamicFormFields').html(html);
+            console.log('Dynamic form fields prepared for', selectedItems.length, 'items');
+        }
+
+        function showToast(message, type = 'info') {
+            console.log(`Toast [${type.toUpperCase()}]: ${message}`);
+
+            // Simple alert for now - replace with proper toast implementation
+            if (type === 'error') {
+                alert('Error: ' + message);
+            } else if (type === 'warning') {
+                alert('Warning: ' + message);
+            } else {
+                alert(message);
+            }
+        }
+    </script>
+}
+
+<style>
+    .table td {
+        vertical-align: middle;
+    }
+
+    .return-quantity-input {
+        max-width: 100px;
+    }
+
+    .estimated-refund {
+        min-width: 120px;
+    }
+
+    .returnable-item:hover {
+        background-color: rgba(0, 0, 0, 0.025);
+    }
+
+    .returnable-item.selected {
+        background-color: rgba(25, 135, 84, 0.1);
+        border-left: 3px solid #198754;
+    }
+
+    .card {
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    }
+
+    .badge {
+        font-size: 0.75rem;
+    }
+</style>

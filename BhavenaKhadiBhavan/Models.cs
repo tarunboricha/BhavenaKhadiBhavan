@@ -72,6 +72,7 @@ namespace BhavenaKhadiBhavan.Models
 
         // Navigation Properties
         public virtual Category? Category { get; set; }
+        public virtual ICollection<ReturnItem> ReturnItems { get; set; } = new List<ReturnItem>();
 
         // Computed Properties
         public string DisplayName => $"{Name}" +
@@ -178,65 +179,77 @@ namespace BhavenaKhadiBhavan.Models
 
         [Required]
         [StringLength(50)]
-        [Display(Name = "Invoice Number")]
         public string InvoiceNumber { get; set; } = string.Empty;
 
         [Required]
-        [Display(Name = "Sale Date")]
         public DateTime SaleDate { get; set; } = DateTime.Now;
 
-        [Display(Name = "Customer")]
+        // Customer Information
         public int? CustomerId { get; set; }
 
-        // For walk-in customers
-        [StringLength(100, ErrorMessage = "Customer name cannot exceed 100 characters")]
-        [Display(Name = "Customer Name")]
+        [StringLength(200)]
         public string? CustomerName { get; set; }
 
-        [StringLength(15, ErrorMessage = "Phone number cannot exceed 15 characters")]
-        [Display(Name = "Customer Phone")]
+        [StringLength(15)]
         public string? CustomerPhone { get; set; }
 
+        // Financial Fields
         [Required]
-        [Display(Name = "Payment Method")]
-        public string PaymentMethod { get; set; } = "Cash"; // Cash, Card, UPI, Bank Transfer
-
-        [Display(Name = "Payment Reference")]
-        public string? PaymentReference { get; set; }
-
-        [Display(Name = "Subtotal (₹)")]
+        [Range(0, 999999.99)]
+        [Column(TypeName = "decimal(18,2)")]
         public decimal SubTotal { get; set; }
 
-        [Display(Name = "GST Amount (₹)")]
+        [Range(0, 999999.99)]
+        [Column(TypeName = "decimal(18,2)")]
         public decimal GSTAmount { get; set; }
 
-        [Range(0, 100, ErrorMessage = "Discount percentage must be between 0 and 100")]
-        [Display(Name = "Discount (%)")]
-        public decimal DiscountPercentage { get; set; } = 0;
+        // Overall discount (maintained for backward compatibility)
+        [Range(0, 100)]
+        [Column(TypeName = "decimal(5,2)")]
+        public decimal DiscountPercentage { get; set; }
 
-        [Display(Name = "Discount Amount (₹)")]
+        // CRITICAL: Total discount amount (sum of all item discounts)
+        [Range(0, 999999.99)]
+        [Column(TypeName = "decimal(18,2)")]
         public decimal DiscountAmount { get; set; }
 
-        [Display(Name = "Total Amount (₹)")]
+        [Required]
+        [Range(0, 999999.99)]
+        [Column(TypeName = "decimal(18,2)")]
         public decimal TotalAmount { get; set; }
 
-        [StringLength(20)]
-        public string Status { get; set; } = "Completed"; // Completed, Cancelled
+        // Payment Information
+        [Required]
+        [StringLength(50)]
+        public string PaymentMethod { get; set; } = "Cash";
 
-        [StringLength(300)]
-        public string? Notes { get; set; }
+        [StringLength(100)]
+        public string? PaymentReference { get; set; }
+
+        [StringLength(20)]
+        public string Status { get; set; } = "Completed";
 
         // Navigation Properties
         public virtual Customer? Customer { get; set; }
         public virtual ICollection<SaleItem> SaleItems { get; set; } = new List<SaleItem>();
-        public virtual ICollection<Return> Returns { get; set; } = new List<Return>();
+        public virtual ICollection<Return> Returns { get; set; } = new List<Return>(); // ADDED
 
         // Computed Properties
-        public string CustomerDisplayName => CustomerName ?? Customer?.Name ?? "Walk-in Customer";
-        public decimal ItemCount => SaleItems?.Sum(si => si.Quantity) ?? 0;
-        public bool HasCustomer => CustomerId.HasValue || !string.IsNullOrEmpty(CustomerName);
-        public decimal ReturnedAmount => Returns?.Where(r => r.Status == "Completed").Sum(r => r.TotalAmount) ?? 0;
-        public decimal NetAmount => TotalAmount - ReturnedAmount;
+        public string CustomerDisplayName => !string.IsNullOrEmpty(CustomerName) ?
+            CustomerName : "Walk-in Customer";
+
+        public decimal ItemCount => SaleItems?.Sum(i => i.Quantity) ?? 0;
+
+        // Discount calculations
+        [NotMapped]
+        public decimal TotalItemDiscounts => SaleItems?.Sum(i => i.ItemDiscountAmount) ?? 0;
+
+        [NotMapped]
+        public bool HasItemLevelDiscounts => SaleItems?.Any(i => i.HasItemDiscount) ?? false;
+
+        [NotMapped]
+        public decimal EffectiveDiscountPercentage =>
+            SubTotal > 0 ? (TotalItemDiscounts / SubTotal) * 100 : 0;
     }
 
     /// <summary>
@@ -256,10 +269,9 @@ namespace BhavenaKhadiBhavan.Models
         [StringLength(200)]
         public string ProductName { get; set; } = string.Empty;
 
-        // CRITICAL: Change from int to decimal for fractional quantities
         [Required]
         [Range(0.001, 999999.999)]
-        [Column(TypeName = "decimal(10,3)")]  // Support up to 3 decimal places
+        [Column(TypeName = "decimal(10,3)")]
         public decimal Quantity { get; set; }
 
         [Required]
@@ -275,6 +287,15 @@ namespace BhavenaKhadiBhavan.Models
         [Column(TypeName = "decimal(18,2)")]
         public decimal GSTAmount { get; set; }
 
+        // CRITICAL: Individual item discount fields
+        [Range(0, 100)]
+        [Column(TypeName = "decimal(5,2)")]
+        public decimal ItemDiscountPercentage { get; set; } = 0;
+
+        [Range(0, 999999.99)]
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal ItemDiscountAmount { get; set; } = 0;
+
         [Range(0, 999999.99)]
         [Column(TypeName = "decimal(18,2)")]
         public decimal LineTotal { get; set; }
@@ -282,7 +303,6 @@ namespace BhavenaKhadiBhavan.Models
         [Column(TypeName = "decimal(10,3)")]
         public decimal ReturnedQuantity { get; set; } = 0;
 
-        // Unit of measurement for display
         [StringLength(20)]
         public string? UnitOfMeasure { get; set; } = "Piece";
 
@@ -291,13 +311,30 @@ namespace BhavenaKhadiBhavan.Models
         public virtual Product? Product { get; set; }
         public virtual ICollection<ReturnItem> ReturnItems { get; set; } = new List<ReturnItem>();
 
-        // Display quantity with proper formatting
+        // Computed Properties
         public string DisplayQuantity => $"{Quantity:0.###} {UnitOfMeasure}";
+
+        // Line calculations with individual discount
+        [NotMapped]
+        public decimal LineSubtotal => UnitPrice * Quantity;
+
+        [NotMapped]
+        public decimal LineSubtotalAfterDiscount => LineSubtotal - ItemDiscountAmount;
+
+        [NotMapped]
+        public decimal LineGSTAmount => LineSubtotalAfterDiscount * GSTRate / 100;
+
+        [NotMapped]
+        public decimal LineTotalWithDiscount => LineSubtotalAfterDiscount + LineGSTAmount;
+
+        [NotMapped]
+        public bool HasItemDiscount => ItemDiscountPercentage > 0 || ItemDiscountAmount > 0;
+
+        [NotMapped]
+        public string DiscountDisplay => HasItemDiscount ?
+            $"{ItemDiscountPercentage:0.##}% (-₹{ItemDiscountAmount:N2})" : "No Discount";
     }
 
-    /// <summary>
-    /// Simple Return model
-    /// </summary>
     public class Return
     {
         public int Id { get; set; }
@@ -312,44 +349,83 @@ namespace BhavenaKhadiBhavan.Models
         [Required]
         public DateTime ReturnDate { get; set; } = DateTime.Now;
 
+        // Return Details
         [Required]
-        [StringLength(200)]
+        [StringLength(500)]
         public string Reason { get; set; } = string.Empty;
 
-        [StringLength(500)]
+        [StringLength(1000)]
         public string? Notes { get; set; }
 
+        // CRITICAL FIX: Financial Details with correct property names
         [Required]
         [Range(0, 999999.99)]
         [Column(TypeName = "decimal(18,2)")]
-        public decimal SubTotal { get; set; }
+        public decimal SubTotal { get; set; } = 0;
 
         [Range(0, 999999.99)]
         [Column(TypeName = "decimal(18,2)")]
-        public decimal GSTAmount { get; set; }
+        public decimal TotalItemDiscounts { get; set; } = 0; // NOT DiscountAmount
 
         [Range(0, 999999.99)]
         [Column(TypeName = "decimal(18,2)")]
-        public decimal DiscountAmount { get; set; }
+        public decimal GSTAmount { get; set; } = 0;
 
         [Required]
         [Range(0, 999999.99)]
         [Column(TypeName = "decimal(18,2)")]
-        public decimal TotalAmount { get; set; }
+        public decimal RefundAmount { get; set; } = 0; // NOT TotalAmount
 
+        // Return Processing
+        [Required]
         [StringLength(20)]
-        public string Status { get; set; } = "Completed";
+        public string Status { get; set; } = "Pending";
+
+        [StringLength(50)]
+        public string RefundMethod { get; set; } = "Cash";
+
+        [StringLength(100)]
+        public string? RefundReference { get; set; }
+
+        public DateTime? ProcessedDate { get; set; }
+
+        [StringLength(100)]
+        public string? ProcessedBy { get; set; }
 
         // Navigation Properties
         public virtual Sale? Sale { get; set; }
         public virtual ICollection<ReturnItem> ReturnItems { get; set; } = new List<ReturnItem>();
 
         // Computed Properties
-        public string CustomerName => Sale?.CustomerDisplayName ?? "Unknown";
+        [NotMapped]
+        public string CustomerName => Sale?.CustomerDisplayName ?? "Walk-in Customer";
+
+        [NotMapped]
+        public string SaleInvoiceNumber => Sale?.InvoiceNumber ?? "";
+
+        [NotMapped]
+        public decimal ItemCount => ReturnItems?.Sum(i => i.ReturnQuantity) ?? 0;
+
+        [NotMapped]
+        public bool CanBeProcessed => Status == "Pending";
+
+        [NotMapped]
+        public bool IsCompleted => Status == "Completed";
+
+        [NotMapped]
+        public decimal EffectiveDiscountPercentage =>
+            SubTotal > 0 ? (TotalItemDiscounts / SubTotal) * 100 : 0;
+
+        // BACKWARD COMPATIBILITY: Add these properties if needed elsewhere in code
+        [NotMapped]
+        public decimal DiscountAmount => TotalItemDiscounts; // Alias for compatibility
+
+        [NotMapped]
+        public decimal TotalAmount => RefundAmount; // Alias for compatibility
     }
 
     /// <summary>
-    /// Return Item model
+    /// Return item entity with proportional discount handling
     /// </summary>
     public class ReturnItem
     {
@@ -368,7 +444,6 @@ namespace BhavenaKhadiBhavan.Models
         [StringLength(200)]
         public string ProductName { get; set; } = string.Empty;
 
-        // CRITICAL: Change from int to decimal
         [Required]
         [Range(0.001, 999999.999)]
         [Column(TypeName = "decimal(10,3)")]
@@ -387,9 +462,14 @@ namespace BhavenaKhadiBhavan.Models
         [Column(TypeName = "decimal(18,2)")]
         public decimal GSTAmount { get; set; }
 
+        // CRITICAL FIX: Correct property names for proportional discount
+        [Range(0, 100)]
+        [Column(TypeName = "decimal(5,2)")]
+        public decimal OriginalItemDiscountPercentage { get; set; } = 0;
+
         [Range(0, 999999.99)]
         [Column(TypeName = "decimal(18,2)")]
-        public decimal DiscountAmount { get; set; }
+        public decimal ProportionalDiscountAmount { get; set; } = 0; // NOT just "disc"
 
         [Range(0, 999999.99)]
         [Column(TypeName = "decimal(18,2)")]
@@ -398,12 +478,303 @@ namespace BhavenaKhadiBhavan.Models
         [StringLength(20)]
         public string? UnitOfMeasure { get; set; } = "Piece";
 
+        // Return Processing Details
+        [Required]
+        [StringLength(20)]
+        public string Status { get; set; } = "Pending";
+
+        [StringLength(500)]
+        public string? Condition { get; set; }
+
         // Navigation Properties
         public virtual Return? Return { get; set; }
         public virtual SaleItem? SaleItem { get; set; }
         public virtual Product? Product { get; set; }
 
+        // Computed Properties
+        [NotMapped]
         public string DisplayQuantity => $"{ReturnQuantity:0.###} {UnitOfMeasure}";
+
+        [NotMapped]
+        public decimal LineSubtotal => UnitPrice * ReturnQuantity;
+
+        [NotMapped]
+        public decimal LineAfterDiscount => LineSubtotal - ProportionalDiscountAmount;
+
+        [NotMapped]
+        public decimal LineGSTAmount => LineAfterDiscount * GSTRate / 100;
+
+        [NotMapped]
+        public decimal RefundLineTotal => LineAfterDiscount + LineGSTAmount;
+
+        [NotMapped]
+        public bool HasDiscount => ProportionalDiscountAmount > 0;
+
+        [NotMapped]
+        public string DiscountDisplay => HasDiscount ?
+            $"{OriginalItemDiscountPercentage:0.##}% (-₹{ProportionalDiscountAmount:N2})" : "No Discount";
+    }
+
+    // =========================================
+    // Return View Models
+    // =========================================
+
+    /// <summary>
+    /// View model for creating returns
+    /// </summary>
+    public class CreateReturnViewModel
+    {
+        public Return Return { get; set; } = new Return();
+        public Sale? Sale { get; set; }
+        public List<ReturnableItemViewModel> ReturnableItems { get; set; } = new List<ReturnableItemViewModel>();
+        public List<ReturnItemViewModel> SelectedItems { get; set; } = new List<ReturnItemViewModel>();
+        
+        // Summary calculations
+        public decimal TotalRefundAmount { get; set; }
+        public decimal TotalItemDiscounts { get; set; }
+        public decimal TotalGSTAmount { get; set; }
+    }
+
+    /// <summary>
+    /// View model for returnable items
+    /// </summary>
+    public class ReturnableItemViewModel
+    {
+        public int SaleItemId { get; set; }
+        public int ProductId { get; set; }
+        public string ProductName { get; set; } = string.Empty;
+        public decimal OriginalQuantity { get; set; }
+        public decimal ReturnedQuantity { get; set; }
+        public decimal ReturnableQuantity { get; set; }
+        public decimal UnitPrice { get; set; }
+        public decimal GSTRate { get; set; }
+        public string UnitOfMeasure { get; set; } = "Piece";
+        
+        // Original discount information
+        public decimal OriginalItemDiscountPercentage { get; set; }
+        public decimal OriginalItemDiscountAmount { get; set; }
+        
+        // Calculated properties
+        public decimal MaxRefundSubtotal => UnitPrice * ReturnableQuantity;
+        public decimal MaxProportionalDiscount => 
+            ReturnableQuantity > 0 ? (OriginalItemDiscountAmount * ReturnableQuantity / OriginalQuantity) : 0;
+        public decimal MaxRefundAfterDiscount => MaxRefundSubtotal - MaxProportionalDiscount;
+        public decimal MaxRefundGST => MaxRefundAfterDiscount * GSTRate / 100;
+        public decimal MaxRefundTotal => MaxRefundAfterDiscount + MaxRefundGST;
+        
+        public bool CanBeReturned => ReturnableQuantity > 0;
+        public bool HasOriginalDiscount => OriginalItemDiscountPercentage > 0 || OriginalItemDiscountAmount > 0;
+    }
+
+    /// <summary>
+    /// View model for return items in the return process
+    /// </summary>
+    public class ReturnItemViewModel
+    {
+        public int SaleItemId { get; set; }
+        public int ProductId { get; set; }
+        public string ProductName { get; set; } = string.Empty;
+        public decimal ReturnQuantity { get; set; }
+        public decimal UnitPrice { get; set; }
+        public decimal GSTRate { get; set; }
+        public string UnitOfMeasure { get; set; } = "Piece";
+        public string Condition { get; set; } = "Good";
+        public string? Notes { get; set; }
+        
+        // Discount calculations
+        public decimal OriginalItemDiscountPercentage { get; set; }
+        public decimal ProportionalDiscountAmount { get; set; }
+        
+        // Calculated properties
+        public decimal LineSubtotal => UnitPrice * ReturnQuantity;
+        public decimal LineAfterDiscount => LineSubtotal - ProportionalDiscountAmount;
+        public decimal LineGST => LineAfterDiscount * GSTRate / 100;
+        public decimal LineTotal => LineAfterDiscount + LineGST;
+        
+        public bool HasDiscount => ProportionalDiscountAmount > 0;
+    }
+
+    /// <summary>
+    /// Return list view model
+    /// </summary>
+    public class ReturnsIndexViewModel
+    {
+        public List<Return> Returns { get; set; } = new List<Return>();
+        public DateTime? FromDate { get; set; }
+        public DateTime? ToDate { get; set; }
+        public string? SearchTerm { get; set; }
+        public string? StatusFilter { get; set; }
+        
+        // Summary statistics
+        public decimal TotalRefunds { get; set; }
+        public int TotalReturns { get; set; }
+        public decimal AverageRefundAmount { get; set; }
+    }
+
+    // =========================================
+    // Return Helper Classes
+    // =========================================
+
+    /// <summary>
+    /// Calculator for return amounts with discount proportions
+    /// </summary>
+    public static class ReturnCalculator
+    {
+        /// <summary>
+        /// Calculate proportional discount for return quantity
+        /// </summary>
+        public static decimal CalculateProportionalDiscount(
+            decimal originalQuantity,
+            decimal returnQuantity,
+            decimal originalDiscountAmount)
+        {
+            if (originalQuantity <= 0 || returnQuantity <= 0) return 0;
+            return (originalDiscountAmount * returnQuantity) / originalQuantity;
+        }
+        
+        /// <summary>
+        /// Calculate return line total with discount
+        /// </summary>
+        public static (decimal subtotal, decimal discount, decimal afterDiscount, decimal gst, decimal total) 
+            CalculateReturnLineTotal(
+                decimal unitPrice,
+                decimal quantity,
+                decimal gstRate,
+                decimal proportionalDiscount)
+        {
+            var subtotal = unitPrice * quantity;
+            var afterDiscount = subtotal - proportionalDiscount;
+            var gst = afterDiscount * gstRate / 100;
+            var total = afterDiscount + gst;
+            
+            return (subtotal, proportionalDiscount, afterDiscount, gst, total);
+        }
+        
+        /// <summary>
+        /// Calculate total return amounts
+        /// </summary>
+        public static (decimal subtotal, decimal totalDiscounts, decimal totalGST, decimal refundAmount) 
+            CalculateReturnTotals(List<ReturnItemViewModel> items)
+        {
+            var subtotal = items.Sum(i => i.LineSubtotal);
+            var totalDiscounts = items.Sum(i => i.ProportionalDiscountAmount);
+            var totalGST = items.Sum(i => i.LineGST);
+            var refundAmount = items.Sum(i => i.LineTotal);
+            
+            return (subtotal, totalDiscounts, totalGST, refundAmount);
+        }
+        
+        /// <summary>
+        /// Validate return quantities against available quantities
+        /// </summary>
+        public static Dictionary<int, string> ValidateReturnQuantities(
+            List<ReturnItemViewModel> returnItems,
+            Dictionary<int, decimal> availableQuantities)
+        {
+            var errors = new Dictionary<int, string>();
+            
+            foreach (var item in returnItems)
+            {
+                if (!availableQuantities.ContainsKey(item.SaleItemId))
+                {
+                    errors[item.SaleItemId] = "Item not found in original sale";
+                    continue;
+                }
+                
+                var available = availableQuantities[item.SaleItemId];
+                if (item.ReturnQuantity > available)
+                {
+                    errors[item.SaleItemId] = $"Cannot return {item.ReturnQuantity:0.###}. Available: {available:0.###}";
+                }
+                
+                if (item.ReturnQuantity <= 0)
+                {
+                    errors[item.SaleItemId] = "Return quantity must be greater than 0";
+                }
+            }
+            
+            return errors;
+        }
+    }
+
+    /// <summary>
+    /// Return reason constants
+    /// </summary>
+    public static class ReturnReasons
+    {
+        public const string Defective = "Defective/Damaged";
+        public const string WrongSize = "Wrong Size";
+        public const string WrongColor = "Wrong Color";
+        public const string CustomerChange = "Customer Changed Mind";
+        public const string QualityIssue = "Quality Issue";
+        public const string NotAsExpected = "Not As Expected";
+        public const string Duplicate = "Duplicate Purchase";
+        public const string Other = "Other";
+        
+        public static List<string> GetAllReasons()
+        {
+            return new List<string>
+            {
+                Defective,
+                WrongSize,
+                WrongColor,
+                CustomerChange,
+                QualityIssue,
+                NotAsExpected,
+                Duplicate,
+                Other
+            };
+        }
+    }
+
+    /// <summary>
+    /// Return status constants
+    /// </summary>
+    public static class ReturnStatus
+    {
+        public const string Pending = "Pending";
+        public const string Approved = "Approved";
+        public const string Processing = "Processing";
+        public const string Completed = "Completed";
+        public const string Cancelled = "Cancelled";
+        public const string Rejected = "Rejected";
+        
+        public static List<string> GetAllStatuses()
+        {
+            return new List<string>
+            {
+                Pending,
+                Approved,
+                Processing,
+                Completed,
+                Cancelled,
+                Rejected
+            };
+        }
+    }
+
+    /// <summary>
+    /// Item condition constants
+    /// </summary>
+    public static class ItemCondition
+    {
+        public const string Good = "Good";
+        public const string Minor = "Minor Wear";
+        public const string Damaged = "Damaged";
+        public const string Defective = "Defective";
+        public const string Unusable = "Unusable";
+        
+        public static List<string> GetAllConditions()
+        {
+            return new List<string>
+            {
+                Good,
+                Minor,
+                Damaged,
+                Defective,
+                Unusable
+            };
+        }
     }
 
     /// <summary>
@@ -499,7 +870,7 @@ namespace BhavenaKhadiBhavan.Models
         public List<Category> Categories { get; set; } = new List<Category>();
         public List<Product> Products { get; set; } = new List<Product>();
         public List<Customer> Customers { get; set; } = new List<Customer>();
-        public List<SaleItem> CartItems { get; set; } = new List<SaleItem>();
+        public List<SaleItemViewModel> CartItems { get; set; } = new List<SaleItemViewModel>();
 
         // Cart Totals
         [Column(TypeName = "decimal(18,2)")]
@@ -509,7 +880,68 @@ namespace BhavenaKhadiBhavan.Models
         public decimal CartGST { get; set; }
 
         [Column(TypeName = "decimal(18,2)")]
+        public decimal CartDiscount { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
         public decimal CartTotal { get; set; }
+    }
+
+    public class SaleItemViewModel
+    {
+        public int ProductId { get; set; }
+        public string ProductName { get; set; } = string.Empty;
+        public decimal Quantity { get; set; }
+        public decimal UnitPrice { get; set; }
+        public decimal GSTRate { get; set; }
+        public string UnitOfMeasure { get; set; } = "Piece";
+
+        // Individual item discount
+        public decimal ItemDiscountPercentage { get; set; } = 0;
+        public decimal ItemDiscountAmount { get; set; } = 0;
+
+        // Calculated properties
+        public decimal LineSubtotal => UnitPrice * Quantity;
+        public decimal LineSubtotalAfterDiscount => LineSubtotal - ItemDiscountAmount;
+        public decimal LineGST => LineSubtotalAfterDiscount * GSTRate / 100;
+        public decimal LineTotal => LineSubtotalAfterDiscount + LineGST;
+
+        public bool HasDiscount => ItemDiscountPercentage > 0 || ItemDiscountAmount > 0;
+        public string DiscountDisplay => HasDiscount ?
+            $"{ItemDiscountPercentage:0.##}% (-₹{ItemDiscountAmount:N2})" : "";
+
+        // Convert to SaleItem entity
+        public SaleItem ToSaleItem()
+        {
+            return new SaleItem
+            {
+                ProductId = ProductId,
+                ProductName = ProductName,
+                Quantity = Quantity,
+                UnitPrice = UnitPrice,
+                GSTRate = GSTRate,
+                UnitOfMeasure = UnitOfMeasure,
+                ItemDiscountPercentage = ItemDiscountPercentage,
+                ItemDiscountAmount = ItemDiscountAmount,
+                GSTAmount = LineGST,
+                LineTotal = LineTotal
+            };
+        }
+
+        // Create from SaleItem entity
+        public static SaleItemViewModel FromSaleItem(SaleItem saleItem)
+        {
+            return new SaleItemViewModel
+            {
+                ProductId = saleItem.ProductId,
+                ProductName = saleItem.ProductName,
+                Quantity = saleItem.Quantity,
+                UnitPrice = saleItem.UnitPrice,
+                GSTRate = saleItem.GSTRate,
+                UnitOfMeasure = saleItem.UnitOfMeasure ?? "Piece",
+                ItemDiscountPercentage = saleItem.ItemDiscountPercentage,
+                ItemDiscountAmount = saleItem.ItemDiscountAmount
+            };
+        }
     }
 
     public class ReportsViewModel

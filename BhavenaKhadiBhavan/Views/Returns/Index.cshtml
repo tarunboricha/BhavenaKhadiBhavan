@@ -1,0 +1,382 @@
+﻿@model ReturnsIndexViewModel
+@{
+    ViewData["Title"] = "Returns";
+}
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2>
+                <i class="fas fa-undo me-2"></i>Returns Management
+                <span class="badge bg-info ms-2">@Model.TotalReturns</span>
+            </h2>
+            <div>
+                <a href="@Url.Action("Index", "Sales")" class="btn btn-outline-primary">
+                    <i class="fas fa-receipt me-1"></i>View Sales
+                </a>
+            </div>
+        </div>
+        <hr>
+    </div>
+</div>
+
+<!-- Filters and Search -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">From Date</label>
+                <input type="date" class="form-control" name="fromDate"
+                       value="@Model.FromDate?.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">To Date</label>
+                <input type="date" class="form-control" name="toDate"
+                       value="@Model.ToDate?.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Status</label>
+                <select class="form-select" name="status">
+                    <option value="">All Statuses</option>
+                    @foreach (var status in ViewBag.ReturnStatuses as List<string>)
+                    {
+                        <option value="@status" selected="@(status == Model.StatusFilter)">@status</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Search</label>
+                <div class="input-group">
+                    <input type="text" class="form-control" name="search"
+                           value="@Model.SearchTerm" placeholder="Return#, Invoice#, Customer...">
+                    <button class="btn btn-primary" type="submit">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="card-title">@Model.TotalReturns</h4>
+                        <p class="card-text">Total Returns</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-undo fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="card-title">₹@Model.TotalRefunds.ToString("N0")</h4>
+                        <p class="card-text">Total Refunds</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-rupee-sign fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4 class="card-title">₹@Model.AverageRefundAmount.ToString("N0")</h4>
+                        <p class="card-text">Average Refund</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-chart-line fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Returns Table -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">
+            <i class="fas fa-list me-2"></i>Returns List
+        </h5>
+    </div>
+    <div class="card-body">
+        @if (Model.Returns.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Return #</th>
+                            <th>Date</th>
+                            <th>Original Sale</th>
+                            <th>Customer</th>
+                            <th>Items</th>
+                            <th>Reason</th>
+                            <th>Refund Amount</th>
+                            <th>Discounts</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var returnItem in Model.Returns)
+                        {
+                            <tr>
+                                <td>
+                                    <strong>@returnItem.ReturnNumber</strong>
+                                    <br>
+                                    <small class="text-muted">@returnItem.ReturnDate.ToString("MMM dd, yyyy")</small>
+                                </td>
+                                <td>
+                                    @returnItem.ReturnDate.ToString("dd/MM/yyyy")
+                                    <br>
+                                    <small class="text-muted">@returnItem.ReturnDate.ToString("HH:mm")</small>
+                                </td>
+                                <td>
+                                    <a href="@Url.Action("Details", "Sales", new { id = returnItem.SaleId })"
+                                       class="text-decoration-none">
+                                        <strong>@returnItem.SaleInvoiceNumber</strong>
+                                    </a>
+                                    <br>
+                                    <small class="text-muted">@returnItem.Sale?.SaleDate.ToString("dd/MM/yyyy")</small>
+                                </td>
+                                <td>
+                                    <strong>@returnItem.CustomerName</strong>
+                                    @if (!string.IsNullOrEmpty(returnItem.Sale?.CustomerPhone))
+                                    {
+                                        <br>
+                            
+                                        <small class="text-muted">@returnItem.Sale.CustomerPhone</small>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="badge bg-primary">@returnItem.ItemCount.ToString("0.###")</span>
+                                    <br>
+                                    <small class="text-muted">@returnItem.ReturnItems.Count item(s)</small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-dark">@returnItem.Reason</span>
+                                    @if (!string.IsNullOrWhiteSpace(returnItem.Notes))
+                                    {
+                                        <br>
+                            
+                                        <small class="text-muted" title="@returnItem.Notes">
+                                            <i class="fas fa-sticky-note"></i> Notes
+                                        </small>
+                                    }
+                                </td>
+                                <td>
+                                    <strong class="text-success">₹@returnItem.RefundAmount.ToString("N2")</strong>
+                                    @if (returnItem.TotalItemDiscounts > 0)
+                                    {
+                                        <br>
+                            
+                                        <small class="text-muted">
+                                            Subtotal: ₹@returnItem.SubTotal.ToString("N2")
+                                        </small>
+                                    }
+                                </td>
+                                <td>
+                                    @if (returnItem.TotalItemDiscounts > 0)
+                                    {
+                                        <span class="text-success">₹@returnItem.TotalItemDiscounts.ToString("N2")</span>
+                                        <br>
+                                        <small class="text-success">
+                                            @returnItem.EffectiveDiscountPercentage.ToString("0.##")%
+                                        </small>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">No Discount</span>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="badge @(returnItem.Status switch
+                                          {
+                                              "Pending" => "bg-warning text-dark",
+                                              "Approved" => "bg-info",
+                                              "Processing" => "bg-primary",
+                                              "Completed" => "bg-success",
+                                              "Cancelled" => "bg-secondary",
+                                              "Rejected" => "bg-danger",
+                                              _ => "bg-secondary"
+                                          })">
+                                @returnItem.Status
+                            </span>
+                            @if (returnItem.ProcessedDate.HasValue)
+                                    {
+                                        <br>
+                            
+                                        <small class="text-muted">
+                                            @returnItem.ProcessedDate.Value.ToString("dd/MM/yyyy")
+                                        </small>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <a href="@Url.Action("Details", "Returns", new { id = returnItem.Id })"
+                                           class="btn btn-sm btn-outline-primary" title="View Details">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+
+                                        @if (returnItem.CanBeProcessed)
+                                        {
+                                            <a href="@Url.Action("Process", "Returns", new { id = returnItem.Id })"
+                                               class="btn btn-sm btn-outline-success" title="Process Return">
+                                                <i class="fas fa-check"></i>
+                                            </a>
+                                        }
+
+                                        @if (returnItem.Status == "Pending")
+                                        {
+                                            <button type="button" class="btn btn-sm btn-outline-danger"
+                                                    onclick="showCancelModal(@returnItem.Id, '@returnItem.ReturnNumber')"
+                                                    title="Cancel Return">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="text-center py-4">
+                <i class="fas fa-undo fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">No Returns Found</h5>
+                <p class="text-muted">No returns match your search criteria.</p>
+                <a href="@Url.Action("Index", "Sales")" class="btn btn-primary">
+                    <i class="fas fa-plus me-1"></i>Process New Return
+                </a>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Cancel Return Modal -->
+<div class="modal fade" id="cancelReturnModal" tabindex="-1" aria-labelledby="cancelReturnModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="cancelReturnModalLabel">
+                    <i class="fas fa-times-circle me-2"></i>Cancel Return
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="cancelReturnForm" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Are you sure you want to cancel return <strong id="cancelReturnNumber"></strong>?
+                        This action will restore the returned quantities to the original sale.
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Cancellation Reason *</label>
+                        <textarea class="form-control" name="reason" rows="3" required
+                                  placeholder="Please provide a reason for cancelling this return..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No, Keep Return</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-times me-1"></i>Yes, Cancel Return
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function showCancelModal(returnId, returnNumber) {
+            $('#cancelReturnForm').attr('action', '@Url.Action("Cancel", "Returns")/' + returnId);
+            $('#cancelReturnNumber').text(returnNumber);
+            $('#cancelReturnModal').modal('show');
+        }
+
+        $(document).ready(function() {
+            // Auto-submit form when dates change
+            $('input[name="fromDate"], input[name="toDate"]').on('change', function() {
+                $(this).closest('form').submit();
+            });
+
+            // Format currency in tables
+            $('.currency').each(function() {
+                const value = parseFloat($(this).text());
+                if (!isNaN(value)) {
+                    $(this).text('₹' + value.toLocaleString('en-IN', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    }));
+                }
+            });
+
+            // Add tooltips
+            $('[title]').tooltip();
+
+            // Highlight search term
+            const searchTerm = '@Model.SearchTerm';
+            if (searchTerm) {
+                $('tbody td').each(function() {
+                    const text = $(this).html();
+                    const regex = new RegExp(`(${searchTerm})`, 'gi');
+                    $(this).html(text.replace(regex, '<mark>$1</mark>'));
+                });
+            }
+        });
+    </script>
+}
+
+<style>
+    .table td {
+        vertical-align: middle;
+    }
+
+    .badge {
+        font-size: 0.75rem;
+    }
+
+    .btn-group .btn {
+        margin: 0;
+    }
+
+    .table-hover tbody tr:hover {
+        background-color: rgba(0, 0, 0, 0.025);
+    }
+
+    .card {
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    }
+
+    .text-decoration-none:hover {
+        text-decoration: underline !important;
+    }
+
+    mark {
+        background-color: #fff3cd;
+        padding: 0.1em 0.2em;
+        border-radius: 0.2em;
+    }
+</style>

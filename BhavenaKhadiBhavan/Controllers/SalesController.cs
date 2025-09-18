@@ -98,12 +98,25 @@ namespace BhavenaKhadiBhavan.Controllers
         /// <summary>
         /// Create new sale - main sales interface
         /// </summary>
-        public async Task<IActionResult> Create()
+        [HttpGet]
+        public async Task<IActionResult> Create(string? customerPhone)
         {
             try
             {
                 var viewModel = new SalesViewModel();
                 await LoadSalesViewModelAsync(viewModel);
+
+                // Pre-fill customer if phone provided
+                if (!string.IsNullOrEmpty(customerPhone))
+                {
+                    var customer = await _customerService.GetCustomerByPhoneAsync(customerPhone);
+                    if (customer != null)
+                    {
+                        viewModel.Sale.CustomerName = customer.Name;
+                        viewModel.Sale.CustomerPhone = customer.Phone;
+                    }
+                }
+
                 return View(viewModel);
             }
             catch (Exception ex)
@@ -122,15 +135,16 @@ namespace BhavenaKhadiBhavan.Controllers
         {
             try
             {
+
                 // Validate cart has items
-                if (!model.CartItems.Any())
+                if (model.CartItems == null || !model.CartItems.Any())
                 {
                     TempData["Error"] = "Please add items to cart before creating sale.";
                     await LoadSalesViewModelAsync(model);
                     return View(model);
                 }
 
-                // Validate customer info if provided
+                // Handle customer information
                 Customer? customer = null;
                 if (!string.IsNullOrWhiteSpace(model.Sale.CustomerName) || !string.IsNullOrWhiteSpace(model.Sale.CustomerPhone))
                 {
@@ -158,29 +172,62 @@ namespace BhavenaKhadiBhavan.Controllers
                     model.Sale.CustomerId = customer.Id;
                 }
 
-                // Validate stock availability
-                foreach (var item in model.CartItems)
+                // CRITICAL FIX: Convert SaleItemViewModel list to SaleItem list
+                var saleItems = new List<SaleItem>();
+                foreach (var cartItem in model.CartItems)
                 {
-                    var product = await _productService.GetProductByIdAsync(item.ProductId);
+                    // Validate stock availability
+                    var product = await _productService.GetProductByIdAsync(cartItem.ProductId);
                     if (product == null || !product.IsActive)
                     {
-                        TempData["Error"] = $"Product '{item.ProductName}' is no longer available.";
+                        TempData["Error"] = $"Product '{cartItem.ProductName}' is no longer available.";
                         await LoadSalesViewModelAsync(model);
                         return View(model);
                     }
 
-                    if (product.StockQuantity < item.Quantity)
+                    if (product.StockQuantity < cartItem.Quantity)
                     {
-                        TempData["Error"] = $"Insufficient stock for '{product.Name}'. Available: {product.StockQuantity}, Required: {item.Quantity}";
+                        TempData["Error"] = $"Insufficient stock for '{product.Name}'. Available: {product.StockQuantity}, Required: {cartItem.Quantity}";
                         await LoadSalesViewModelAsync(model);
                         return View(model);
                     }
+
+                    // Convert SaleItemViewModel to SaleItem
+                    var saleItem = new SaleItem
+                    {
+                        ProductId = cartItem.ProductId,
+                        ProductName = cartItem.ProductName,
+                        Quantity = cartItem.Quantity,
+                        UnitPrice = cartItem.UnitPrice,
+                        GSTRate = cartItem.GSTRate,
+                        UnitOfMeasure = cartItem.UnitOfMeasure,
+                        ItemDiscountPercentage = cartItem.ItemDiscountPercentage,
+                        ItemDiscountAmount = cartItem.ItemDiscountAmount
+                    };
+
+                    // Calculate line totals with item-level discounts
+                    var lineSubtotal = saleItem.UnitPrice * saleItem.Quantity;
+                    var lineAfterDiscount = lineSubtotal - saleItem.ItemDiscountAmount;
+                    var lineGST = lineAfterDiscount * saleItem.GSTRate / 100;
+                    saleItem.GSTAmount = lineGST;
+                    saleItem.LineTotal = lineAfterDiscount + lineGST;
+
+                    saleItems.Add(saleItem);
                 }
 
-                // Create the sale
-                var sale = await _salesService.CreateSaleAsync(model.Sale, model.CartItems);
+                // Validate payment method
+                if (string.IsNullOrWhiteSpace(model.Sale.PaymentMethod))
+                {
+                    model.Sale.PaymentMethod = "Cash"; // Default to cash
+                }
 
-                TempData["Success"] = $"Sale {sale.InvoiceNumber} created successfully! Total: ₹{sale.TotalAmount:N2}";
+                // Create the sale with item-level discounts
+                var sale = await _salesService.CreateSaleAsync(model.Sale, saleItems);
+
+                TempData["Success"] = $"Sale {sale.InvoiceNumber} created successfully! " +
+                    $"Total: ₹{sale.TotalAmount:N2}" +
+                    (sale.DiscountAmount > 0 ? $" (Saved: ₹{sale.DiscountAmount:N2})" : "");
+
                 return RedirectToAction(nameof(Details), new { id = sale.Id });
             }
             catch (Exception ex)
@@ -438,63 +485,62 @@ namespace BhavenaKhadiBhavan.Controllers
             };
         }
 
+        // CRITICAL FIX: Updated helper method to work with SaleItemViewModel
         private async Task LoadSalesViewModelAsync(SalesViewModel model)
         {
-            // Load categories without navigation properties
-            model.Categories = await _context.Categories
-                .Where(c => c.IsActive)
-                .Select(c => new Category
-                {
-                    Id = c.Id,
-                    Name = c.Name,
-                    IsActive = c.IsActive
-                })
-                .ToListAsync();
-
-            // Load products without circular references - create simple DTOs
-            var products = await _context.Products
-                .Where(p => p.IsActive)
-                .Include(p => p.Category)
-                .ToListAsync();
-
-            // Create products without navigation properties for JSON serialization
-            model.Products = products.Select(p => new Product
+            try
             {
-                Id = p.Id,
-                Name = p.Name,
-                CategoryId = p.CategoryId,
-                SalePrice = p.SalePrice,
-                StockQuantity = p.StockQuantity,
-                MinimumStock = p.MinimumStock,
-                GSTRate = p.GSTRate,
-                Color = p.Color,
-                Size = p.Size,
-                FabricType = p.FabricType,
-                IsActive = p.IsActive,
-                // Create a simple category object without navigation properties
-                Category = p.Category != null ? new Category
+                // Load categories without navigation properties
+                model.Categories = await _context.Categories
+                    .Where(c => c.IsActive)
+                    .Select(c => new Category
+                    {
+                        Id = c.Id,
+                        Name = c.Name,
+                        IsActive = c.IsActive
+                    })
+                    .ToListAsync();
+
+                // Load customers
+                model.Customers = await _customerService.GetAllCustomersAsync();
+
+                // Initialize empty cart if not provided - FIXED TYPE
+                model.CartItems ??= new List<SaleItemViewModel>();
+
+                // Calculate cart totals with item-level discounts
+                var cartSummary = CalculateCartSummaryWithDiscounts(model.CartItems);
+                model.CartSubtotal = cartSummary.subtotal;
+                model.CartGST = cartSummary.gstAmount;
+                model.CartDiscount = cartSummary.totalDiscount;
+                model.CartTotal = cartSummary.total;
+
+                // Payment method options
+                ViewBag.PaymentMethods = new List<SelectListItem>
                 {
-                    Id = p.Category.Id,
-                    Name = p.Category.Name
-                } : null
-            }).ToList();
-
-            model.Customers = await _customerService.GetAllCustomersAsync();
-            model.CartItems = GetCartFromSession();
-
-            var cartSummary = CalculateCartSummary(model.CartItems);
-            model.CartSubtotal = ((dynamic)cartSummary).subtotal;
-            model.CartGST = ((dynamic)cartSummary).gstAmount;
-            model.CartTotal = ((dynamic)cartSummary).total;
-
-            // Payment method options
-            ViewBag.PaymentMethods = new List<SelectListItem>
+                    new() { Value = "Cash", Text = "Cash", Selected = true },
+                    new() { Value = "Card", Text = "Card" },
+                    new() { Value = "UPI", Text = "UPI" },
+                    new() { Value = "Bank Transfer", Text = "Bank Transfer" }
+                };
+            }
+            catch (Exception ex)
             {
-                new() { Value = "Cash", Text = "Cash" },
-                new() { Value = "Card", Text = "Card" },
-                new() { Value = "UPI", Text = "UPI" },
-                new() { Value = "Bank Transfer", Text = "Bank Transfer" }
-            };
+                throw;
+            }
+        }
+
+        // CRITICAL FIX: Updated calculation method for SaleItemViewModel
+        private (decimal subtotal, decimal totalDiscount, decimal gstAmount, decimal total) CalculateCartSummaryWithDiscounts(List<SaleItemViewModel> cartItems)
+        {
+            var subtotal = cartItems.Sum(c => c.UnitPrice * c.Quantity);
+            var totalDiscount = cartItems.Sum(c => c.ItemDiscountAmount);
+            var gstAmount = cartItems.Sum(c => {
+                var lineAfterDiscount = (c.UnitPrice * c.Quantity) - c.ItemDiscountAmount;
+                return lineAfterDiscount * c.GSTRate / 100;
+            });
+            var total = subtotal - totalDiscount + gstAmount;
+
+            return (subtotal, totalDiscount, gstAmount, total);
         }
     }
 }

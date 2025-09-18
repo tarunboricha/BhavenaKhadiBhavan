@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BhavenaKhadiBhavan.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250918114626_InitialCreate")]
+    [Migration("20250918190902_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -61,7 +61,7 @@ namespace BhavenaKhadiBhavan.Migrations
                         new
                         {
                             Id = 1,
-                            CreatedAt = new DateTime(2025, 9, 18, 17, 16, 24, 113, DateTimeKind.Local).AddTicks(3419),
+                            CreatedAt = new DateTime(2025, 9, 19, 0, 39, 1, 964, DateTimeKind.Local).AddTicks(9168),
                             Description = "Traditional kurtas for men",
                             IsActive = true,
                             Name = "Men's Kurtas"
@@ -69,7 +69,7 @@ namespace BhavenaKhadiBhavan.Migrations
                         new
                         {
                             Id = 2,
-                            CreatedAt = new DateTime(2025, 9, 18, 17, 16, 24, 113, DateTimeKind.Local).AddTicks(3426),
+                            CreatedAt = new DateTime(2025, 9, 19, 0, 39, 1, 964, DateTimeKind.Local).AddTicks(9171),
                             Description = "Traditional kurtas for women",
                             IsActive = true,
                             Name = "Women's Kurtas"
@@ -77,7 +77,7 @@ namespace BhavenaKhadiBhavan.Migrations
                         new
                         {
                             Id = 3,
-                            CreatedAt = new DateTime(2025, 9, 18, 17, 16, 24, 113, DateTimeKind.Local).AddTicks(3428),
+                            CreatedAt = new DateTime(2025, 9, 19, 0, 39, 1, 964, DateTimeKind.Local).AddTicks(9174),
                             Description = "Traditional dhotis",
                             IsActive = true,
                             Name = "Dhotis"
@@ -85,7 +85,7 @@ namespace BhavenaKhadiBhavan.Migrations
                         new
                         {
                             Id = 4,
-                            CreatedAt = new DateTime(2025, 9, 18, 17, 16, 24, 113, DateTimeKind.Local).AddTicks(3430),
+                            CreatedAt = new DateTime(2025, 9, 19, 0, 39, 1, 964, DateTimeKind.Local).AddTicks(9176),
                             Description = "Traditional sarees",
                             IsActive = true,
                             Name = "Sarees"
@@ -93,7 +93,7 @@ namespace BhavenaKhadiBhavan.Migrations
                         new
                         {
                             Id = 5,
-                            CreatedAt = new DateTime(2025, 9, 18, 17, 16, 24, 113, DateTimeKind.Local).AddTicks(3431),
+                            CreatedAt = new DateTime(2025, 9, 19, 0, 39, 1, 964, DateTimeKind.Local).AddTicks(9178),
                             Description = "Khadi shirts",
                             IsActive = true,
                             Name = "Shirts"
@@ -101,7 +101,7 @@ namespace BhavenaKhadiBhavan.Migrations
                         new
                         {
                             Id = 6,
-                            CreatedAt = new DateTime(2025, 9, 18, 17, 16, 24, 113, DateTimeKind.Local).AddTicks(3433),
+                            CreatedAt = new DateTime(2025, 9, 19, 0, 39, 1, 964, DateTimeKind.Local).AddTicks(9180),
                             Description = "Khadi fabrics by meter",
                             IsActive = true,
                             Name = "Fabrics"
@@ -109,7 +109,7 @@ namespace BhavenaKhadiBhavan.Migrations
                         new
                         {
                             Id = 7,
-                            CreatedAt = new DateTime(2025, 9, 18, 17, 16, 24, 113, DateTimeKind.Local).AddTicks(3435),
+                            CreatedAt = new DateTime(2025, 9, 19, 0, 39, 1, 964, DateTimeKind.Local).AddTicks(9182),
                             Description = "Khadi accessories and bags",
                             IsActive = true,
                             Name = "Accessories"
@@ -169,7 +169,7 @@ namespace BhavenaKhadiBhavan.Migrations
                         {
                             Id = 1,
                             Address = "456 MG Road, Mumbai, Maharashtra - 400001",
-                            CreatedAt = new DateTime(2025, 9, 18, 17, 16, 24, 263, DateTimeKind.Local).AddTicks(1870),
+                            CreatedAt = new DateTime(2025, 9, 19, 0, 39, 2, 147, DateTimeKind.Local).AddTicks(5149),
                             Email = "rajesh@example.com",
                             Name = "Rajesh Kumar",
                             Phone = "9876543210",
@@ -180,7 +180,7 @@ namespace BhavenaKhadiBhavan.Migrations
                         {
                             Id = 2,
                             Address = "789 Park Street, Delhi - 110001",
-                            CreatedAt = new DateTime(2025, 9, 18, 17, 16, 24, 263, DateTimeKind.Local).AddTicks(1872),
+                            CreatedAt = new DateTime(2025, 9, 19, 0, 39, 2, 147, DateTimeKind.Local).AddTicks(5153),
                             Email = "priya@example.com",
                             Name = "Priya Sharma",
                             Phone = "9876543211",
@@ -278,7 +278,7 @@ namespace BhavenaKhadiBhavan.Migrations
                             Id = 1,
                             CategoryId = 1,
                             Color = "White",
-                            CreatedAt = new DateTime(2025, 9, 18, 17, 16, 24, 263, DateTimeKind.Local).AddTicks(1760),
+                            CreatedAt = new DateTime(2025, 9, 19, 0, 39, 2, 147, DateTimeKind.Local).AddTicks(5036),
                             Description = "Pure cotton khadi kurta in white color",
                             FabricType = "Cotton Khadi",
                             GSTRate = 5.0m,
@@ -292,14 +292,14 @@ namespace BhavenaKhadiBhavan.Migrations
                             Size = "M",
                             StockQuantity = 25m,
                             UnitOfMeasure = "Piece",
-                            UpdatedAt = new DateTime(2025, 9, 18, 17, 16, 24, 263, DateTimeKind.Local).AddTicks(1762)
+                            UpdatedAt = new DateTime(2025, 9, 19, 0, 39, 2, 147, DateTimeKind.Local).AddTicks(5037)
                         },
                         new
                         {
                             Id = 2,
                             CategoryId = 4,
                             Color = "Blue",
-                            CreatedAt = new DateTime(2025, 9, 18, 17, 16, 24, 263, DateTimeKind.Local).AddTicks(1767),
+                            CreatedAt = new DateTime(2025, 9, 19, 0, 39, 2, 147, DateTimeKind.Local).AddTicks(5043),
                             Description = "Handwoven silk khadi saree in royal blue",
                             FabricType = "Silk Khadi",
                             GSTRate = 5.0m,
@@ -313,14 +313,14 @@ namespace BhavenaKhadiBhavan.Migrations
                             Size = "Free Size",
                             StockQuantity = 15m,
                             UnitOfMeasure = "Piece",
-                            UpdatedAt = new DateTime(2025, 9, 18, 17, 16, 24, 263, DateTimeKind.Local).AddTicks(1767)
+                            UpdatedAt = new DateTime(2025, 9, 19, 0, 39, 2, 147, DateTimeKind.Local).AddTicks(5044)
                         },
                         new
                         {
                             Id = 3,
                             CategoryId = 3,
                             Color = "Cream",
-                            CreatedAt = new DateTime(2025, 9, 18, 17, 16, 24, 263, DateTimeKind.Local).AddTicks(1771),
+                            CreatedAt = new DateTime(2025, 9, 19, 0, 39, 2, 147, DateTimeKind.Local).AddTicks(5049),
                             Description = "Pure cotton dhoti in cream color",
                             FabricType = "Cotton Khadi",
                             GSTRate = 5.0m,
@@ -334,14 +334,14 @@ namespace BhavenaKhadiBhavan.Migrations
                             Size = "Free Size",
                             StockQuantity = 20m,
                             UnitOfMeasure = "Piece",
-                            UpdatedAt = new DateTime(2025, 9, 18, 17, 16, 24, 263, DateTimeKind.Local).AddTicks(1772)
+                            UpdatedAt = new DateTime(2025, 9, 19, 0, 39, 2, 147, DateTimeKind.Local).AddTicks(5050)
                         },
                         new
                         {
                             Id = 4,
                             CategoryId = 2,
                             Color = "Pink",
-                            CreatedAt = new DateTime(2025, 9, 18, 17, 16, 24, 263, DateTimeKind.Local).AddTicks(1775),
+                            CreatedAt = new DateTime(2025, 9, 19, 0, 39, 2, 147, DateTimeKind.Local).AddTicks(5055),
                             Description = "Cotton khadi kurta for women in pink",
                             FabricType = "Cotton Khadi",
                             GSTRate = 5.0m,
@@ -355,14 +355,14 @@ namespace BhavenaKhadiBhavan.Migrations
                             Size = "L",
                             StockQuantity = 30m,
                             UnitOfMeasure = "Piece",
-                            UpdatedAt = new DateTime(2025, 9, 18, 17, 16, 24, 263, DateTimeKind.Local).AddTicks(1776)
+                            UpdatedAt = new DateTime(2025, 9, 19, 0, 39, 2, 147, DateTimeKind.Local).AddTicks(5056)
                         },
                         new
                         {
                             Id = 5,
                             CategoryId = 6,
                             Color = "Natural",
-                            CreatedAt = new DateTime(2025, 9, 18, 17, 16, 24, 263, DateTimeKind.Local).AddTicks(1800),
+                            CreatedAt = new DateTime(2025, 9, 19, 0, 39, 2, 147, DateTimeKind.Local).AddTicks(5073),
                             Description = "Pure khadi cotton fabric per meter",
                             FabricType = "Cotton Khadi",
                             GSTRate = 5.0m,
@@ -376,7 +376,7 @@ namespace BhavenaKhadiBhavan.Migrations
                             Size = "Per Meter",
                             StockQuantity = 100m,
                             UnitOfMeasure = "Piece",
-                            UpdatedAt = new DateTime(2025, 9, 18, 17, 16, 24, 263, DateTimeKind.Local).AddTicks(1805)
+                            UpdatedAt = new DateTime(2025, 9, 19, 0, 39, 2, 147, DateTimeKind.Local).AddTicks(5083)
                         });
                 });
 
@@ -388,22 +388,42 @@ namespace BhavenaKhadiBhavan.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<decimal>("DiscountAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
                     b.Property<decimal>("GSTAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m);
 
                     b.Property<string>("Notes")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("ProcessedBy")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("ProcessedDate")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Reason")
                         .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<decimal>("RefundAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<string>("RefundMethod")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasDefaultValue("Cash");
+
+                    b.Property<string>("RefundReference")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<DateTime>("ReturnDate")
                         .HasColumnType("datetime2");
@@ -418,16 +438,20 @@ namespace BhavenaKhadiBhavan.Migrations
 
                     b.Property<string>("Status")
                         .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("Pending");
 
                     b.Property<decimal>("SubTotal")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m);
 
-                    b.Property<decimal>("TotalAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
+                    b.Property<decimal>("TotalItemDiscounts")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m);
 
                     b.HasKey("Id");
 
@@ -451,29 +475,45 @@ namespace BhavenaKhadiBhavan.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<decimal>("DiscountAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
+                    b.Property<string>("Condition")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<decimal>("GSTAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m);
 
                     b.Property<decimal>("GSTRate")
-                        .HasPrecision(5, 2)
-                        .HasColumnType("decimal(5,2)");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(5,2)")
+                        .HasDefaultValue(0m);
 
                     b.Property<decimal>("LineTotal")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<decimal>("OriginalItemDiscountPercentage")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(5,2)")
+                        .HasDefaultValue(0m);
 
                     b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ProductId1")
                         .HasColumnType("int");
 
                     b.Property<string>("ProductName")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
+
+                    b.Property<decimal>("ProportionalDiscountAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m);
 
                     b.Property<int>("ReturnId")
                         .HasColumnType("int");
@@ -484,17 +524,27 @@ namespace BhavenaKhadiBhavan.Migrations
                     b.Property<int>("SaleItemId")
                         .HasColumnType("int");
 
-                    b.Property<string>("UnitOfMeasure")
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("Pending");
+
+                    b.Property<string>("UnitOfMeasure")
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("Piece");
 
                     b.Property<decimal>("UnitPrice")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("ProductId");
+
+                    b.HasIndex("ProductId1");
 
                     b.HasIndex("ReturnId");
 
@@ -515,8 +565,8 @@ namespace BhavenaKhadiBhavan.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("CustomerName")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("CustomerPhone")
                         .HasMaxLength(15)
@@ -539,16 +589,14 @@ namespace BhavenaKhadiBhavan.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<string>("Notes")
-                        .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
-
                     b.Property<string>("PaymentMethod")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("PaymentReference")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<DateTime>("SaleDate")
                         .HasColumnType("datetime2");
@@ -594,6 +642,12 @@ namespace BhavenaKhadiBhavan.Migrations
 
                     b.Property<decimal>("GSTRate")
                         .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<decimal>("ItemDiscountAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("ItemDiscountPercentage")
                         .HasColumnType("decimal(5,2)");
 
                     b.Property<decimal>("LineTotal")
@@ -679,7 +733,7 @@ namespace BhavenaKhadiBhavan.Migrations
                             Category = "Store",
                             Description = "Store name for invoices",
                             Key = "StoreName",
-                            UpdatedAt = new DateTime(2025, 9, 18, 17, 16, 24, 263, DateTimeKind.Local).AddTicks(1665),
+                            UpdatedAt = new DateTime(2025, 9, 19, 0, 39, 2, 147, DateTimeKind.Local).AddTicks(4881),
                             Value = "Khadi Store"
                         },
                         new
@@ -688,7 +742,7 @@ namespace BhavenaKhadiBhavan.Migrations
                             Category = "Store",
                             Description = "Store address",
                             Key = "StoreAddress",
-                            UpdatedAt = new DateTime(2025, 9, 18, 17, 16, 24, 263, DateTimeKind.Local).AddTicks(1669),
+                            UpdatedAt = new DateTime(2025, 9, 19, 0, 39, 2, 147, DateTimeKind.Local).AddTicks(4886),
                             Value = "123 Gandhi Road, City, State - 400001"
                         },
                         new
@@ -697,7 +751,7 @@ namespace BhavenaKhadiBhavan.Migrations
                             Category = "Store",
                             Description = "Store phone number",
                             Key = "StorePhone",
-                            UpdatedAt = new DateTime(2025, 9, 18, 17, 16, 24, 263, DateTimeKind.Local).AddTicks(1671),
+                            UpdatedAt = new DateTime(2025, 9, 19, 0, 39, 2, 147, DateTimeKind.Local).AddTicks(4888),
                             Value = "+91 98765 43210"
                         },
                         new
@@ -706,7 +760,7 @@ namespace BhavenaKhadiBhavan.Migrations
                             Category = "Store",
                             Description = "Store email",
                             Key = "StoreEmail",
-                            UpdatedAt = new DateTime(2025, 9, 18, 17, 16, 24, 263, DateTimeKind.Local).AddTicks(1672),
+                            UpdatedAt = new DateTime(2025, 9, 19, 0, 39, 2, 147, DateTimeKind.Local).AddTicks(4890),
                             Value = "info@khadistore.com"
                         },
                         new
@@ -715,7 +769,7 @@ namespace BhavenaKhadiBhavan.Migrations
                             Category = "Tax",
                             Description = "Store GST number",
                             Key = "GSTNumber",
-                            UpdatedAt = new DateTime(2025, 9, 18, 17, 16, 24, 263, DateTimeKind.Local).AddTicks(1673),
+                            UpdatedAt = new DateTime(2025, 9, 19, 0, 39, 2, 147, DateTimeKind.Local).AddTicks(4891),
                             Value = "27AAAAA0000A1Z5"
                         },
                         new
@@ -724,7 +778,7 @@ namespace BhavenaKhadiBhavan.Migrations
                             Category = "Store",
                             Description = "Invoice number prefix",
                             Key = "InvoicePrefix",
-                            UpdatedAt = new DateTime(2025, 9, 18, 17, 16, 24, 263, DateTimeKind.Local).AddTicks(1674),
+                            UpdatedAt = new DateTime(2025, 9, 19, 0, 39, 2, 147, DateTimeKind.Local).AddTicks(4893),
                             Value = "KHD"
                         },
                         new
@@ -733,7 +787,7 @@ namespace BhavenaKhadiBhavan.Migrations
                             Category = "Store",
                             Description = "Return number prefix",
                             Key = "ReturnPrefix",
-                            UpdatedAt = new DateTime(2025, 9, 18, 17, 16, 24, 263, DateTimeKind.Local).AddTicks(1676),
+                            UpdatedAt = new DateTime(2025, 9, 19, 0, 39, 2, 147, DateTimeKind.Local).AddTicks(4894),
                             Value = "RET"
                         },
                         new
@@ -742,7 +796,7 @@ namespace BhavenaKhadiBhavan.Migrations
                             Category = "Tax",
                             Description = "Default GST rate percentage",
                             Key = "DefaultGSTRate",
-                            UpdatedAt = new DateTime(2025, 9, 18, 17, 16, 24, 263, DateTimeKind.Local).AddTicks(1677),
+                            UpdatedAt = new DateTime(2025, 9, 19, 0, 39, 2, 147, DateTimeKind.Local).AddTicks(4896),
                             Value = "5.0"
                         },
                         new
@@ -751,7 +805,7 @@ namespace BhavenaKhadiBhavan.Migrations
                             Category = "Inventory",
                             Description = "Default low stock threshold",
                             Key = "LowStockThreshold",
-                            UpdatedAt = new DateTime(2025, 9, 18, 17, 16, 24, 263, DateTimeKind.Local).AddTicks(1678),
+                            UpdatedAt = new DateTime(2025, 9, 19, 0, 39, 2, 147, DateTimeKind.Local).AddTicks(4897),
                             Value = "5"
                         },
                         new
@@ -760,7 +814,7 @@ namespace BhavenaKhadiBhavan.Migrations
                             Category = "Store",
                             Description = "Store currency",
                             Key = "Currency",
-                            UpdatedAt = new DateTime(2025, 9, 18, 17, 16, 24, 263, DateTimeKind.Local).AddTicks(1679),
+                            UpdatedAt = new DateTime(2025, 9, 19, 0, 39, 2, 147, DateTimeKind.Local).AddTicks(4898),
                             Value = "INR"
                         });
                 });
@@ -823,11 +877,11 @@ namespace BhavenaKhadiBhavan.Migrations
                         new
                         {
                             Id = 1,
-                            CreatedAt = new DateTime(2025, 9, 18, 17, 16, 24, 263, DateTimeKind.Local).AddTicks(1231),
+                            CreatedAt = new DateTime(2025, 9, 19, 0, 39, 2, 147, DateTimeKind.Local).AddTicks(4258),
                             Email = "admin@khadistore.com",
                             FullName = "Store Administrator",
                             IsActive = true,
-                            PasswordHash = "$2a$11$q0EqzaZ3eezonKLS5MWd8.CeIPbKj9GdNbom5oCyf/8dVmec.CdE.",
+                            PasswordHash = "$2a$11$04LLf4pPlESqFaokfe3mbuhEhQu2UkQfAE4BR2xAOMU5hRsJIwcfS",
                             Role = "Admin",
                             Username = "admin"
                         });
@@ -862,6 +916,10 @@ namespace BhavenaKhadiBhavan.Migrations
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("BhavenaKhadiBhavan.Models.Product", null)
+                        .WithMany("ReturnItems")
+                        .HasForeignKey("ProductId1");
 
                     b.HasOne("BhavenaKhadiBhavan.Models.Return", "Return")
                         .WithMany("ReturnItems")
@@ -913,6 +971,11 @@ namespace BhavenaKhadiBhavan.Migrations
             modelBuilder.Entity("BhavenaKhadiBhavan.Models.Category", b =>
                 {
                     b.Navigation("Products");
+                });
+
+            modelBuilder.Entity("BhavenaKhadiBhavan.Models.Product", b =>
+                {
+                    b.Navigation("ReturnItems");
                 });
 
             modelBuilder.Entity("BhavenaKhadiBhavan.Models.Return", b =>

@@ -14,54 +14,59 @@ namespace BhavenaKhadiBhavan.Controllers
         private readonly ISalesService _salesService;
         private readonly IProductService _productService;
         private readonly ApplicationDbContext _context;
+        private readonly ILogger<ReturnsController> _logger;
 
         public ReturnsController(
             IReturnService returnService,
             ISalesService salesService,
             IProductService productService,
-            ApplicationDbContext context)
+            ApplicationDbContext context,
+            ILogger<ReturnsController> logger)
         {
             _returnService = returnService;
             _salesService = salesService;
             _productService = productService;
             _context = context;
+            _logger = logger;
         }
 
         /// <summary>
-        /// Display returns list
+        /// Display returns list with filtering and search
         /// </summary>
-        public async Task<IActionResult> Index(DateTime? fromDate, DateTime? toDate, string search)
+        public async Task<IActionResult> Index(
+            DateTime? fromDate,
+            DateTime? toDate,
+            string? search,
+            string? status)
         {
             try
             {
-                // Default to last 30 days if no dates provided
                 fromDate ??= DateTime.Today.AddDays(-30);
-                toDate ??= DateTime.Today;
+                toDate ??= DateTime.Today.AddDays(1);
 
-                var returns = await _returnService.GetReturnsAsync(fromDate, toDate);
+                var returns = await _returnService.GetReturnsAsync(fromDate, toDate, search, status);
 
-                // Apply search filter
-                if (!string.IsNullOrWhiteSpace(search))
+                var viewModel = new ReturnsIndexViewModel
                 {
-                    search = search.ToLower();
-                    returns = returns.Where(r =>
-                        r.ReturnNumber.ToLower().Contains(search) ||
-                        r.Sale.InvoiceNumber.ToLower().Contains(search) ||
-                        r.CustomerName.ToLower().Contains(search)).ToList();
-                }
+                    Returns = returns,
+                    FromDate = fromDate,
+                    ToDate = toDate,
+                    SearchTerm = search,
+                    StatusFilter = status,
+                    TotalReturns = returns.Count,
+                    TotalRefunds = returns.Sum(r => r.RefundAmount),
+                    AverageRefundAmount = returns.Count > 0 ? returns.Average(r => r.RefundAmount) : 0
+                };
 
-                ViewBag.FromDate = fromDate.Value.ToString("yyyy-MM-dd");
-                ViewBag.ToDate = toDate.Value.ToString("yyyy-MM-dd");
-                ViewBag.Search = search;
-                ViewBag.TotalReturns = returns.Sum(r => r.TotalAmount);
-                ViewBag.TotalCount = returns.Count;
+                ViewBag.ReturnStatuses = ReturnStatus.GetAllStatuses();
 
-                return View(returns);
+                return View(viewModel);
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error loading returns index");
                 TempData["Error"] = "Error loading returns: " + ex.Message;
-                return View(new List<Return>());
+                return View(new ReturnsIndexViewModel());
             }
         }
 
@@ -72,26 +77,28 @@ namespace BhavenaKhadiBhavan.Controllers
         {
             try
             {
-                var returnEntity = await _returnService.GetReturnByIdAsync(id);
-                if (returnEntity == null)
+                var returnTransaction = await _returnService.GetReturnByIdAsync(id);
+                if (returnTransaction == null)
                 {
                     TempData["Error"] = "Return not found.";
                     return RedirectToAction(nameof(Index));
                 }
 
-                return View(returnEntity);
+                return View(returnTransaction);
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error loading return details for return {ReturnId}", id);
                 TempData["Error"] = "Error loading return details: " + ex.Message;
                 return RedirectToAction(nameof(Index));
             }
         }
 
         /// <summary>
-        /// Create return from sale
+        /// Create new return - GET
         /// </summary>
-        public async Task<IActionResult> Create(int? saleId)
+        [HttpGet]
+        public async Task<IActionResult> Create(int? saleId, int? itemId)
         {
             try
             {
@@ -108,352 +115,348 @@ namespace BhavenaKhadiBhavan.Controllers
                     return RedirectToAction("Index", "Sales");
                 }
 
-                // Check if sale can be returned
-                if (sale.Status != "Completed")
+                var returnableItems = await _returnService.GetReturnableItemsAsync(saleId.Value);
+                if (!returnableItems.Any())
                 {
-                    TempData["Error"] = "Only completed sales can be returned.";
-                    return RedirectToAction("Details", "Sales", new { id = saleId });
+                    TempData["Warning"] = "No items can be returned for this sale.";
+                    return RedirectToAction("Details", "Sales", new { id = saleId.Value });
                 }
 
-                // Get returnable quantities
-                var returnableQuantities = await _salesService.GetReturnableQuantitiesAsync(saleId.Value);
-                if (!returnableQuantities.Any())
+                var viewModel = new CreateReturnViewModel
                 {
-                    TempData["Warning"] = "No items are available for return from this sale.";
-                    return RedirectToAction("Details", "Sales", new { id = saleId });
-                }
-
-                ViewBag.Sale = sale;
-                ViewBag.ReturnableQuantities = returnableQuantities;
-
-                // Load return reasons
-                ViewBag.ReturnReasons = new List<SelectListItem>
-                {
-                    new() { Value = "", Text = "Select Return Reason" },
-                    new() { Value = "Defective Product", Text = "Defective Product" },
-                    new() { Value = "Wrong Size", Text = "Wrong Size" },
-                    new() { Value = "Wrong Color", Text = "Wrong Color" },
-                    new() { Value = "Customer Changed Mind", Text = "Customer Changed Mind" },
-                    new() { Value = "Damaged in Transit", Text = "Damaged in Transit" },
-                    new() { Value = "Not as Described", Text = "Not as Described" },
-                    new() { Value = "Other", Text = "Other" }
+                    Sale = sale,
+                    ReturnableItems = returnableItems,
+                    Return = new Return
+                    {
+                        SaleId = saleId.Value,
+                        ReturnDate = DateTime.Now,
+                        Status = ReturnStatus.Pending,
+                        RefundMethod = "Cash"
+                    }
                 };
 
-                return View(new Return { SaleId = saleId.Value });
+                // Pre-select specific item if provided
+                if (itemId.HasValue)
+                {
+                    var specificItem = returnableItems.FirstOrDefault(r => r.SaleItemId == itemId.Value);
+                    if (specificItem != null)
+                    {
+                        var returnItem = new ReturnItemViewModel
+                        {
+                            SaleItemId = specificItem.SaleItemId,
+                            ProductId = specificItem.ProductId,
+                            ProductName = specificItem.ProductName,
+                            ReturnQuantity = specificItem.ReturnableQuantity,
+                            UnitPrice = specificItem.UnitPrice,
+                            GSTRate = specificItem.GSTRate,
+                            UnitOfMeasure = specificItem.UnitOfMeasure,
+                            OriginalItemDiscountPercentage = specificItem.OriginalItemDiscountPercentage,
+                            ProportionalDiscountAmount = specificItem.MaxProportionalDiscount,
+                            Condition = ItemCondition.Good
+                        };
+
+                        viewModel.SelectedItems.Add(returnItem);
+                        CalculateReturnTotals(viewModel);
+                    }
+                }
+
+                ViewBag.ReturnReasons = ReturnReasons.GetAllReasons();
+                ViewBag.ItemConditions = ItemCondition.GetAllConditions();
+                ViewBag.RefundMethods = new[] { "Cash", "Card", "Store Credit", "Bank Transfer" };
+
+                return View(viewModel);
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error loading return creation page for sale {SaleId}", saleId);
                 TempData["Error"] = "Error loading return page: " + ex.Message;
                 return RedirectToAction("Index", "Sales");
             }
         }
 
         /// <summary>
-        /// Process return creation
+        /// Process return creation - POST
         /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(Return returnEntity, List<int> selectedItems, List<int> returnQuantities)
+        public async Task<IActionResult> Create(CreateReturnViewModel model)
         {
+            _logger.LogInformation("Processing return creation for sale {SaleId} with {ItemCount} items",
+                model.Return.SaleId, model.SelectedItems?.Count ?? 0);
+
             try
             {
-                // Validate input
-                if (selectedItems == null || !selectedItems.Any())
+                // Validate basic model
+                if (model.SelectedItems == null || !model.SelectedItems.Any())
                 {
                     TempData["Error"] = "Please select at least one item to return.";
-                    return RedirectToAction(nameof(Create), new { saleId = returnEntity.SaleId });
-                }
-
-                if (selectedItems.Count != returnQuantities.Count)
-                {
-                    TempData["Error"] = "Invalid return data. Please try again.";
-                    return RedirectToAction(nameof(Create), new { saleId = returnEntity.SaleId });
-                }
-
-                // Get the sale and validate
-                var sale = await _salesService.GetSaleByIdAsync(returnEntity.SaleId);
-                if (sale == null)
-                {
-                    TempData["Error"] = "Sale not found.";
-                    return RedirectToAction("Index", "Sales");
-                }
-
-                // Get returnable quantities to validate
-                var returnableQuantitiesDict = await _salesService.GetReturnableQuantitiesAsync(returnEntity.SaleId);
-
-                // Create return items
-                var returnItems = new List<ReturnItem>();
-
-                for (int i = 0; i < selectedItems.Count; i++)
-                {
-                    var saleItemId = selectedItems[i];
-                    var returnQuantity = returnQuantities[i];
-
-                    if (returnQuantity <= 0)
-                        continue;
-
-                    // Validate return quantity
-                    if (!returnableQuantitiesDict.ContainsKey(saleItemId) ||
-                        returnQuantity > returnableQuantitiesDict[saleItemId])
-                    {
-                        TempData["Error"] = $"Invalid return quantity for item {saleItemId}.";
-                        return RedirectToAction(nameof(Create), new { saleId = returnEntity.SaleId });
-                    }
-
-                    // Get the sale item details
-                    var saleItem = sale.SaleItems.FirstOrDefault(si => si.Id == saleItemId);
-                    if (saleItem == null)
-                    {
-                        TempData["Error"] = $"Sale item {saleItemId} not found.";
-                        return RedirectToAction(nameof(Create), new { saleId = returnEntity.SaleId });
-                    }
-
-                    // Calculate proportional discount
-                    var originalBillDiscountPercentage = sale.DiscountPercentage;
-                    var itemSubtotal = saleItem.UnitPrice * returnQuantity;
-                    var itemGST = itemSubtotal * (saleItem.GSTRate / 100);
-                    var totalBeforeDiscount = itemSubtotal + itemGST;
-                    var proportionalDiscount = totalBeforeDiscount * (originalBillDiscountPercentage / 100);
-
-                    var returnItem = new ReturnItem
-                    {
-                        SaleItemId = saleItemId,
-                        ProductId = saleItem.ProductId,
-                        ProductName = saleItem.ProductName,
-                        ReturnQuantity = returnQuantity,
-                        UnitPrice = saleItem.UnitPrice,
-                        GSTRate = saleItem.GSTRate,
-                        GSTAmount = itemGST,
-                        DiscountAmount = proportionalDiscount
-                    };
-
-                    returnItems.Add(returnItem);
-                }
-
-                if (!returnItems.Any())
-                {
-                    TempData["Error"] = "No valid return items found.";
-                    return RedirectToAction(nameof(Create), new { saleId = returnEntity.SaleId });
-                }
-
-                // Create the return
-                var createdReturn = await _returnService.CreateReturnAsync(returnEntity, returnItems);
-
-                TempData["Success"] = $"Return {createdReturn.ReturnNumber} created successfully! Refund Amount: ₹{createdReturn.TotalAmount:N2}";
-                return RedirectToAction(nameof(Details), new { id = createdReturn.Id });
-            }
-            catch (Exception ex)
-            {
-                TempData["Error"] = "Error creating return: " + ex.Message;
-                return RedirectToAction(nameof(Create), new { saleId = returnEntity.SaleId });
-            }
-        }
-
-        /// <summary>
-        /// Search sales for return processing
-        /// </summary>
-        public async Task<IActionResult> SearchSale()
-        {
-            return View();
-        }
-
-        /// <summary>
-        /// AJAX endpoint to search sales by invoice number or customer
-        /// </summary>
-        [HttpGet]
-        public async Task<IActionResult> SearchSales(string term)
-        {
-            try
-            {
-                if (string.IsNullOrWhiteSpace(term))
-                {
-                    return Json(new List<object>());
-                }
-
-                // Search in recent sales (last 30 days)
-                var fromDate = DateTime.Today.AddDays(-30);
-                var sales = await _salesService.GetSalesAsync(fromDate, DateTime.Today);
-
-                var filteredSales = sales.Where(s =>
-                    s.Status == "Completed" && (
-                        s.InvoiceNumber.ToLower().Contains(term.ToLower()) ||
-                        s.CustomerDisplayName.ToLower().Contains(term.ToLower()) ||
-                        s.CustomerPhone?.Contains(term) == true
-                    ))
-                    .Take(10)
-                    .Select(s => new
-                    {
-                        id = s.Id,
-                        invoiceNumber = s.InvoiceNumber,
-                        saleDate = s.SaleDate.ToString("dd/MM/yyyy"),
-                        customerName = s.CustomerDisplayName,
-                        customerPhone = s.CustomerPhone ?? "",
-                        totalAmount = s.TotalAmount,
-                        itemCount = s.ItemCount,
-                        displayText = $"{s.InvoiceNumber} - {s.CustomerDisplayName} (₹{s.TotalAmount:N2})"
-                    })
-                    .ToList();
-
-                return Json(filteredSales);
-            }
-            catch (Exception ex)
-            {
-                return Json(new { error = ex.Message });
-            }
-        }
-
-        /// <summary>
-        /// Get sale details for return processing
-        /// </summary>
-        [HttpGet]
-        public async Task<IActionResult> GetSaleForReturn(int saleId)
-        {
-            try
-            {
-                var sale = await _salesService.GetSaleByIdAsync(saleId);
-                if (sale == null)
-                    return Json(new { error = "Sale not found" });
-
-                if (sale.Status != "Completed")
-                    return Json(new { error = "Only completed sales can be returned" });
-
-                var returnableQuantities = await _salesService.GetReturnableQuantitiesAsync(saleId);
-                if (!returnableQuantities.Any())
-                    return Json(new { error = "No items are available for return from this sale" });
-
-                var saleData = new
-                {
-                    id = sale.Id,
-                    invoiceNumber = sale.InvoiceNumber,
-                    saleDate = sale.SaleDate.ToString("dd/MM/yyyy HH:mm"),
-                    customerName = sale.CustomerDisplayName,
-                    customerPhone = sale.CustomerPhone ?? "",
-                    totalAmount = sale.TotalAmount,
-                    items = sale.SaleItems.Where(si => returnableQuantities.ContainsKey(si.Id))
-                        .Select(si => new
-                        {
-                            id = si.Id,
-                            productName = si.ProductName,
-                            quantity = si.Quantity,
-                            returnedQuantity = si.ReturnedQuantity,
-                            returnableQuantity = returnableQuantities[si.Id],
-                            unitPrice = si.UnitPrice,
-                            gstRate = si.GSTRate,
-                            lineTotal = si.LineTotal
-                        }).ToList()
-                };
-
-                return Json(saleData);
-            }
-            catch (Exception ex)
-            {
-                return Json(new { error = ex.Message });
-            }
-        }
-
-        /// <summary>
-        /// Print return receipt
-        /// </summary>
-        public async Task<IActionResult> PrintReceipt(int id)
-        {
-            try
-            {
-                var returnEntity = await _returnService.GetReturnByIdAsync(id);
-                if (returnEntity == null)
-                {
-                    TempData["Error"] = "Return not found.";
                     return RedirectToAction(nameof(Index));
                 }
 
-                // Load store settings for receipt
-                var storeSettings = await _context.Settings
-                    .Where(s => s.Category == "Store")
-                    .ToDictionaryAsync(s => s.Key, s => s.Value);
+                if (string.IsNullOrWhiteSpace(model.Return.Reason))
+                {
+                    TempData["Error"] = "Please provide a reason for the return.";
+                    return RedirectToAction(nameof(Index));
+                }
 
-                ViewBag.StoreSettings = storeSettings;
-                return View(returnEntity);
+                // Get available quantities for validation
+                var availableQuantities = await _returnService.GetAvailableQuantitiesForReturnAsync(model.Return.SaleId);
+
+                // Validate return quantities
+                var validationErrors = ReturnCalculator.ValidateReturnQuantities(model.SelectedItems, availableQuantities);
+                if (validationErrors.Any())
+                {
+                    foreach (var error in validationErrors)
+                    {
+                        TempData["Error"] = $"Item validation failed: {error.Value}";
+                    }
+                    return RedirectToAction(nameof(Index));
+                }
+
+                // Calculate proportional discounts
+                await CalculateProportionalDiscounts(model);
+
+                // Calculate totals
+                CalculateReturnTotals(model);
+
+                // Create return transaction
+                var returnTransaction = await _returnService.CreateReturnAsync(model.Return, model.SelectedItems);
+
+                _logger.LogInformation("Return created successfully: {ReturnNumber} for amount ₹{Amount}",
+                    returnTransaction.ReturnNumber, returnTransaction.RefundAmount);
+
+                TempData["Success"] = $"Return {returnTransaction.ReturnNumber} created successfully! " +
+                    $"Refund Amount: ₹{returnTransaction.RefundAmount:N2}";
+
+                return RedirectToAction(nameof(Details), new { id = returnTransaction.Id });
             }
             catch (Exception ex)
             {
-                TempData["Error"] = "Error loading return receipt: " + ex.Message;
+                _logger.LogError(ex, "Error creating return for sale {SaleId}", model.Return.SaleId);
+                TempData["Error"] = "Error creating return: " + ex.Message;
                 return RedirectToAction(nameof(Index));
             }
         }
 
         /// <summary>
-        /// Calculate return preview (AJAX)
+        /// Process return (approve and refund) - GET
         /// </summary>
-        [HttpPost]
-        public async Task<IActionResult> CalculateReturnPreview(int saleId, List<int> selectedItems, List<int> returnQuantities)
+        [HttpGet]
+        public async Task<IActionResult> Process(int id)
         {
             try
             {
-                if (selectedItems == null || !selectedItems.Any() || returnQuantities == null)
+                var returnTransaction = await _returnService.GetReturnByIdAsync(id);
+                if (returnTransaction == null)
                 {
-                    return Json(new { error = "Invalid return data" });
+                    TempData["Error"] = "Return not found.";
+                    return RedirectToAction(nameof(Index));
                 }
 
-                var sale = await _salesService.GetSaleByIdAsync(saleId);
-                if (sale == null)
+                if (!returnTransaction.CanBeProcessed)
                 {
-                    return Json(new { error = "Sale not found" });
+                    TempData["Warning"] = $"Return cannot be processed. Current status: {returnTransaction.Status}";
+                    return RedirectToAction(nameof(Details), new { id });
                 }
 
-                decimal totalRefund = 0;
-                decimal totalGST = 0;
-                decimal totalDiscount = 0;
-                var returnItemsPreview = new List<object>();
+                ViewBag.RefundMethods = new[] { "Cash", "Card", "Store Credit", "Bank Transfer" };
+                return View(returnTransaction);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading return processing page for return {ReturnId}", id);
+                TempData["Error"] = "Error loading return processing page: " + ex.Message;
+                return RedirectToAction(nameof(Index));
+            }
+        }
 
-                for (int i = 0; i < selectedItems.Count; i++)
+        /// <summary>
+        /// Process return (approve and refund) - POST
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Process(int id, string refundMethod, string? refundReference, string? notes)
+        {
+            try
+            {
+                var result = await _returnService.ProcessReturnAsync(id, refundMethod, refundReference, notes, User.Identity?.Name);
+
+                if (result.Success)
                 {
-                    var saleItemId = selectedItems[i];
-                    var returnQuantity = returnQuantities[i];
+                    TempData["Success"] = $"Return processed successfully! Refund of ₹{result.RefundAmount:N2} has been issued.";
+                    return RedirectToAction(nameof(Details), new { id });
+                }
+                else
+                {
+                    TempData["Error"] = result.ErrorMessage;
+                    return RedirectToAction(nameof(Process), new { id });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing return {ReturnId}", id);
+                TempData["Error"] = "Error processing return: " + ex.Message;
+                return RedirectToAction(nameof(Process), new { id });
+            }
+        }
 
-                    if (returnQuantity <= 0) continue;
+        /// <summary>
+        /// Cancel return - POST
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Cancel(int id, string reason)
+        {
+            try
+            {
+                var result = await _returnService.CancelReturnAsync(id, reason, User.Identity?.Name);
 
-                    var saleItem = sale.SaleItems.FirstOrDefault(si => si.Id == saleItemId);
-                    if (saleItem == null) continue;
+                if (result.Success)
+                {
+                    TempData["Success"] = "Return cancelled successfully.";
+                }
+                else
+                {
+                    TempData["Error"] = result.ErrorMessage;
+                }
 
-                    // Calculate proportional amounts
-                    var itemSubtotal = saleItem.UnitPrice * returnQuantity;
-                    var itemGST = itemSubtotal * (saleItem.GSTRate / 100);
-                    var totalBeforeDiscount = itemSubtotal + itemGST;
-                    var proportionalDiscount = totalBeforeDiscount * (sale.DiscountPercentage / 100);
-                    var refundAmount = totalBeforeDiscount - proportionalDiscount;
+                return RedirectToAction(nameof(Details), new { id });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error cancelling return {ReturnId}", id);
+                TempData["Error"] = "Error cancelling return: " + ex.Message;
+                return RedirectToAction(nameof(Details), new { id });
+            }
+        }
 
-                    totalRefund += refundAmount;
-                    totalGST += itemGST;
-                    totalDiscount += proportionalDiscount;
+        /// <summary>
+        /// AJAX: Get returnable items for a sale
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> GetReturnableItems(int saleId)
+        {
+            try
+            {
+                var items = await _returnService.GetReturnableItemsAsync(saleId);
+                return Json(items);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading returnable items for sale {SaleId}", saleId);
+                return Json(new { error = ex.Message });
+            }
+        }
 
-                    returnItemsPreview.Add(new
+        /// <summary>
+        /// AJAX: Calculate return totals
+        /// </summary>
+        [HttpPost]
+        public async Task<IActionResult> CalculateReturnTotals([FromBody] List<ReturnItemViewModel> items)
+        {
+            try
+            {
+                if (items == null || !items.Any())
+                {
+                    return Json(new { subtotal = 0, discounts = 0, gst = 0, total = 0 });
+                }
+
+                // Calculate proportional discounts if not already set
+                foreach (var item in items)
+                {
+                    if (item.ProportionalDiscountAmount == 0 && item.OriginalItemDiscountPercentage > 0)
                     {
-                        productName = saleItem.ProductName,
-                        returnQuantity = returnQuantity,
-                        unitPrice = saleItem.UnitPrice,
-                        subtotal = itemSubtotal,
-                        gstAmount = itemGST,
-                        discountAmount = proportionalDiscount,
-                        refundAmount = refundAmount
-                    });
+                        var originalSubtotal = item.UnitPrice * item.ReturnQuantity;
+                        item.ProportionalDiscountAmount = originalSubtotal * item.OriginalItemDiscountPercentage / 100;
+                    }
                 }
+
+                var totals = ReturnCalculator.CalculateReturnTotals(items);
 
                 return Json(new
                 {
-                    success = true,
-                    items = returnItemsPreview,
-                    summary = new
-                    {
-                        subtotal = totalRefund + totalDiscount - totalGST,
-                        gstAmount = totalGST,
-                        discountAmount = totalDiscount,
-                        totalRefund = totalRefund
-                    }
+                    subtotal = totals.subtotal,
+                    discounts = totals.totalDiscounts,
+                    gst = totals.totalGST,
+                    total = totals.refundAmount
                 });
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error calculating return totals");
                 return Json(new { error = ex.Message });
             }
+        }
+
+        // Private helper methods
+
+        private async Task<CreateReturnViewModel> ReloadCreateView(CreateReturnViewModel model)
+        {
+            try
+            {
+                var sale = await _salesService.GetSaleByIdAsync(model.Return.SaleId);
+                var returnableItems = await _returnService.GetReturnableItemsAsync(model.Return.SaleId);
+
+                model.Sale = sale;
+                model.ReturnableItems = returnableItems;
+
+                ViewBag.ReturnReasons = ReturnReasons.GetAllReasons();
+                ViewBag.ItemConditions = ItemCondition.GetAllConditions();
+                ViewBag.RefundMethods = new[] { "Cash", "Card", "Store Credit", "Bank Transfer" };
+
+                return model;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error reloading create view");
+                throw;
+            }
+        }
+
+        private async Task CalculateProportionalDiscounts(CreateReturnViewModel model)
+        {
+            try
+            {
+                // Get original sale items with discount information
+                var saleItems = await _context.SaleItems
+                    .Where(si => si.SaleId == model.Return.SaleId)
+                    .ToListAsync();
+
+                foreach (var returnItem in model.SelectedItems)
+                {
+                    var originalSaleItem = saleItems.FirstOrDefault(si => si.Id == returnItem.SaleItemId);
+                    if (originalSaleItem != null)
+                    {
+                        // Calculate proportional discount based on return quantity
+                        returnItem.ProportionalDiscountAmount = ReturnCalculator.CalculateProportionalDiscount(
+                            originalSaleItem.Quantity,
+                            returnItem.ReturnQuantity,
+                            originalSaleItem.ItemDiscountAmount
+                        );
+
+                        returnItem.OriginalItemDiscountPercentage = originalSaleItem.ItemDiscountPercentage;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error calculating proportional discounts");
+                throw;
+            }
+        }
+
+        private void CalculateReturnTotals(CreateReturnViewModel model)
+        {
+            var totals = ReturnCalculator.CalculateReturnTotals(model.SelectedItems);
+
+            model.Return.SubTotal = totals.subtotal;
+            model.Return.TotalItemDiscounts = totals.totalDiscounts;
+            model.Return.GSTAmount = totals.totalGST;
+            model.Return.RefundAmount = totals.refundAmount;
+
+            model.TotalRefundAmount = totals.refundAmount;
+            model.TotalItemDiscounts = totals.totalDiscounts;
+            model.TotalGSTAmount = totals.totalGST;
         }
     }
 }

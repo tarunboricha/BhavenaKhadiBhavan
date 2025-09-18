@@ -78,27 +78,66 @@ namespace BhavenaKhadiBhavan.Data
                 entity.Property(si => si.LineTotal).HasPrecision(18, 2);
             });
 
+            // CRITICAL FIX: Return Configuration with correct property names
             modelBuilder.Entity<Return>(entity =>
             {
-                entity.Property(r => r.SubTotal).HasPrecision(18, 2);
-                entity.Property(r => r.GSTAmount).HasPrecision(18, 2);
-                entity.Property(r => r.DiscountAmount).HasPrecision(18, 2);
-                entity.Property(r => r.TotalAmount).HasPrecision(18, 2);
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.ReturnNumber).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.Reason).IsRequired().HasMaxLength(500);
+                entity.Property(e => e.Notes).HasMaxLength(1000);
+                entity.Property(e => e.Status).IsRequired().HasMaxLength(20).HasDefaultValue("Pending");
+                entity.Property(e => e.RefundMethod).HasMaxLength(50).HasDefaultValue("Cash");
+                entity.Property(e => e.RefundReference).HasMaxLength(100);
+                entity.Property(e => e.ProcessedBy).HasMaxLength(100);
 
-                // Unique return number
-                entity.HasIndex(r => r.ReturnNumber).IsUnique();
-                entity.HasIndex(r => r.ReturnDate);
-                entity.HasIndex(r => r.SaleId);
-                entity.HasIndex(r => r.Status);
+                // CRITICAL FIX: Correct property names for Return financial fields
+                entity.Property(e => e.SubTotal).HasColumnType("decimal(18,2)").HasDefaultValue(0);
+                entity.Property(e => e.TotalItemDiscounts).HasColumnType("decimal(18,2)").HasDefaultValue(0);
+                entity.Property(e => e.GSTAmount).HasColumnType("decimal(18,2)").HasDefaultValue(0);
+                entity.Property(e => e.RefundAmount).HasColumnType("decimal(18,2)").HasDefaultValue(0);
+
+                entity.HasIndex(e => e.ReturnNumber).IsUnique();
+                entity.HasIndex(e => e.ReturnDate);
+                entity.HasIndex(e => e.Status);
+
+                entity.HasOne(e => e.Sale)
+                      .WithMany(s => s.Returns) // Assuming you add this navigation property to Sale
+                      .HasForeignKey(e => e.SaleId)
+                      .OnDelete(DeleteBehavior.Cascade);
             });
 
+            // CRITICAL FIX: ReturnItem Configuration with correct property names
             modelBuilder.Entity<ReturnItem>(entity =>
             {
-                entity.Property(ri => ri.UnitPrice).HasPrecision(18, 2);
-                entity.Property(ri => ri.DiscountAmount).HasPrecision(18, 2);
-                entity.Property(ri => ri.GSTRate).HasPrecision(5, 2);
-                entity.Property(ri => ri.GSTAmount).HasPrecision(18, 2);
-                entity.Property(ri => ri.LineTotal).HasPrecision(18, 2);
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.ProductName).IsRequired().HasMaxLength(200);
+                entity.Property(e => e.ReturnQuantity).HasColumnType("decimal(10,3)");
+                entity.Property(e => e.UnitPrice).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.GSTRate).HasColumnType("decimal(5,2)").HasDefaultValue(0);
+                entity.Property(e => e.GSTAmount).HasColumnType("decimal(18,2)").HasDefaultValue(0);
+                entity.Property(e => e.LineTotal).HasColumnType("decimal(18,2)").HasDefaultValue(0);
+                entity.Property(e => e.UnitOfMeasure).HasMaxLength(20).HasDefaultValue("Piece");
+                entity.Property(e => e.Status).IsRequired().HasMaxLength(20).HasDefaultValue("Pending");
+                entity.Property(e => e.Condition).HasMaxLength(500);
+
+                // CRITICAL FIX: Correct property names for proportional discount fields  
+                entity.Property(e => e.OriginalItemDiscountPercentage).HasColumnType("decimal(5,2)").HasDefaultValue(0);
+                entity.Property(e => e.ProportionalDiscountAmount).HasColumnType("decimal(18,2)").HasDefaultValue(0);
+
+                entity.HasOne(e => e.Return)
+                      .WithMany(r => r.ReturnItems)
+                      .HasForeignKey(e => e.ReturnId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.SaleItem)
+                      .WithMany(si => si.ReturnItems) // Assuming you add this navigation property to SaleItem
+                      .HasForeignKey(e => e.SaleItemId)
+                      .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.Product)
+                      .WithMany(p => p.ReturnItems) // Assuming you add this navigation property to Product
+                      .HasForeignKey(e => e.ProductId)
+                      .OnDelete(DeleteBehavior.Restrict);
             });
 
             modelBuilder.Entity<User>(entity =>

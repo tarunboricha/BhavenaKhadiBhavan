@@ -17,20 +17,6 @@
 
     <style>
         @@media print {
-            .row {
-                display: flex !important;
-                flex-wrap: wrap !important;
-            }
-
-            .col-md-6 {
-                flex: 0 0 50% !important;
-                max-width: 50% !important;
-            }
-
-            .text-md-end {
-                text-align: right !important;
-            }
-
             .no-print {
                 display: none !important;
             }
@@ -153,6 +139,29 @@
             font-size: 0.85rem;
             color: #666;
         }
+
+        /* CRITICAL: Discount styling for invoice */
+        .discount-row {
+            background-color: #e8f5e8 !important;
+            color: #155724;
+        }
+
+        .discount-amount {
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .original-price {
+            text-decoration: line-through;
+            color: #999;
+            font-size: 0.85em;
+        }
+
+        .savings-info {
+            color: #28a745;
+            font-size: 0.8em;
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
@@ -207,20 +216,11 @@
             <div class="col-md-6">
                 <h6>Bill To:</h6>
                 <strong>@Model.CustomerDisplayName</strong>
+                <br>
+                Phone:
                 @if (!string.IsNullOrEmpty(Model.CustomerPhone))
                 {
-                    <br>
                     @Model.CustomerPhone
-                }
-                @if (Model.Customer != null && !string.IsNullOrEmpty(Model.Customer.Email))
-                {
-                    <br>
-                    @Model.Customer.Email
-                }
-                @if (Model.Customer != null && !string.IsNullOrEmpty(Model.Customer.Address))
-                {
-                    <br>
-                    @Model.Customer.Address
                 }
             </div>
             <div class="col-md-6 text-md-end">
@@ -231,42 +231,58 @@
                     <strong>Date:</strong> @Model.SaleDate.ToString("dd/MM/yyyy")
                 </div>
                 <div class="mb-2">
+                    <strong>Time:</strong> @Model.SaleDate.ToString("HH:mm")
+                </div>
+                <div class="mb-2">
                     <strong>Payment Method:</strong> @Model.PaymentMethod
                 </div>
+                @if (!string.IsNullOrEmpty(Model.PaymentReference))
+                {
+                    <div class="mb-2">
+                        <strong>Payment Ref:</strong> @Model.PaymentReference
+                    </div>
+                }
             </div>
         </div>
 
-        <!-- Items Table -->
+        <!-- Items Table with Individual Discounts -->
         <div class="table-responsive">
             <table class="table table-bordered table-invoice">
                 <thead>
                     <tr>
                         <th style="width: 5%;">#</th>
-                        <th style="width: 40%;">Description</th>
+                        <th style="width: 35%;">Description</th>
                         <th style="width: 10%;">Qty</th>
-                        <th style="width: 15%;">Rate</th>
+                        <th style="width: 12%;">Rate</th>
+                        <th style="width: 10%;">Discount</th>
                         <th style="width: 10%;">GST %</th>
-                        <th style="width: 20%;">Amount</th>
+                        <th style="width: 18%;">Amount</th>
                     </tr>
                 </thead>
                 <tbody>
                     @{
                         var itemNumber = 1;
-                        decimal totalQty = 0;
-                        var totalTaxableAmount = 0m;
+                        var totalQty = 0m;
+                        var totalSubtotal = 0m;
+                        var totalItemDiscounts = 0m;
                         var totalGSTAmount = 0m;
+                        var totalAfterDiscounts = 0m;
                     }
                     @foreach (var item in Model.SaleItems)
                     {
-                        var itemTaxableAmount = item.UnitPrice * item.Quantity;
-                        var itemGSTAmount = itemTaxableAmount * item.GSTRate / 100;
-                        var itemTotal = itemTaxableAmount + itemGSTAmount;
+                        var itemSubtotal = item.UnitPrice * item.Quantity;
+                        var itemDiscount = item.ItemDiscountAmount;
+                        var itemAfterDiscount = itemSubtotal - itemDiscount;
+                        var itemGSTAmount = itemAfterDiscount * item.GSTRate / 100;
+                        var itemTotal = itemAfterDiscount + itemGSTAmount;
 
                         totalQty += item.Quantity;
-                        totalTaxableAmount += itemTaxableAmount;
+                        totalSubtotal += itemSubtotal;
+                        totalItemDiscounts += itemDiscount;
                         totalGSTAmount += itemGSTAmount;
+                        totalAfterDiscounts += itemTotal;
 
-                        <tr>
+                        <tr class="@(item.HasItemDiscount ? "discount-row" : "")">
                             <td class="text-center">@itemNumber</td>
                             <td>
                                 <strong>@item.ProductName</strong>
@@ -282,10 +298,34 @@
                                     }
                                 }
                             </td>
-                            <td class="text-center">@item.Quantity</td>
-                            <td class="text-center">₹@item.UnitPrice.ToString("N2")</td>
+                            <td class="text-center">@item.Quantity.ToString("0.###")</td>
+                            <td class="text-end">₹@item.UnitPrice.ToString("N2")</td>
+                            <td class="text-center">
+                                @if (item.HasItemDiscount)
+                                {
+                                    <strong class="discount-amount">@item.ItemDiscountPercentage.ToString("0.##")%</strong>
+                                    <br>
+                                    <small class="discount-amount">-₹@item.ItemDiscountAmount.ToString("N2")</small>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
                             <td class="text-center">@item.GSTRate%</td>
-                            <td class="text-end">₹@itemTotal.ToString("N2")</td>
+                            <td class="text-end">
+                                @if (item.HasItemDiscount)
+                                {
+                                    <div class="original-price">₹@(itemSubtotal + (itemSubtotal * item.GSTRate / 100)).ToString("N2")</div>
+                                }
+                                <strong>₹@itemTotal.ToString("N2")</strong>
+                                @if (item.HasItemDiscount)
+                                {
+                                    <div class="savings-info">
+                                        Saved: ₹@((itemSubtotal + (itemSubtotal * item.GSTRate / 100)) - itemTotal).ToString("N2")
+                                    </div>
+                                }
+                            </td>
                         </tr>
 
                         itemNumber++;
@@ -294,50 +334,111 @@
                 <tfoot>
                     <tr class="table-light">
                         <th colspan="2" class="text-end">Total:</th>
-                        <th class="text-center">@totalQty</th>
+                        <th class="text-center">@totalQty.ToString("0.###")</th>
                         <th></th>
+                        <th class="text-center discount-amount">
+                            @if (totalItemDiscounts > 0)
+                            {
+                                <span>-₹@totalItemDiscounts.ToString("N2")</span>
+                            }
+                            else
+                            {
+                                <span>-</span>
+                            }
+                        </th>
                         <th></th>
-                        <th class="text-end">@("₹" + (totalTaxableAmount + totalGSTAmount).ToString("N2"))</th>
+                        <th class="text-end">₹@totalAfterDiscounts.ToString("N2")</th>
                     </tr>
                 </tfoot>
             </table>
         </div>
 
-        <!-- Totals Section -->
+        <!-- Totals Section with Item Discounts -->
         <div class="row">
             <div class="col-md-6">
-                <!-- Terms and Conditions -->
-                <div class="mt-4">
-                    <h6>Terms & Conditions:</h6>
-                    <div class="small">
-                        <ul class="mb-0">
-                            <li>Items can be returned within 30 days of purchase with receipt.</li>
-                            <li>All disputes are subject to local jurisdiction only.</li>
-                            <li>This is a computer generated invoice.</li>
-                        </ul>
+                <!-- GST Breakdown -->
+                <div class="gst-info">
+                    <h6>GST Breakdown:</h6>
+                    @{
+                        var gstBreakdown = Model.SaleItems
+                        .GroupBy(i => i.GSTRate)
+                        .Select(g => new
+                        {
+                            Rate = g.Key,
+                            TaxableAmount = g.Sum(i => (i.UnitPrice * i.Quantity) - i.ItemDiscountAmount),
+                            GSTAmount = g.Sum(i => ((i.UnitPrice * i.Quantity) - i.ItemDiscountAmount) * i.GSTRate / 100)
+                        })
+                        .OrderBy(x => x.Rate);
+                    }
+
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>GST Rate</th>
+                                    <th>Taxable Amount</th>
+                                    <th>GST Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var gst in gstBreakdown)
+                                {
+                                    <tr>
+                                        <td>@gst.Rate%</td>
+                                        <td class="text-end">₹@gst.TaxableAmount.ToString("N2")</td>
+                                        <td class="text-end">₹@gst.GSTAmount.ToString("N2")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                            <tfoot>
+                                <tr class="table-light">
+                                    <th>Total</th>
+                                    <th class="text-end">₹@(totalSubtotal - totalItemDiscounts).ToString("N2")</th>
+                                    <th class="text-end">₹@totalGSTAmount.ToString("N2")</th>
+                                </tr>
+                            </tfoot>
+                        </table>
                     </div>
+
+                    <!-- Discount Summary -->
+                    @if (totalItemDiscounts > 0)
+                    {
+                        <div class="mt-2 p-2" style="background-color: #e8f5e8; border-radius: 4px;">
+                            <h6 class="discount-amount mb-1">Discount Summary:</h6>
+                            <small>
+                                Items with Discount: @Model.SaleItems.Count(i => i.HasItemDiscount) of @Model.SaleItems.Count<br>
+                                Total Discount: ₹@totalItemDiscounts.ToString("N2") (@Model.EffectiveDiscountPercentage.ToString("0.##")%)<br>
+                                Total Savings: ₹@totalItemDiscounts.ToString("N2")
+                            </small>
+                        </div>
+                    }
                 </div>
             </div>
 
             <div class="col-md-6">
                 <div class="totals-section">
                     <div class="d-flex justify-content-between mb-2">
-                        <span>Subtotal (Before Tax):</span>
-                        <span>₹@Model.SubTotal.ToString("N2")</span>
+                        <span>Items Subtotal:</span>
+                        <span>₹@totalSubtotal.ToString("N2")</span>
                     </div>
+
+                    @if (totalItemDiscounts > 0)
+                    {
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="discount-amount">Total Item Discounts:</span>
+                            <span class="discount-amount">-₹@totalItemDiscounts.ToString("N2")</span>
+                        </div>
+
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>After Discounts:</span>
+                            <span>₹@(totalSubtotal - totalItemDiscounts).ToString("N2")</span>
+                        </div>
+                    }
 
                     <div class="d-flex justify-content-between mb-2">
                         <span>Total GST:</span>
-                        <span>₹@Model.GSTAmount.ToString("N2")</span>
+                        <span>₹@totalGSTAmount.ToString("N2")</span>
                     </div>
-
-                    @if (Model.DiscountAmount > 0)
-                    {
-                        <div class="d-flex justify-content-between mb-2 text-success">
-                            <span>Discount (@Model.DiscountPercentage%):</span>
-                            <span>-₹@Model.DiscountAmount.ToString("N2")</span>
-                        </div>
-                    }
 
                     <hr>
 
@@ -346,6 +447,14 @@
                         <strong style="font-size: 1.2rem; color: #28a745;">₹@Model.TotalAmount.ToString("N2")</strong>
                     </div>
 
+                    @if (totalItemDiscounts > 0)
+                    {
+                        <div class="d-flex justify-content-between mb-2 savings-info">
+                            <span>You Saved:</span>
+                            <span>₹@totalItemDiscounts.ToString("N2")</span>
+                        </div>
+                    }
+
                     <div class="text-muted small">
                         Amount in Words: <strong>@ConvertToWords((long)Model.TotalAmount) Rupees Only</strong>
                     </div>
@@ -353,7 +462,23 @@
             </div>
         </div>
 
-        
+        <!-- Terms and Conditions -->
+        <div class="mt-4">
+            <h6>Terms & Conditions:</h6>
+            <div class="small">
+                <ul class="mb-0">
+                    <li>Goods once sold will not be taken back except in case of manufacturing defects.</li>
+                    <li>All disputes are subject to local jurisdiction only.</li>
+                    <li>This is a computer generated invoice.</li>
+                    @if (totalItemDiscounts > 0)
+                    {
+                        <li>Individual item discounts have been applied as shown above.</li>
+                        <li>GST is calculated on the discounted amount for each item.</li>
+                    }
+                    <li>Thank you for supporting Khadi and promoting Make in India.</li>
+                </ul>
+            </div>
+        </div>
 
         <!-- Signature Section -->
         <div class="signature-section no-print">
@@ -367,7 +492,11 @@
 
         <!-- Footer -->
         <div class="footer-text">
-            <div>Thank you for supporting Khadi and promoting Make in India.</div>
+            <div>Thank you for your business!</div>
+            @if (totalItemDiscounts > 0)
+            {
+                <div class="savings-info mt-1">You saved ₹@totalItemDiscounts.ToString("N2") on this purchase!</div>
+            }
             <div class="mt-1">Generated on @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</div>
         </div>
     </div>
@@ -377,9 +506,6 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
     <script>
-        // Auto print when page loads (optional)
-        // window.onload = function() { window.print(); }
-
         // Print shortcut
         document.addEventListener('keydown', function(e) {
             if (e.ctrlKey && e.key === 'p') {

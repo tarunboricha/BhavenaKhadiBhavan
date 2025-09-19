@@ -30,7 +30,7 @@ namespace BhavenaKhadiBhavan.Controllers
         }
 
         /// <summary>
-        /// Display sales list
+        /// Display sales list (unchanged)
         /// </summary>
         public async Task<IActionResult> Index(DateTime? fromDate, DateTime? toDate, string search)
         {
@@ -68,7 +68,7 @@ namespace BhavenaKhadiBhavan.Controllers
         }
 
         /// <summary>
-        /// Show sale details
+        /// ENHANCED: Show sale details with item-level discount information
         /// </summary>
         public async Task<IActionResult> Details(int id)
         {
@@ -86,6 +86,10 @@ namespace BhavenaKhadiBhavan.Controllers
                 ViewBag.ReturnableQuantities = returnableQuantities;
                 ViewBag.HasReturnableItems = returnableQuantities.Any();
 
+                // CRITICAL: Add discount summary
+                var discountSummary = await _salesService.GetSaleDiscountSummaryAsync(id);
+                ViewBag.DiscountSummary = discountSummary;
+
                 return View(sale);
             }
             catch (Exception ex)
@@ -96,7 +100,7 @@ namespace BhavenaKhadiBhavan.Controllers
         }
 
         /// <summary>
-        /// Create new sale - main sales interface
+        /// Create new sale - main sales interface (unchanged)
         /// </summary>
         public async Task<IActionResult> Create()
         {
@@ -114,7 +118,7 @@ namespace BhavenaKhadiBhavan.Controllers
         }
 
         /// <summary>
-        /// Process sale creation
+        /// FIXED: Process sale creation with item-level discounts
         /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -177,8 +181,8 @@ namespace BhavenaKhadiBhavan.Controllers
                     }
                 }
 
-                // Create the sale
-                var sale = await _salesService.CreateSaleAsync(model.Sale, model.CartItems);
+                // CRITICAL: Use the correct method for cart items
+                var sale = await _salesService.CreateSaleFromCartAsync(model.Sale, model.CartItems);
 
                 TempData["Success"] = $"Sale {sale.InvoiceNumber} created successfully! Total: ₹{sale.TotalAmount:N2}";
                 return RedirectToAction(nameof(Details), new { id = sale.Id });
@@ -192,10 +196,10 @@ namespace BhavenaKhadiBhavan.Controllers
         }
 
         /// <summary>
-        /// AJAX endpoint to add item to cart
+        /// ENHANCED: AJAX endpoint to add item to cart with discount support
         /// </summary>
         [HttpPost]
-        public async Task<IActionResult> AddToCart(int productId, int quantity)
+        public async Task<IActionResult> AddToCart(int productId, decimal quantity, decimal discountPercentage = 0)
         {
             try
             {
@@ -210,16 +214,23 @@ namespace BhavenaKhadiBhavan.Controllers
                     return Json(new { success = false, message = $"Insufficient stock. Available: {product.StockQuantity}" });
                 }
 
-                var cartItem = new SaleItem
+                var cartItem = new CartItemViewModel
                 {
                     ProductId = product.Id,
                     ProductName = product.DisplayName,
                     Quantity = quantity,
                     UnitPrice = product.SalePrice,
-                    GSTRate = product.GSTRate
+                    GSTRate = product.GSTRate,
+                    UnitOfMeasure = product.UnitOfMeasure ?? "Piece"
                 };
 
-                // Store cart in session (simplified approach)
+                // CRITICAL: Apply discount if provided
+                if (discountPercentage > 0)
+                {
+                    cartItem.ApplyDiscountPercentage(discountPercentage);
+                }
+
+                // Store cart in session
                 var cart = GetCartFromSession();
 
                 // Check if item already in cart
@@ -231,6 +242,12 @@ namespace BhavenaKhadiBhavan.Controllers
                     {
                         return Json(new { success = false, message = $"Total quantity would exceed stock. Available: {product.StockQuantity}" });
                     }
+
+                    // Apply same discount to updated quantity
+                    if (discountPercentage > 0)
+                    {
+                        existingItem.ApplyDiscountPercentage(discountPercentage);
+                    }
                 }
                 else
                 {
@@ -239,12 +256,16 @@ namespace BhavenaKhadiBhavan.Controllers
 
                 SaveCartToSession(cart);
 
+                var cartTotals = _salesService.CalculateCartTotalsWithDiscounts(cart);
+
                 return Json(new
                 {
                     success = true,
                     message = $"Added {quantity} x {product.DisplayName} to cart",
-                    cartCount = cart.Sum(c => c.Quantity),
-                    cartTotal = CalculateCartTotal(cart)
+                    cartCount = cartTotals.ItemCount,
+                    cartTotal = cartTotals.Total,
+                    hasDiscounts = cartTotals.ItemsWithDiscounts > 0,
+                    discountAmount = cartTotals.DiscountAmount
                 });
             }
             catch (Exception ex)
@@ -254,7 +275,7 @@ namespace BhavenaKhadiBhavan.Controllers
         }
 
         /// <summary>
-        /// AJAX endpoint to remove item from cart
+        /// Remove item from cart (unchanged)
         /// </summary>
         [HttpPost]
         public IActionResult RemoveFromCart(int productId)
@@ -265,12 +286,16 @@ namespace BhavenaKhadiBhavan.Controllers
                 cart.RemoveAll(c => c.ProductId == productId);
                 SaveCartToSession(cart);
 
+                var cartTotals = _salesService.CalculateCartTotalsWithDiscounts(cart);
+
                 return Json(new
                 {
                     success = true,
                     message = "Item removed from cart",
-                    cartCount = cart.Sum(c => c.Quantity),
-                    cartTotal = CalculateCartTotal(cart)
+                    cartCount = cartTotals.ItemCount,
+                    cartTotal = cartTotals.Total,
+                    hasDiscounts = cartTotals.ItemsWithDiscounts > 0,
+                    discountAmount = cartTotals.DiscountAmount
                 });
             }
             catch (Exception ex)
@@ -280,10 +305,10 @@ namespace BhavenaKhadiBhavan.Controllers
         }
 
         /// <summary>
-        /// AJAX endpoint to update cart item quantity
+        /// ENHANCED: Update cart item quantity and discount
         /// </summary>
         [HttpPost]
-        public async Task<IActionResult> UpdateCartQuantity(int productId, int quantity)
+        public async Task<IActionResult> UpdateCartQuantity(int productId, decimal quantity, decimal? discountPercentage = null)
         {
             try
             {
@@ -308,14 +333,26 @@ namespace BhavenaKhadiBhavan.Controllers
                 if (cartItem != null)
                 {
                     cartItem.Quantity = quantity;
+
+                    // CRITICAL: Update discount if provided
+                    if (discountPercentage.HasValue)
+                    {
+                        cartItem.ApplyDiscountPercentage(discountPercentage.Value);
+                    }
+
                     SaveCartToSession(cart);
                 }
+
+                var cartTotals = _salesService.CalculateCartTotalsWithDiscounts(cart);
 
                 return Json(new
                 {
                     success = true,
-                    cartCount = cart.Sum(c => c.Quantity),
-                    cartTotal = CalculateCartTotal(cart)
+                    cartCount = cartTotals.ItemCount,
+                    cartTotal = cartTotals.Total,
+                    hasDiscounts = cartTotals.ItemsWithDiscounts > 0,
+                    discountAmount = cartTotals.DiscountAmount,
+                    itemLineTotal = cartItem?.LineTotalWithDiscount ?? 0
                 });
             }
             catch (Exception ex)
@@ -325,7 +362,123 @@ namespace BhavenaKhadiBhavan.Controllers
         }
 
         /// <summary>
-        /// AJAX endpoint to get current cart
+        /// NEW: Apply overall discount to all cart items
+        /// </summary>
+        [HttpPost]
+        public IActionResult ApplyOverallDiscount(decimal discountPercentage)
+        {
+            try
+            {
+                var cart = GetCartFromSession();
+
+                // Apply discount to all items
+                foreach (var item in cart)
+                {
+                    item.ApplyDiscountPercentage(discountPercentage);
+                }
+
+                SaveCartToSession(cart);
+
+                var cartTotals = _salesService.CalculateCartTotalsWithDiscounts(cart);
+
+                return Json(new
+                {
+                    success = true,
+                    message = $"Applied {discountPercentage:0.##}% discount to all items",
+                    cartTotal = cartTotals.Total,
+                    discountAmount = cartTotals.DiscountAmount,
+                    itemsWithDiscounts = cartTotals.ItemsWithDiscounts,
+                    effectiveDiscountPercentage = cartTotals.EffectiveDiscountPercentage
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Error applying discount: " + ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// NEW: Apply discount to specific cart item
+        /// </summary>
+        [HttpPost]
+        public IActionResult ApplyItemDiscount(int productId, decimal discountPercentage)
+        {
+            try
+            {
+                var cart = GetCartFromSession();
+                var cartItem = cart.FirstOrDefault(c => c.ProductId == productId);
+
+                if (cartItem == null)
+                {
+                    return Json(new { success = false, message = "Item not found in cart." });
+                }
+
+                cartItem.ApplyDiscountPercentage(discountPercentage);
+                SaveCartToSession(cart);
+
+                var cartTotals = _salesService.CalculateCartTotalsWithDiscounts(cart);
+
+                return Json(new
+                {
+                    success = true,
+                    message = $"Applied {discountPercentage:0.##}% discount to {cartItem.ProductName}",
+                    itemLineTotal = cartItem.LineTotalWithDiscount,
+                    itemDiscountAmount = cartItem.ItemDiscountAmount,
+                    cartTotal = cartTotals.Total,
+                    discountAmount = cartTotals.DiscountAmount
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Error applying item discount: " + ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// NEW: Remove discount from specific cart item
+        /// </summary>
+        [HttpPost]
+        public IActionResult RemoveItemDiscount(int productId)
+        {
+            return ApplyItemDiscount(productId, 0);
+        }
+
+        /// <summary>
+        /// NEW: Clear all discounts from cart
+        /// </summary>
+        [HttpPost]
+        public IActionResult ClearAllDiscounts()
+        {
+            try
+            {
+                var cart = GetCartFromSession();
+
+                foreach (var item in cart)
+                {
+                    item.ItemDiscountPercentage = 0;
+                    item.ItemDiscountAmount = 0;
+                }
+
+                SaveCartToSession(cart);
+
+                var cartTotals = _salesService.CalculateCartTotalsWithDiscounts(cart);
+
+                return Json(new
+                {
+                    success = true,
+                    message = "Cleared all discounts from cart",
+                    cartTotal = cartTotals.Total,
+                    discountAmount = 0
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Error clearing discounts: " + ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// ENHANCED: Get current cart with discount information
         /// </summary>
         [HttpGet]
         public IActionResult GetCart()
@@ -333,7 +486,7 @@ namespace BhavenaKhadiBhavan.Controllers
             try
             {
                 var cart = GetCartFromSession();
-                var cartSummary = CalculateCartSummary(cart);
+                var cartTotals = _salesService.CalculateCartTotalsWithDiscounts(cart);
 
                 return Json(new
                 {
@@ -345,9 +498,26 @@ namespace BhavenaKhadiBhavan.Controllers
                         quantity = c.Quantity,
                         unitPrice = c.UnitPrice,
                         gstRate = c.GSTRate,
-                        lineTotal = (c.UnitPrice * c.Quantity) + ((c.UnitPrice * c.Quantity) * c.GSTRate / 100)
+                        unitOfMeasure = c.UnitOfMeasure,
+                        // CRITICAL: Item-level discount information
+                        itemDiscountPercentage = c.ItemDiscountPercentage,
+                        itemDiscountAmount = c.ItemDiscountAmount,
+                        lineSubtotal = c.LineSubtotal,
+                        lineAfterDiscount = c.LineSubtotalAfterDiscount,
+                        lineGST = c.LineGSTAmount,
+                        lineTotal = c.LineTotalWithDiscount,
+                        hasDiscount = c.HasDiscount
                     }),
-                    summary = cartSummary
+                    summary = new
+                    {
+                        itemCount = cartTotals.ItemCount,
+                        subtotal = cartTotals.Subtotal,
+                        discountAmount = cartTotals.DiscountAmount,
+                        gstAmount = cartTotals.GSTAmount,
+                        total = cartTotals.Total,
+                        itemsWithDiscounts = cartTotals.ItemsWithDiscounts,
+                        effectiveDiscountPercentage = cartTotals.EffectiveDiscountPercentage
+                    }
                 });
             }
             catch (Exception ex)
@@ -357,14 +527,14 @@ namespace BhavenaKhadiBhavan.Controllers
         }
 
         /// <summary>
-        /// Clear cart
+        /// Clear cart (unchanged)
         /// </summary>
         [HttpPost]
         public IActionResult ClearCart()
         {
             try
             {
-                SaveCartToSession(new List<SaleItem>());
+                SaveCartToSession(new List<CartItemViewModel>());
                 return Json(new { success = true, message = "Cart cleared" });
             }
             catch (Exception ex)
@@ -374,7 +544,7 @@ namespace BhavenaKhadiBhavan.Controllers
         }
 
         /// <summary>
-        /// Print invoice
+        /// Print invoice (unchanged)
         /// </summary>
         public async Task<IActionResult> PrintInvoice(int id)
         {
@@ -402,40 +572,23 @@ namespace BhavenaKhadiBhavan.Controllers
             }
         }
 
-        // Helper methods
-        private List<SaleItem> GetCartFromSession()
+        // =========================================
+        // Helper methods (enhanced for discounts)
+        // =========================================
+
+        private List<CartItemViewModel> GetCartFromSession()
         {
             var cartJson = HttpContext.Session.GetString("Cart");
             if (string.IsNullOrEmpty(cartJson))
-                return new List<SaleItem>();
+                return new List<CartItemViewModel>();
 
-            return System.Text.Json.JsonSerializer.Deserialize<List<SaleItem>>(cartJson) ?? new List<SaleItem>();
+            return System.Text.Json.JsonSerializer.Deserialize<List<CartItemViewModel>>(cartJson) ?? new List<CartItemViewModel>();
         }
 
-        private void SaveCartToSession(List<SaleItem> cart)
+        private void SaveCartToSession(List<CartItemViewModel> cart)
         {
             var cartJson = System.Text.Json.JsonSerializer.Serialize(cart);
             HttpContext.Session.SetString("Cart", cartJson);
-        }
-
-        private decimal CalculateCartTotal(List<SaleItem> cart)
-        {
-            return cart.Sum(c => (c.UnitPrice * c.Quantity) + ((c.UnitPrice * c.Quantity) * c.GSTRate / 100));
-        }
-
-        private object CalculateCartSummary(List<SaleItem> cart)
-        {
-            var subtotal = cart.Sum(c => c.UnitPrice * c.Quantity);
-            var gstAmount = cart.Sum(c => (c.UnitPrice * c.Quantity) * c.GSTRate / 100);
-            var total = subtotal + gstAmount;
-
-            return new
-            {
-                itemCount = cart.Sum(c => c.Quantity),
-                subtotal = subtotal,
-                gstAmount = gstAmount,
-                total = total
-            };
         }
 
         private async Task LoadSalesViewModelAsync(SalesViewModel model)
@@ -451,13 +604,12 @@ namespace BhavenaKhadiBhavan.Controllers
                 })
                 .ToListAsync();
 
-            // Load products without circular references - create simple DTOs
+            // Load products without circular references
             var products = await _context.Products
                 .Where(p => p.IsActive)
                 .Include(p => p.Category)
                 .ToListAsync();
 
-            // Create products without navigation properties for JSON serialization
             model.Products = products.Select(p => new Product
             {
                 Id = p.Id,
@@ -470,8 +622,8 @@ namespace BhavenaKhadiBhavan.Controllers
                 Color = p.Color,
                 Size = p.Size,
                 FabricType = p.FabricType,
+                UnitOfMeasure = p.UnitOfMeasure,
                 IsActive = p.IsActive,
-                // Create a simple category object without navigation properties
                 Category = p.Category != null ? new Category
                 {
                     Id = p.Category.Id,
@@ -482,10 +634,12 @@ namespace BhavenaKhadiBhavan.Controllers
             model.Customers = await _customerService.GetAllCustomersAsync();
             model.CartItems = GetCartFromSession();
 
-            var cartSummary = CalculateCartSummary(model.CartItems);
-            model.CartSubtotal = ((dynamic)cartSummary).subtotal;
-            model.CartGST = ((dynamic)cartSummary).gstAmount;
-            model.CartTotal = ((dynamic)cartSummary).total;
+            // CRITICAL: Calculate totals with discounts
+            var cartTotals = _salesService.CalculateCartTotalsWithDiscounts(model.CartItems);
+            model.CartSubtotal = cartTotals.Subtotal;
+            model.CartDiscountAmount = cartTotals.DiscountAmount;
+            model.CartGST = cartTotals.GSTAmount;
+            model.CartTotal = cartTotals.Total;
 
             // Payment method options
             ViewBag.PaymentMethods = new List<SelectListItem>

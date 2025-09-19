@@ -3,38 +3,31 @@
     ViewData["Title"] = "New Sale";
 }
 
-<div class="row">
+<div class="row mb-4">
     <div class="col-12">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h2><i class="fas fa-cash-register me-2"></i>New Sale</h2>
+        <div class="d-flex justify-content-between align-items-center">
+            <h2>
+                <i class="fas fa-cash-register me-2"></i>New Sale
+            </h2>
             <div>
-                <button type="button" class="btn btn-outline-secondary" onclick="clearCart()">
-                    <i class="fas fa-trash me-1"></i>Clear Cart
-                </button>
                 <a href="@Url.Action("Index", "Sales")" class="btn btn-outline-primary">
                     <i class="fas fa-list me-1"></i>View Sales
                 </a>
             </div>
         </div>
+        <hr>
     </div>
 </div>
 
 <div class="row">
-    <!-- Product Selection Area -->
-    <div class="col-lg-8">
-        <!-- Search and Filters -->
+    <!-- Product Selection Panel -->
+    <div class="col-lg-7">
+        <!-- Filters -->
         <div class="card mb-3">
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="fas fa-search"></i></span>
-                            <input type="text" class="form-control search-box" id="productSearch"
-                                   placeholder="Search products by name, fabric, or color...">
-                        </div>
-                    </div>
+            <div class="card-body py-2">
+                <div class="row g-2">
                     <div class="col-md-4">
-                        <select class="form-select" id="categoryFilter">
+                        <select class="form-select form-select-sm" id="categoryFilter">
                             <option value="">All Categories</option>
                             @foreach (var category in Model.Categories)
                             {
@@ -42,29 +35,33 @@
                             }
                         </select>
                     </div>
-                    <div class="col-md-2">
-                        <select class="form-select" id="stockFilter">
+                    <div class="col-md-3">
+                        <select class="form-select form-select-sm" id="stockFilter">
                             <option value="">All Stock</option>
                             <option value="instock">In Stock</option>
                             <option value="lowstock">Low Stock</option>
                         </select>
                     </div>
+                    <div class="col-md-5">
+                        <input type="text" class="form-control form-control-sm" id="productSearch" 
+                               placeholder="Search products...">
+                    </div>
                 </div>
             </div>
         </div>
-
+        
         <!-- Products Grid -->
         <div class="card">
             <div class="card-header">
                 <h5 class="mb-0">
-                    <i class="fas fa-box me-2"></i>Products
-                    <span class="badge bg-secondary ms-2" id="productCount">Loading...</span>
-                    <small class="text-muted ms-2">(Grouped by product name)</small>
+                    <i class="fas fa-boxes me-2"></i>Products
+                    <span class="badge bg-info" id="productCount">Loading...</span>
                 </h5>
+                <small class="text-muted">(Grouped by product name)</small>
             </div>
             <div class="card-body">
-                <div id="productsContainer">
-                    <div class="text-center py-4">
+                <div id="productGrid" class="row">
+                    <div class="col-12 text-center py-4">
                         <div class="spinner-border text-primary" role="status">
                             <span class="visually-hidden">Loading products...</span>
                         </div>
@@ -74,55 +71,79 @@
             </div>
         </div>
     </div>
-
-    <!-- Shopping Cart Sidebar -->
-    <div class="col-lg-4">
-        <div class="card cart-sidebar">
-            <div class="card-header bg-khadi text-white" style="background-color: var(--khadi-primary);">
+    
+    <!-- Shopping Cart Panel -->
+    <div class="col-lg-5">
+        <div class="card h-100">
+            <div class="card-header bg-success text-white">
                 <h5 class="mb-0">
                     <i class="fas fa-shopping-cart me-2"></i>Shopping Cart
-                    <span class="badge bg-light text-dark float-end" id="cartItemCount">0</span>
+                    <span class="badge bg-light text-dark" id="cartItemCount">0</span>
                 </h5>
             </div>
-
-            <!-- Cart Items -->
-            <div class="card-body p-0">
-                <div id="cartItems" style="max-height: 300px; overflow-y: auto;">
-                    <div class="p-3 text-center text-muted" id="emptyCart">
-                        <i class="fas fa-shopping-cart fa-2x mb-2"></i>
-                        <p>Cart is empty</p>
-                        <small>Add products to start billing</small>
+            <div class="card-body d-flex flex-column">
+                <!-- Cart Items -->
+                <div class="flex-grow-1">
+                    <div id="cartItems">
+                        <div class="text-center py-4">
+                            <i class="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
+                            <h6 class="text-muted">Cart is empty</h6>
+                            <p class="text-muted">Add products to start billing</p>
+                        </div>
                     </div>
                 </div>
-            </div>
-
-            <!-- Cart Summary -->
-            <div class="card-footer">
-                <div id="cartSummary" style="display: none;">
-                    <div class="row small mb-2">
-                        <div class="col">Subtotal:</div>
-                        <div class="col text-end" id="cartSubtotal">₹0</div>
-                    </div>
-                    <div class="row small mb-2">
-                        <div class="col">GST:</div>
-                        <div class="col text-end" id="cartGST">₹0</div>
-                    </div>
-                    <div class="row small mb-2">
-                        <div class="col">
-                            Discount:
-                            <input type="number" class="form-control form-control-sm d-inline-block"
-                                   style="width: 60px;" min="0" max="100" value="0" id="discountPercent">%
+                
+                <!-- ENHANCED: Discount Controls -->
+                <div class="border-top pt-3 mt-3" id="discountControls" style="display: none;">
+                    <div class="row g-2 mb-2">
+                        <div class="col-8">
+                            <label class="form-label form-label-sm">Overall Discount:</label>
+                            <div class="input-group input-group-sm">
+                                <input type="number" class="form-control" id="overallDiscountPercentage" 
+                                       min="0" max="100" step="0.01" placeholder="0" value="0">
+                                <span class="input-group-text">%</span>
+                                <button class="btn btn-outline-success" type="button" onclick="applyOverallDiscount()">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                            </div>
                         </div>
-                        <div class="col text-end" id="cartDiscount">₹0</div>
+                        <div class="col-4">
+                            <label class="form-label form-label-sm">&nbsp;</label>
+                            <button class="btn btn-outline-danger btn-sm w-100" onclick="clearAllDiscounts()">
+                                <i class="fas fa-times me-1"></i>Clear
+                            </button>
+                        </div>
                     </div>
+                    <small class="text-muted">Apply percentage discount to all items, or adjust individual item discounts below</small>
+                </div>
+                
+                <!-- Cart Totals -->
+                <div class="border-top pt-3 mt-3">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Subtotal:</span>
+                        <span id="cartSubtotal">₹0</span>
+                    </div>
+                    
+                    <!-- CRITICAL: Show discount amount instead of percentage -->
+                    <div class="d-flex justify-content-between mb-2 text-success" id="discountRow" style="display: none;">
+                        <span><i class="fas fa-tag me-1"></i>Discounts:</span>
+                        <span id="cartDiscountAmount">₹0</span>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>GST:</span>
+                        <span id="cartGST">₹0</span>
+                    </div>
+                    
                     <hr>
-                    <div class="row fw-bold">
-                        <div class="col">Total:</div>
-                        <div class="col text-end text-success" id="cartTotal">₹0</div>
+                    
+                    <div class="d-flex justify-content-between mb-3">
+                        <strong>Total:</strong>
+                        <strong class="text-success" id="cartTotal">₹0</strong>
                     </div>
-
-                    <button class="btn btn-success w-100 mt-3" type="button" onclick="showCheckoutModal()" id="checkoutBtn">
-                        <i class="fas fa-credit-card me-1"></i>Checkout
+                    
+                    <button class="btn btn-primary w-100" onclick="proceedToCheckout()" id="checkoutBtn" disabled>
+                        <i class="fas fa-credit-card me-1"></i>Proceed to Checkout
                     </button>
                 </div>
             </div>
@@ -130,70 +151,59 @@
     </div>
 </div>
 
-<!-- Size/Color Selection Modal -->
-<div class="modal fade" id="variantSelectionModal" tabindex="-1" aria-labelledby="variantSelectionModalLabel" aria-hidden="true">
+<!-- Product Variant Selection Modal -->
+<div class="modal fade" id="variantModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="variantSelectionModalLabel">
-                    <i class="fas fa-tshirt me-2"></i>Select Product Variant
+                <h5 class="modal-title">
+                    <i class="fas fa-box me-2"></i>Select Product Variant
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <div id="productVariantDetails">
-                    <h6 id="modalProductName"></h6>
-                    <p class="text-muted" id="modalProductInfo"></p>
-
-                    <!-- Variant Selection -->
-                    <div class="mb-3">
-                        <label class="form-label">Available Variants:</label>
-                        <div id="variantOptions" class="row">
-                            <!-- Variant options will be populated here -->
-                        </div>
+                <h6 id="selectedProductName"></h6>
+                
+                <div class="mb-3">
+                    <label class="form-label">Available Variants:</label>
+                    <div id="variantOptions"></div>
+                </div>
+                
+                <div class="row" id="selectedVariantInfo" style="display: none;">
+                    <div class="col-md-6">
+                        <p><strong>Selected:</strong> <span id="selectedVariantName"></span></p>
+                        <p><strong>Available Stock:</strong> <span id="selectedStock"></span></p>
                     </div>
-
-                    <!-- Selected Variant Info -->
-                    <div id="selectedVariantInfo" class="alert alert-info" style="display: none;">
-                        <div class="row">
-                            <div class="col-sm-6">
-                                <strong>Selected:</strong>
-                                <div id="selectedVariantDisplay"></div>
-                            </div>
-                            <div class="col-sm-6">
-                                <strong>Available Stock:</strong>
-                                <div id="selectedVariantStock"></div>
-                            </div>
-                        </div>
-                        <div class="row mt-2">
-                            <div class="col-sm-6">
-                                <strong>Unit Price:</strong>
-                                <div id="selectedVariantPrice"></div>
-                            </div>
-                            <div class="col-sm-6">
-                                <strong>Price + GST:</strong>
-                                <div id="selectedVariantPriceWithGST"></div>
-                            </div>
-                        </div>
+                    <div class="col-md-6">
+                        <p><strong>Unit Price:</strong> <span id="selectedPrice"></span></p>
+                        <p><strong>Price + GST:</strong> <span id="selectedPriceWithGST"></span></p>
                     </div>
-
-                    <!-- Quantity Input -->
-                    <div class="mb-3" id="quantitySection" style="display: none;">
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-8">
                         <label class="form-label">Quantity:</label>
                         <div class="input-group">
-                            <input type="number" class="form-control" id="modalQuantity"
-                                   min="0.001" step="0.001" value="1" placeholder="Enter quantity">
-                            <span class="input-group-text" id="modalUnitOfMeasure">Piece</span>
+                            <input type="number" class="form-control" id="variantQuantity" 
+                                   min="1" step="1" value="1">
+                            <span class="input-group-text" id="selectedUnit">Piece</span>
                         </div>
-                        <div class="form-text">
-                            Maximum available: <span id="modalMaxQuantity">0</span>
+                        <small class="text-muted">Maximum available: <span id="maxQuantity">0</span></small>
+                    </div>
+                    <!-- CRITICAL: Add discount field for individual items -->
+                    <div class="col-md-4">
+                        <label class="form-label">Discount:</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" id="itemDiscountPercentage" 
+                                   min="0" max="100" step="0.01" value="0">
+                            <span class="input-group-text">%</span>
                         </div>
                     </div>
                 </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-success" id="addSelectedVariantBtn" disabled>
+                <button type="button" class="btn btn-success" onclick="addSelectedVariantToCart()">
                     <i class="fas fa-plus me-1"></i>Add to Cart
                 </button>
             </div>
@@ -201,89 +211,98 @@
     </div>
 </div>
 
-<!-- Checkout Modal (same as before) -->
-<div class="modal fade" id="checkoutModal" tabindex="-1" aria-labelledby="checkoutModalLabel" aria-hidden="true">
+<!-- Checkout Modal -->
+<div class="modal fade" id="checkoutModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="checkoutModalLabel">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
                     <i class="fas fa-credit-card me-2"></i>Complete Sale
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-
-            <form id="saleForm" action="@Url.Action("Create", "Sales")" method="post" novalidate>
+            
+            <form method="post" action="@Url.Action("Create", "Sales")" id="checkoutForm">
                 @Html.AntiForgeryToken()
-
+                
                 <div class="modal-body">
                     <div class="row">
-                        <!-- Customer Information -->
                         <div class="col-md-6">
-                            <h6><i class="fas fa-user me-2"></i>Customer Information</h6>
+                            <h6 class="border-bottom pb-2">Customer Information</h6>
+                            
                             <div class="mb-3">
                                 <label class="form-label">Customer Name</label>
-                                <input type="text" class="form-control" id="customerName" name="Sale.CustomerName"
-                                       placeholder="Enter customer name (optional)">
+                                <input type="text" class="form-control" name="Sale.CustomerName" 
+                                       placeholder="Enter customer name">
                             </div>
+                            
                             <div class="mb-3">
                                 <label class="form-label">Phone Number</label>
-                                <input type="tel" class="form-control" id="customerPhone" name="Sale.CustomerPhone"
-                                       placeholder="10-digit mobile number" maxlength="10">
+                                <input type="tel" class="form-control" name="Sale.CustomerPhone" 
+                                       placeholder="Enter phone number">
                                 <div class="form-text">Leave blank for walk-in customer</div>
                             </div>
                         </div>
-
-                        <!-- Payment Information -->
+                        
                         <div class="col-md-6">
-                            <h6><i class="fas fa-credit-card me-2"></i>Payment Details</h6>
+                            <h6 class="border-bottom pb-2">Payment Details</h6>
+                            
                             <div class="mb-3">
                                 <label class="form-label">Payment Method *</label>
                                 <select class="form-select" name="Sale.PaymentMethod" required>
-                                    <option value="Cash" selected>Cash</option>
+                                    <option value="Cash">Cash</option>
                                     <option value="Card">Card</option>
                                     <option value="UPI">UPI</option>
                                     <option value="Bank Transfer">Bank Transfer</option>
                                 </select>
                             </div>
+                            
                             <div class="mb-3">
                                 <label class="form-label">Payment Reference</label>
-                                <input type="text" class="form-control" name="Sale.PaymentReference"
-                                       placeholder="Transaction ID, Cheque No, etc (optional)">
+                                <input type="text" class="form-control" name="Sale.PaymentReference" 
+                                       placeholder="Transaction ID, Check number, etc.">
                             </div>
                         </div>
                     </div>
-
-                    <!-- Order Summary -->
-                    <div class="row mt-3">
+                    
+                    <div class="row">
                         <div class="col-12">
-                            <h6><i class="fas fa-receipt me-2"></i>Order Summary</h6>
+                            <h6 class="border-bottom pb-2">Order Summary</h6>
+                            
+                            <!-- ENHANCED: Order summary with individual item discounts -->
                             <div class="table-responsive">
-                                <table class="table table-sm">
+                                <table class="table table-sm" id="checkoutSummaryTable">
                                     <thead class="table-light">
                                         <tr>
                                             <th>Item</th>
                                             <th>Qty</th>
                                             <th>Price</th>
+                                            <th>Discount</th>
                                             <th>Total</th>
                                         </tr>
                                     </thead>
                                     <tbody id="checkoutItems">
+                                        <!-- Items will be populated by JavaScript -->
                                     </tbody>
-                                    <tfoot>
+                                    <tfoot class="table-light">
                                         <tr>
                                             <th colspan="3">Subtotal</th>
+                                            <th></th>
                                             <th id="checkoutSubtotal">₹0</th>
+                                        </tr>
+                                        <tr class="text-success" id="checkoutDiscountRow" style="display: none;">
+                                            <th colspan="3">Total Discounts</th>
+                                            <th></th>
+                                            <th id="checkoutDiscountAmount">₹0</th>
                                         </tr>
                                         <tr>
                                             <th colspan="3">GST</th>
+                                            <th></th>
                                             <th id="checkoutGST">₹0</th>
-                                        </tr>
-                                        <tr>
-                                            <th colspan="3">Discount (<span id="checkoutDiscountPercent">0</span>%)</th>
-                                            <th id="checkoutDiscountAmount">₹0</th>
                                         </tr>
                                         <tr class="table-success">
                                             <th colspan="3">Final Total</th>
+                                            <th></th>
                                             <th id="checkoutTotal">₹0</th>
                                         </tr>
                                     </tfoot>
@@ -291,15 +310,13 @@
                             </div>
                         </div>
                     </div>
-
-                    <!-- Hidden fields for cart data -->
-                    <input type="hidden" name="Sale.DiscountPercentage" id="hiddenDiscountPercent" value="0">
-                    <div id="hiddenCartItems"></div>
                 </div>
-
+                
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-success btn-lg" id="submitSaleBtn">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-arrow-left me-1"></i>Back to Cart
+                    </button>
+                    <button type="submit" class="btn btn-success btn-lg">
                         <i class="fas fa-check me-1"></i>Complete Sale
                     </button>
                 </div>
@@ -310,584 +327,609 @@
 
 @section Scripts {
     <script>
+        // Global variables
+        let allProducts = @Html.Raw(Json.Serialize(Model.Products));
+        let categories = @Html.Raw(Json.Serialize(Model.Categories));
         let cart = [];
-        let allGroupedProducts = [];
-        let selectedProductGroup = null;
         let selectedVariant = null;
 
         $(document).ready(function() {
-            initializeSalesPage();
-            loadGroupedProducts();
+            console.log('Sales create page loaded');
+            console.log('Products:', allProducts.length);
+            
+            initializePage();
+            loadProducts();
+            updateCartDisplay();
         });
 
-        function initializeSalesPage() {
-            // Search and filters
-            $('#productSearch').on('input', filterProducts);
-            $('#categoryFilter').on('change', filterProducts);
-            $('#stockFilter').on('change', filterProducts);
-
-            // Variant selection
-            $(document).on('click', '.variant-option', selectVariant);
-            $('#addSelectedVariantBtn').on('click', addSelectedVariantToCart);
-
-            // Quantity validation
-            $('#modalQuantity').on('input change', validateModalQuantity);
-
-            // Discount calculation
-            $('#discountPercent').on('input', updateCartSummary);
-
-            // Customer phone formatting
-            $('#customerPhone').on('input', function() {
-                let value = $(this).val().replace(/\D/g, '');
-                if (value.length > 10) {
-                    value = value.substring(0, 10);
-                }
-                $(this).val(value);
-            });
-
-            // Form submission
-            $('#saleForm').on('submit', function(e) {
-                console.log('Form submit event triggered');
-                e.preventDefault();
-
-                if (cart.length === 0) {
-                    showToast('Please add items to cart', 'error');
-                    return false;
-                }
-
-                const paymentMethod = $('select[name="Sale.PaymentMethod"]').val();
-                if (!paymentMethod) {
-                    showToast('Please select a payment method', 'error');
-                    return false;
-                }
-
-                prepareFormData();
-
-                const $submitBtn = $('#submitSaleBtn');
-                const originalText = $submitBtn.html();
-                $submitBtn.prop('disabled', true)
-                          .html('<i class="fas fa-spinner fa-spin me-1"></i>Processing...');
-
-                console.log('Submitting form...');
-                this.submit();
-            });
-        }
-
-        // Load grouped products via AJAX
-        function loadGroupedProducts() {
-            $.ajax({
-                url: '@Url.Action("GetGroupedProductsForSales", "Products")',
-                type: 'GET',
-                data: { categoryId: 0 },
-                success: function(data) {
-                    if (data.error) {
-                        showToast('Error loading products: ' + data.error, 'error');
-                        return;
-                    }
-
-                    allGroupedProducts = data;
-                    displayGroupedProducts(allGroupedProducts);
-                    updateProductCount();
-                },
-                error: function(xhr, status, error) {
-                    console.error('Error loading products:', error);
-                    showToast('Error loading products: ' + error, 'error');
-                    $('#productsContainer').html('<div class="alert alert-danger">Error loading products. Please refresh the page.</div>');
+        function initializePage() {
+            // Initialize filters
+            $('#categoryFilter, #stockFilter').on('change', filterProducts);
+            $('#productSearch').on('keyup', debounce(filterProducts, 300));
+            
+            // Initialize quantity input
+            $('#variantQuantity').on('change', function() {
+                const max = parseInt($('#maxQuantity').text());
+                const current = parseInt($(this).val());
+                if (current > max) {
+                    $(this).val(max);
                 }
             });
         }
 
-        // Display grouped products
-        function displayGroupedProducts(productGroups) {
-            let html = '<div class="row" id="productsGrid">';
+        function loadProducts() {
+            try {
+                displayProducts(allProducts);
+            } catch (error) {
+                console.error('Error loading products:', error);
+                $('#productGrid').html('<div class="col-12 text-center text-danger">Error loading products</div>');
+            }
+        }
 
-            productGroups.forEach(function(group) {
-                const stockBadgeClass = !group.hasStock ? 'bg-danger' :
-                                       group.minStock <= 5 ? 'bg-warning text-dark' : 'bg-success';
+        function displayProducts(products) {
+            const $grid = $('#productGrid');
+            
+            if (products.length === 0) {
+                $grid.html('<div class="col-12 text-center py-4"><i class="fas fa-box fa-3x text-muted mb-3"></i><p class="text-muted">No products found</p></div>');
+                $('#productCount').text('0');
+                return;
+            }
 
-                const cardClass = !group.hasStock ? 'bg-light' : '';
+            // Group products by name
+            const groupedProducts = {};
+            products.forEach(product => {
+                const baseName = product.Name.split('-')[0].trim();
+                if (!groupedProducts[baseName]) {
+                    groupedProducts[baseName] = [];
+                }
+                groupedProducts[baseName].push(product);
+            });
 
+            let html = '';
+            Object.entries(groupedProducts).forEach(([name, variants]) => {
+                const mainProduct = variants[0];
+                const hasVariants = variants.length > 1;
+                const totalStock = variants.reduce((sum, p) => sum + p.StockQuantity, 0);
+                
                 html += `
-                    <div class="col-lg-4 col-md-6 mb-3 product-group-item"
-                         data-category="${group.categoryId}"
-                         data-name="${group.baseName.toLowerCase()}"
-                         data-fabric="${group.fabricType.toLowerCase()}"
-                         data-stock="${group.hasStock ? 'instock' : 'outofstock'}">
-                        <div class="card h-100 ${cardClass}">
-                            <div class="card-body">
+                    <div class="col-md-6 col-lg-4 mb-3 product-card" data-category="${mainProduct.CategoryId}">
+                        <div class="card h-100 ${totalStock <= 0 ? 'border-danger' : totalStock <= 5 ? 'border-warning' : ''}">
+                            <div class="card-body p-3">
                                 <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <h6 class="card-title mb-1">${group.baseName}</h6>
-                                    <span class="badge ${stockBadgeClass}">
-                                        ${group.totalVariants} variants
+                                    <h6 class="card-title mb-0">${name}</h6>
+                                    <span class="badge ${totalStock <= 0 ? 'bg-danger' : totalStock <= 5 ? 'bg-warning' : 'bg-success'} ms-1">
+                                        ${totalStock} ${mainProduct.UnitOfMeasure || 'Pcs'}
                                     </span>
                                 </div>
-
-                                <p class="card-text small text-muted mb-2">
-                                    ${group.category}
-                                    ${group.fabricType ? '<br><strong>Fabric:</strong> ' + group.fabricType : ''}
-                                </p>
-
-                                <!-- Variants Preview -->
+                                
                                 <div class="mb-2">
-                                    <small class="text-muted">Available variants:</small>
-                                    <div class="d-flex flex-wrap gap-1 mt-1">
-                                        ${group.variants.slice(0, 3).map(v =>
-                                            `<span class="badge ${v.canSell ? 'bg-light text-dark' : 'bg-secondary'} small">
-                                                ${v.displayVariant} ${v.canSell ? '(' + v.stock.toFixed(3) + ')' : '(Out)'}
-                                            </span>`
-                                        ).join('')}
-                                        ${group.variants.length > 3 ?
-                                            '<span class="badge bg-info small">+' + (group.variants.length - 3) + ' more</span>' : ''}
-                                    </div>
+                                    <small class="text-muted">${mainProduct.Category?.Name || 'No Category'}</small>
+                                    ${hasVariants ? `<br><small class="text-info">${variants.length} variants</small>` : ''}
                                 </div>
-
-                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                
+                                <div class="d-flex justify-content-between align-items-end">
                                     <div>
-                                        <strong class="text-primary">₹${group.price.toLocaleString()}</strong>
-                                        <br>
-                                        <small class="text-muted">per ${group.unitOfMeasure} +GST ${group.gstRate}%</small>
+                                        <strong class="text-success">₹${mainProduct.SalePrice}</strong>
+                                        <br><small class="text-muted">+ GST ${mainProduct.GSTRate}%</small>
                                     </div>
-                                    <div class="text-end">
-                                        <small class="text-success">₹${group.priceWithGST.toLocaleString()}</small>
-                                        <br>
-                                        <small class="text-muted">Total per ${group.unitOfMeasure}</small>
-                                    </div>
+                                    <button class="btn btn-sm btn-outline-primary" 
+                                            onclick="selectProduct('${name}', ${JSON.stringify(variants).replace(/"/g, '&quot;')})"
+                                            ${totalStock <= 0 ? 'disabled' : ''}>
+                                        <i class="fas fa-plus"></i>
+                                    </button>
                                 </div>
-
-                                ${group.hasStock ? `
-                                    <button class="btn btn-khadi w-100" type="button"
-                                            onclick="showVariantSelection('${group.baseName}')">
-                                        <i class="fas fa-plus me-1"></i>Select Variant & Add
-                                    </button>
-                                ` : `
-                                    <button class="btn btn-outline-secondary w-100" disabled>
-                                        All Variants Out of Stock
-                                    </button>
-                                `}
                             </div>
                         </div>
                     </div>
                 `;
             });
 
-            html += '</div>';
-            $('#productsContainer').html(html);
+            $grid.html(html);
+            $('#productCount').text(Object.keys(groupedProducts).length);
         }
 
-        // Show variant selection modal
-        function showVariantSelection(baseName) {
-            selectedProductGroup = allGroupedProducts.find(g => g.baseName === baseName);
-            if (!selectedProductGroup) {
-                showToast('Product group not found', 'error');
-                return;
+        function selectProduct(productName, variants) {
+            console.log('Selecting product:', productName, variants);
+            
+            $('#selectedProductName').text(productName);
+            
+            if (variants.length === 1) {
+                // Single variant, go directly to quantity selection
+                selectedVariant = variants[0];
+                showVariantDetails(selectedVariant);
+            } else {
+                // Multiple variants, show selection
+                showVariantOptions(variants);
             }
+            
+            $('#variantModal').modal('show');
+        }
 
-            // Populate modal
-            $('#modalProductName').text(selectedProductGroup.baseName);
-            $('#modalProductInfo').html(`
-                <strong>Category:</strong> ${selectedProductGroup.category}<br>
-                <strong>Base Price:</strong> ₹${selectedProductGroup.price.toFixed(2)} per ${selectedProductGroup.unitOfMeasure}<br>
-                ${selectedProductGroup.fabricType ? '<strong>Fabric:</strong> ' + selectedProductGroup.fabricType + '<br>' : ''}
-                <strong>Available Variants:</strong> ${selectedProductGroup.variants.length}
-            `);
-
-            // Populate variant options
-            let variantHtml = '';
-            selectedProductGroup.variants.forEach((variant, index) => {
-                const isDisabled = !variant.canSell;
-                const stockInfo = variant.canSell ?
-                    `<small class="text-success">Stock: ${variant.stock.toFixed(3)} ${selectedProductGroup.unitOfMeasure}</small>` :
-                    '<small class="text-danger">Out of Stock</small>';
-
-                variantHtml += `
-                    <div class="col-md-6 mb-2">
-                        <div class="card variant-option ${isDisabled ? 'disabled' : ''}"
-                             data-variant-index="${index}"
-                             style="cursor: ${isDisabled ? 'not-allowed' : 'pointer'}; opacity: ${isDisabled ? '0.6' : '1'}">
-                            <div class="card-body p-2">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio"
-                                           name="selectedVariant" value="${index}"
-                                           id="variant${index}" ${isDisabled ? 'disabled' : ''}>
-                                    <label class="form-check-label w-100" for="variant${index}">
-                                        <div class="fw-bold">${variant.displayVariant}</div>
-                                        ${stockInfo}
-                                    </label>
-                                </div>
+        function showVariantOptions(variants) {
+            let html = '';
+            variants.forEach((variant, index) => {
+                const variantName = `${variant.Color || ''} ${variant.Size || ''}`.trim() || `Variant ${index + 1}`;
+                html += `
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="variant" id="variant${variant.Id}" 
+                               value="${variant.Id}" onchange="selectVariant(${JSON.stringify(variant).replace(/"/g, '&quot;')})">
+                        <label class="form-check-label d-flex justify-content-between" for="variant${variant.Id}">
+                            <span>${variantName}</span>
+                            <div>
+                                <span class="badge bg-info me-1">₹${variant.SalePrice}</span>
+                                <span class="badge ${variant.StockQuantity <= 0 ? 'bg-danger' : variant.StockQuantity <= 5 ? 'bg-warning' : 'bg-success'}">
+                                    ${variant.StockQuantity} ${variant.UnitOfMeasure || 'Pcs'}
+                                </span>
                             </div>
-                        </div>
+                        </label>
                     </div>
                 `;
             });
-
-            $('#variantOptions').html(variantHtml);
-
-            // Reset modal state
-            selectedVariant = null;
+            $('#variantOptions').html(html);
             $('#selectedVariantInfo').hide();
-            $('#quantitySection').hide();
-            $('#addSelectedVariantBtn').prop('disabled', true);
-
-            $('#variantSelectionModal').modal('show');
         }
 
-        // Handle variant selection
-        function selectVariant(e) {
-            const $card = $(e.currentTarget);
+        function selectVariant(variant) {
+            selectedVariant = variant;
+            showVariantDetails(variant);
+        }
 
-            if ($card.hasClass('disabled')) return;
-
-            const variantIndex = parseInt($card.data('variant-index'));
-            selectedVariant = selectedProductGroup.variants[variantIndex];
-
-            // Update radio button
-            $(`#variant${variantIndex}`).prop('checked', true);
-
-            // Show variant info
-            $('#selectedVariantDisplay').text(selectedVariant.displayVariant);
-            $('#selectedVariantStock').text(`${selectedVariant.stock.toFixed(3)} ${selectedProductGroup.unitOfMeasure}`);
-            $('#selectedVariantPrice').text(`₹${selectedProductGroup.price.toFixed(2)}`);
-            $('#selectedVariantPriceWithGST').text(`₹${selectedProductGroup.priceWithGST.toFixed(2)}`);
-
+        function showVariantDetails(variant) {
+            const variantName = `${variant.Color || ''} ${variant.Size || ''}`.trim() || variant.Name;
+            const priceWithGST = variant.SalePrice + (variant.SalePrice * variant.GSTRate / 100);
+            
+            $('#selectedVariantName').text(variantName);
+            $('#selectedStock').text(`${variant.StockQuantity} ${variant.UnitOfMeasure || 'Piece'}`);
+            $('#selectedPrice').text(`₹${variant.SalePrice}`);
+            $('#selectedPriceWithGST').text(`₹${priceWithGST.toFixed(2)}`);
+            $('#selectedUnit').text(variant.UnitOfMeasure || 'Piece');
+            $('#maxQuantity').text(variant.StockQuantity);
+            
+            // Set quantity limits
+            $('#variantQuantity').attr('max', variant.StockQuantity);
+            $('#variantQuantity').val(Math.min(1, variant.StockQuantity));
+            
+            // Reset discount
+            $('#itemDiscountPercentage').val(0);
+            
             $('#selectedVariantInfo').show();
-
-            // Setup quantity section
-            $('#modalUnitOfMeasure').text(selectedProductGroup.unitOfMeasure);
-            $('#modalMaxQuantity').text(selectedVariant.stock.toFixed(3));
-            $('#modalQuantity').attr('max', selectedVariant.stock).val('1');
-
-            $('#quantitySection').show();
-            $('#addSelectedVariantBtn').prop('disabled', false);
-
-            // Highlight selected variant
-            $('.variant-option').removeClass('border-primary');
-            $card.addClass('border-primary');
         }
 
-        // Validate modal quantity
-        function validateModalQuantity() {
-            if (!selectedVariant) return;
-
-            const quantity = parseFloat($('#modalQuantity').val()) || 0;
-            const maxQuantity = selectedVariant.stock;
-
-            if (quantity > maxQuantity) {
-                $('#modalQuantity').val(maxQuantity);
-                showToast(`Maximum available quantity is ${maxQuantity}`, 'warning');
-            }
-
-            if (quantity <= 0) {
-                $('#modalQuantity').val('1');
-            }
-        }
-
-        // Add selected variant to cart
         function addSelectedVariantToCart() {
-            if (!selectedVariant || !selectedProductGroup) {
-                showToast('Please select a variant', 'error');
+            if (!selectedVariant) {
+                alert('Please select a variant');
                 return;
             }
 
-            const quantity = parseFloat($('#modalQuantity').val());
-
-            if (quantity <= 0 || quantity > selectedVariant.stock) {
-                showToast('Invalid quantity', 'error');
+            const quantity = parseFloat($('#variantQuantity').val()) || 1;
+            const discountPercentage = parseFloat($('#itemDiscountPercentage').val()) || 0;
+            
+            if (quantity <= 0 || quantity > selectedVariant.StockQuantity) {
+                alert('Invalid quantity');
                 return;
             }
 
-            // Check if this specific variant is already in cart
-            const existingItem = cart.find(item => item.ProductId === selectedVariant.id);
-
-            if (existingItem) {
-                const newQuantity = existingItem.Quantity + quantity;
-                if (newQuantity > selectedVariant.stock) {
-                    showToast(`Maximum ${selectedVariant.stock} ${selectedProductGroup.unitOfMeasure} available for this variant`, 'warning');
+            // Check if item already in cart
+            const existingIndex = cart.findIndex(item => item.ProductId === selectedVariant.Id);
+            
+            if (existingIndex !== -1) {
+                // Update existing item
+                const newQuantity = cart[existingIndex].Quantity + quantity;
+                if (newQuantity > selectedVariant.StockQuantity) {
+                    alert(`Cannot add more. Maximum available: ${selectedVariant.StockQuantity}`);
                     return;
                 }
-                existingItem.Quantity = Math.round(newQuantity * 1000) / 1000;
+                cart[existingIndex].Quantity = newQuantity;
+                
+                // Apply discount to updated item
+                if (discountPercentage > 0) {
+                    applyDiscountToCartItem(existingIndex, discountPercentage);
+                }
             } else {
-                cart.push({
-                    ProductId: selectedVariant.id,
-                    ProductName: selectedVariant.fullName,
+                // Add new item
+                const cartItem = {
+                    ProductId: selectedVariant.Id,
+                    ProductName: selectedVariant.Name,
                     Quantity: quantity,
-                    UnitPrice: selectedProductGroup.price,
-                    GSTRate: selectedProductGroup.gstRate,
-                    UnitOfMeasure: selectedProductGroup.unitOfMeasure
-                });
+                    UnitPrice: selectedVariant.SalePrice,
+                    GSTRate: selectedVariant.GSTRate,
+                    UnitOfMeasure: selectedVariant.UnitOfMeasure || 'Piece',
+                    ItemDiscountPercentage: discountPercentage,
+                    ItemDiscountAmount: 0
+                };
+                
+                // Calculate discount
+                if (discountPercentage > 0) {
+                    const subtotal = cartItem.UnitPrice * cartItem.Quantity;
+                    cartItem.ItemDiscountAmount = subtotal * discountPercentage / 100;
+                }
+                
+                cart.push(cartItem);
             }
 
             updateCartDisplay();
-            showToast(`Added ${quantity} ${selectedProductGroup.unitOfMeasure} of ${selectedVariant.fullName} to cart`, 'success');
-
-            // Close modal
-            $('#variantSelectionModal').modal('hide');
+            $('#variantModal').modal('hide');
+            
+            showAlert(`Added ${quantity} x ${selectedVariant.Name} to cart`, 'success');
         }
 
-        // Filter products (updated for grouped products)
-        function filterProducts() {
-            const searchTerm = $('#productSearch').val().toLowerCase();
-            const categoryId = $('#categoryFilter').val();
-            const stockFilter = $('#stockFilter').val();
-
-            $('.product-group-item').each(function() {
-                const $item = $(this);
-                const itemName = $item.data('name');
-                const itemFabric = $item.data('fabric');
-                const itemCategory = $item.data('category').toString();
-                const itemStock = $item.data('stock');
-
-                let show = true;
-
-                // Search filter
-                if (searchTerm) {
-                    if (!itemName.includes(searchTerm) && !itemFabric.includes(searchTerm)) {
-                        show = false;
-                    }
-                }
-
-                // Category filter
-                if (categoryId && itemCategory !== categoryId) {
-                    show = false;
-                }
-
-                // Stock filter
-                if (stockFilter === 'instock' && itemStock !== 'instock') {
-                    show = false;
-                }
-
-                $item.toggle(show);
-            });
-
-            updateProductCount();
-        }
-
-        function updateProductCount() {
-            const visibleCount = $('.product-group-item:visible').length;
-            $('#productCount').text(visibleCount);
-        }
-
-        // Rest of the cart functions remain the same as in the previous implementation
-        function removeFromCart(productId) {
-            cart = cart.filter(item => item.ProductId !== productId);
-            updateCartDisplay();
-            showToast('Item removed from cart', 'info');
-        }
-
-        function updateCartQuantity(productId, newQuantity) {
-            newQuantity = parseFloat(newQuantity);
-
-            if (isNaN(newQuantity) || newQuantity <= 0) {
-                removeFromCart(productId);
-                return;
-            }
-
-            newQuantity = Math.round(newQuantity * 1000) / 1000;
-
-            const item = cart.find(item => item.ProductId === productId);
-            if (item) {
-                item.Quantity = newQuantity;
-                updateCartDisplay();
-            }
-        }
-
+        // CRITICAL: Enhanced cart update with discount support
         function updateCartDisplay() {
             const $cartItems = $('#cartItems');
-            const $emptyCart = $('#emptyCart');
-            const $cartSummary = $('#cartSummary');
-
+            const $cartCount = $('#cartItemCount');
+            const $discountControls = $('#discountControls');
+            
             if (cart.length === 0) {
-                $emptyCart.show();
-                $cartSummary.hide();
-                $('#cartItemCount').text(0);
+                $cartItems.html(`
+                    <div class="text-center py-4">
+                        <i class="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
+                        <h6 class="text-muted">Cart is empty</h6>
+                        <p class="text-muted">Add products to start billing</p>
+                    </div>
+                `);
+                $cartCount.text('0');
+                $discountControls.hide();
+                $('#checkoutBtn').prop('disabled', true);
+                updateCartTotals();
                 return;
             }
 
-            $emptyCart.hide();
-            $cartSummary.show();
-
-            let cartHtml = '';
-            let totalItems = 0;
-
-            cart.forEach(item => {
-                const itemSubtotal = item.UnitPrice * item.Quantity;
-                const itemGST = itemSubtotal * item.GSTRate / 100;
-                const lineTotal = itemSubtotal + itemGST;
-
-                totalItems += item.Quantity;
-
-                cartHtml += `
-                    <div class="border-bottom p-2">
+            let html = '';
+            cart.forEach((item, index) => {
+                const lineSubtotal = item.UnitPrice * item.Quantity;
+                const lineAfterDiscount = lineSubtotal - (item.ItemDiscountAmount || 0);
+                const lineGST = lineAfterDiscount * item.GSTRate / 100;
+                const lineTotal = lineAfterDiscount + lineGST;
+                
+                html += `
+                    <div class="cart-item border-bottom pb-2 mb-2" data-index="${index}">
                         <div class="d-flex justify-content-between align-items-start mb-1">
-                            <small class="fw-bold">${item.ProductName}</small>
-                            <button class="btn btn-sm btn-outline-danger" onclick="removeFromCart(${item.ProductId})">
+                            <h6 class="mb-0">${item.ProductName}</h6>
+                            <button class="btn btn-sm btn-outline-danger" onclick="removeFromCart(${index})">
                                 <i class="fas fa-times"></i>
                             </button>
                         </div>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div class="input-group input-group-sm" style="width: 100px;">
-                                <input type="number" class="form-control" min="0.001" step="0.001"
-                                       value="${item.Quantity}"
-                                       onchange="updateCartQuantity(${item.ProductId}, this.value)">
-                                <span class="input-group-text">${item.UnitOfMeasure || 'Pc'}</span>
+                        
+                        <div class="row g-1 mb-2">
+                            <div class="col-4">
+                                <div class="input-group input-group-sm">
+                                    <input type="number" class="form-control" value="${item.Quantity}" 
+                                           min="0.001" step="0.001" onchange="updateCartItemQuantity(${index}, this.value)">
+                                    <span class="input-group-text">${item.UnitOfMeasure}</span>
+                                </div>
                             </div>
-                            <div class="text-end">
-                                <div class="small">₹${item.UnitPrice.toFixed(2)} per ${item.UnitOfMeasure || 'piece'}</div>
-                                <div class="fw-bold">₹${lineTotal.toFixed(2)}</div>
+                            <div class="col-4">
+                                <div class="input-group input-group-sm">
+                                    <input type="number" class="form-control" value="${item.ItemDiscountPercentage || 0}" 
+                                           min="0" max="100" step="0.01" 
+                                           onchange="updateCartItemDiscount(${index}, this.value)">
+                                    <span class="input-group-text">%</span>
+                                </div>
                             </div>
+                            <div class="col-4">
+                                <small class="text-muted">₹${item.UnitPrice}</small>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <small class="text-muted">
+                                ${item.ItemDiscountAmount > 0 ? 
+                                    `₹${lineSubtotal.toFixed(2)} - ₹${item.ItemDiscountAmount.toFixed(2)} + GST` : 
+                                    `₹${lineSubtotal.toFixed(2)} + GST`}
+                            </small>
+                            <strong class="text-success">₹${lineTotal.toFixed(2)}</strong>
                         </div>
                     </div>
                 `;
             });
 
-            $cartItems.html(cartHtml);
-            $('#cartItemCount').text(totalItems.toFixed(3));
-
-            updateCartSummary();
+            $cartItems.html(html);
+            $cartCount.text(cart.reduce((sum, item) => sum + item.Quantity, 0).toFixed(0));
+            $discountControls.show();
+            $('#checkoutBtn').prop('disabled', false);
+            
+            updateCartTotals();
         }
 
-        function updateCartSummary() {
+        // CRITICAL: Calculate cart totals with individual discounts
+        function updateCartTotals() {
             let subtotal = 0;
-            let gstAmount = 0;
+            let totalDiscounts = 0;
+            let totalGST = 0;
+            let finalTotal = 0;
 
             cart.forEach(item => {
-                const itemSubtotal = item.UnitPrice * item.Quantity;
-                const itemGST = itemSubtotal * item.GSTRate / 100;
-
-                subtotal += itemSubtotal;
-                gstAmount += itemGST;
+                const lineSubtotal = item.UnitPrice * item.Quantity;
+                const lineDiscount = item.ItemDiscountAmount || 0;
+                const lineAfterDiscount = lineSubtotal - lineDiscount;
+                const lineGST = lineAfterDiscount * item.GSTRate / 100;
+                
+                subtotal += lineSubtotal;
+                totalDiscounts += lineDiscount;
+                totalGST += lineGST;
+                finalTotal += lineAfterDiscount + lineGST;
             });
 
-            const discountPercent = parseFloat($('#discountPercent').val()) || 0;
-            const totalBeforeDiscount = subtotal + gstAmount;
-            const discountAmount = totalBeforeDiscount * discountPercent / 100;
-            const finalTotal = totalBeforeDiscount - discountAmount;
-
-            $('#cartSubtotal').text(formatCurrency(subtotal));
-            $('#cartGST').text(formatCurrency(gstAmount));
-            $('#cartDiscount').text(formatCurrency(discountAmount));
-            $('#cartTotal').text(formatCurrency(finalTotal));
-        }
-
-        function clearCart() {
-            if (cart.length === 0) return;
-
-            if (confirm('Are you sure you want to clear the cart?')) {
-                cart = [];
-                updateCartDisplay();
-                showToast('Cart cleared', 'info');
+            $('#cartSubtotal').text(`₹${subtotal.toFixed(2)}`);
+            $('#cartDiscountAmount').text(`₹${totalDiscounts.toFixed(2)}`);
+            $('#cartGST').text(`₹${totalGST.toFixed(2)}`);
+            $('#cartTotal').text(`₹${finalTotal.toFixed(2)}`);
+            
+            // Show/hide discount row
+            if (totalDiscounts > 0) {
+                $('#discountRow').show();
+            } else {
+                $('#discountRow').hide();
             }
         }
 
-        function showCheckoutModal() {
-            if (cart.length === 0) {
-                showToast('Cart is empty', 'error');
+        // CRITICAL: Apply overall discount to all items
+        function applyOverallDiscount() {
+            const discountPercentage = parseFloat($('#overallDiscountPercentage').val()) || 0;
+            
+            if (discountPercentage < 0 || discountPercentage > 100) {
+                showAlert('Discount percentage must be between 0 and 100', 'error');
                 return;
             }
 
-            updateCheckoutModal();
+            cart.forEach(item => {
+                const lineSubtotal = item.UnitPrice * item.Quantity;
+                item.ItemDiscountPercentage = discountPercentage;
+                item.ItemDiscountAmount = lineSubtotal * discountPercentage / 100;
+            });
+
+            updateCartDisplay();
+            showAlert(`Applied ${discountPercentage}% discount to all items`, 'success');
+        }
+
+        // CRITICAL: Update individual item discount
+        function updateCartItemDiscount(index, discountPercentage) {
+            const discount = parseFloat(discountPercentage) || 0;
+            
+            if (discount < 0 || discount > 100) {
+                showAlert('Discount percentage must be between 0 and 100', 'error');
+                return;
+            }
+
+            const item = cart[index];
+            const lineSubtotal = item.UnitPrice * item.Quantity;
+            
+            item.ItemDiscountPercentage = discount;
+            item.ItemDiscountAmount = lineSubtotal * discount / 100;
+            
+            updateCartTotals();
+        }
+
+        function updateCartItemQuantity(index, quantity) {
+            const qty = parseFloat(quantity) || 0;
+            
+            if (qty <= 0) {
+                removeFromCart(index);
+                return;
+            }
+
+            cart[index].Quantity = qty;
+            
+            // Recalculate discount amount
+            if (cart[index].ItemDiscountPercentage > 0) {
+                const lineSubtotal = cart[index].UnitPrice * qty;
+                cart[index].ItemDiscountAmount = lineSubtotal * cart[index].ItemDiscountPercentage / 100;
+            }
+            
+            updateCartTotals();
+        }
+
+        function removeFromCart(index) {
+            cart.splice(index, 1);
+            updateCartDisplay();
+            showAlert('Item removed from cart', 'info');
+        }
+
+        function clearAllDiscounts() {
+            cart.forEach(item => {
+                item.ItemDiscountPercentage = 0;
+                item.ItemDiscountAmount = 0;
+            });
+            $('#overallDiscountPercentage').val(0);
+            updateCartDisplay();
+            showAlert('All discounts cleared', 'info');
+        }
+
+        function proceedToCheckout() {
+            if (cart.length === 0) {
+                showAlert('Cart is empty', 'error');
+                return;
+            }
+
+            updateCheckoutSummary();
             $('#checkoutModal').modal('show');
         }
 
-        function updateCheckoutModal() {
-            let checkoutHtml = '';
+        // CRITICAL: Update checkout summary with individual discounts
+        function updateCheckoutSummary() {
+            let html = '';
             let subtotal = 0;
-            let gstAmount = 0;
-
-            cart.forEach(item => {
-                const itemSubtotal = item.UnitPrice * item.Quantity;
-                const itemGST = itemSubtotal * item.GSTRate / 100;
-                const itemTotal = itemSubtotal + itemGST;
-
-                subtotal += itemSubtotal;
-                gstAmount += itemGST;
-
-                checkoutHtml += `
-                    <tr>
-                        <td>
-                            ${item.ProductName}
-                            <br><small class="text-muted">${item.Quantity.toFixed(3)} ${item.UnitOfMeasure || 'Piece'}</small>
-                        </td>
-                        <td>${item.Quantity.toFixed(3)}</td>
-                        <td>₹${item.UnitPrice.toFixed(2)}</td>
-                        <td>₹${itemTotal.toFixed(2)}</td>
-                    </tr>
-                `;
-            });
-
-            const discountPercent = parseFloat($('#discountPercent').val()) || 0;
-            const totalBeforeDiscount = subtotal + gstAmount;
-            const discountAmount = totalBeforeDiscount * discountPercent / 100;
-            const finalTotal = totalBeforeDiscount - discountAmount;
-
-            $('#checkoutItems').html(checkoutHtml);
-            $('#checkoutSubtotal').text(formatCurrency(subtotal));
-            $('#checkoutGST').text(formatCurrency(gstAmount));
-            $('#checkoutDiscountPercent').text(discountPercent.toFixed(1));
-            $('#checkoutDiscountAmount').text(formatCurrency(discountAmount));
-            $('#checkoutTotal').text(formatCurrency(finalTotal));
-
-            $('#hiddenDiscountPercent').val(discountPercent);
-        }
-
-        function prepareFormData() {
-            console.log('Preparing form data for cart:', cart);
-
-            let cartItemsHtml = '';
+            let totalDiscounts = 0;
+            let totalGST = 0;
+            let finalTotal = 0;
 
             cart.forEach((item, index) => {
-                cartItemsHtml += `
+                const lineSubtotal = item.UnitPrice * item.Quantity;
+                const lineDiscount = item.ItemDiscountAmount || 0;
+                const lineAfterDiscount = lineSubtotal - lineDiscount;
+                const lineGST = lineAfterDiscount * item.GSTRate / 100;
+                const lineTotal = lineAfterDiscount + lineGST;
+                
+                html += `
+                    <tr>
+                        <td>${item.ProductName}</td>
+                        <td>${item.Quantity} ${item.UnitOfMeasure}</td>
+                        <td>₹${item.UnitPrice}</td>
+                        <td>${item.ItemDiscountPercentage > 0 ? 
+                            `${item.ItemDiscountPercentage}%<br><small>-₹${lineDiscount.toFixed(2)}</small>` : 
+                            'No Discount'}</td>
+                        <td>₹${lineTotal.toFixed(2)}</td>
+                    </tr>
                     <input type="hidden" name="CartItems[${index}].ProductId" value="${item.ProductId}">
                     <input type="hidden" name="CartItems[${index}].ProductName" value="${item.ProductName}">
                     <input type="hidden" name="CartItems[${index}].Quantity" value="${item.Quantity}">
                     <input type="hidden" name="CartItems[${index}].UnitPrice" value="${item.UnitPrice}">
                     <input type="hidden" name="CartItems[${index}].GSTRate" value="${item.GSTRate}">
-                    <input type="hidden" name="CartItems[${index}].UnitOfMeasure" value="${item.UnitOfMeasure || 'Piece'}">
+                    <input type="hidden" name="CartItems[${index}].UnitOfMeasure" value="${item.UnitOfMeasure}">
+                    <input type="hidden" name="CartItems[${index}].ItemDiscountPercentage" value="${item.ItemDiscountPercentage}">
+                    <input type="hidden" name="CartItems[${index}].ItemDiscountAmount" value="${item.ItemDiscountAmount}">
                 `;
+                
+                subtotal += lineSubtotal;
+                totalDiscounts += lineDiscount;
+                totalGST += lineGST;
+                finalTotal += lineTotal;
             });
 
-            $('#hiddenCartItems').html(cartItemsHtml);
-            console.log('Hidden cart items HTML:', cartItemsHtml);
+            $('#checkoutItems').html(html);
+            $('#checkoutSubtotal').text(`₹${subtotal.toFixed(2)}`);
+            $('#checkoutDiscountAmount').text(`₹${totalDiscounts.toFixed(2)}`);
+            $('#checkoutGST').text(`₹${totalGST.toFixed(2)}`);
+            $('#checkoutTotal').text(`₹${finalTotal.toFixed(2)}`);
+            
+            // Show/hide discount row in checkout
+            if (totalDiscounts > 0) {
+                $('#checkoutDiscountRow').show();
+            } else {
+                $('#checkoutDiscountRow').hide();
+            }
         }
 
-        function formatCurrency(amount, showDecimals = true) {
-            const options = {
-                minimumFractionDigits: showDecimals ? 2 : 0,
-                maximumFractionDigits: showDecimals ? 2 : 0,
-                useGrouping: true
-            };
+        // Utility functions
+        function filterProducts() {
+            const categoryFilter = $('#categoryFilter').val();
+            const stockFilter = $('#stockFilter').val();
+            const searchTerm = $('#productSearch').val().toLowerCase();
 
-            return '₹' + parseFloat(amount || 0).toLocaleString('en-IN', options);
+            let filteredProducts = allProducts;
+
+            if (categoryFilter) {
+                filteredProducts = filteredProducts.filter(p => p.CategoryId == categoryFilter);
+            }
+
+            if (stockFilter === 'instock') {
+                filteredProducts = filteredProducts.filter(p => p.StockQuantity > 5);
+            } else if (stockFilter === 'lowstock') {
+                filteredProducts = filteredProducts.filter(p => p.StockQuantity <= 5 && p.StockQuantity > 0);
+            }
+
+            if (searchTerm) {
+                filteredProducts = filteredProducts.filter(p => 
+                    p.Name.toLowerCase().includes(searchTerm) ||
+                    p.Category?.Name.toLowerCase().includes(searchTerm)
+                );
+            }
+
+            displayProducts(filteredProducts);
+        }
+
+        function debounce(func, delay) {
+            let timeoutId;
+            return function (...args) {
+                clearTimeout(timeoutId);
+                timeoutId = setTimeout(() => func.apply(this, args), delay);
+            };
+        }
+
+        function showAlert(message, type = 'info') {
+            const alertClass = type === 'error' ? 'alert-danger' : 
+                              type === 'success' ? 'alert-success' : 
+                              type === 'warning' ? 'alert-warning' : 'alert-info';
+            
+            const alertHtml = `
+                <div class="alert ${alertClass} alert-dismissible fade show position-fixed" 
+                     style="top: 20px; right: 20px; z-index: 9999; min-width: 300px;" role="alert">
+                    <i class="fas fa-${type === 'error' ? 'exclamation-circle' : 
+                                     type === 'success' ? 'check-circle' : 
+                                     type === 'warning' ? 'exclamation-triangle' : 'info-circle'} me-2"></i>
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            
+            $('body').append(alertHtml);
+            
+            // Auto-dismiss after 3 seconds
+            setTimeout(() => {
+                $('.alert').alert('close');
+            }, 3000);
         }
     </script>
 }
 
 <style>
-    .variant-option {
-        transition: all 0.2s ease;
+    .product-card {
+        transition: transform 0.2s ease;
     }
-
-        .variant-option:hover:not(.disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-
-        .variant-option.border-primary {
-            border-width: 2px !important;
-        }
-
-        .variant-option.disabled {
-            background-color: #f8f9fa !important;
-        }
-
-    .product-group-item {
-        transition: all 0.2s ease;
+    
+    .product-card:hover {
+        transform: translateY(-2px);
     }
-
-        .product-group-item:hover {
-            transform: translateY(-2px);
-        }
-
-    .variant-preview-badge {
-        font-size: 0.7em;
+    
+    .cart-item {
+        transition: background-color 0.2s ease;
+    }
+    
+    .cart-item:hover {
+        background-color: rgba(0, 0, 0, 0.025);
+    }
+    
+    .form-select-sm,
+    .form-control-sm {
+        font-size: 0.875rem;
+    }
+    
+    .input-group-sm .input-group-text {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+    
+    .modal-lg {
+        max-width: 900px;
+    }
+    
+    .badge {
+        font-size: 0.7rem;
+    }
+    
+    .text-success {
+        color: #198754 !important;
+    }
+    
+    .border-success {
+        border-color: #198754 !important;
+    }
+    
+    .bg-success {
+        background-color: #198754 !important;
+    }
+    
+    /* Custom scrollbar for cart */
+    #cartItems {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    
+    #cartItems::-webkit-scrollbar {
+        width: 6px;
+    }
+    
+    #cartItems::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 3px;
+    }
+    
+    #cartItems::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 3px;
+    }
+    
+    #cartItems::-webkit-scrollbar-thumb:hover {
+        background: #555;
     }
 </style>

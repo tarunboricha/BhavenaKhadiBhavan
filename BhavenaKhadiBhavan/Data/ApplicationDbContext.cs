@@ -179,16 +179,15 @@ namespace BhavenaKhadiBhavan.Data
 
             // Seed default settings
             modelBuilder.Entity<Setting>().HasData(
-                new Setting { Id = 1, Key = "StoreName", Value = "Khadi Store", Description = "Store name for invoices", Category = "Store" },
-                new Setting { Id = 2, Key = "StoreAddress", Value = "123 Gandhi Road, City, State - 400001", Description = "Store address", Category = "Store" },
-                new Setting { Id = 3, Key = "StorePhone", Value = "+91 98765 43210", Description = "Store phone number", Category = "Store" },
-                new Setting { Id = 4, Key = "StoreEmail", Value = "info@khadistore.com", Description = "Store email", Category = "Store" },
-                new Setting { Id = 5, Key = "GSTNumber", Value = "27AAAAA0000A1Z5", Description = "Store GST number", Category = "Tax" },
-                new Setting { Id = 6, Key = "InvoicePrefix", Value = "KHD", Description = "Invoice number prefix", Category = "Store" },
-                new Setting { Id = 7, Key = "ReturnPrefix", Value = "RET", Description = "Return number prefix", Category = "Store" },
-                new Setting { Id = 8, Key = "DefaultGSTRate", Value = "5.0", Description = "Default GST rate percentage", Category = "Tax" },
-                new Setting { Id = 9, Key = "LowStockThreshold", Value = "5", Description = "Default low stock threshold", Category = "Inventory" },
-                new Setting { Id = 10, Key = "Currency", Value = "INR", Description = "Store currency", Category = "Store" }
+                new Setting { Id = 1, Key = "StoreName", Value = "Bhavena Khadi Bhavan", Description = "Store name for invoices", Category = "Store" },
+                new Setting { Id = 2, Key = "StoreAddress", Value = "Shop No 102, Viklang Mart, Nr. Water Tank, Kaliyabid, Bhavnagar, Gujarat - 364002", Description = "Store address", Category = "Store" },
+                new Setting { Id = 3, Key = "StorePhone", Value = "+91 278-4051174", Description = "Store phone number", Category = "Store" },
+                new Setting { Id = 4, Key = "GSTNumber", Value = "27AAAAA0000A1Z5", Description = "Store GST number", Category = "Tax" },
+                new Setting { Id = 5, Key = "InvoicePrefix", Value = "KHD", Description = "Invoice number prefix", Category = "Store" },
+                new Setting { Id = 6, Key = "ReturnPrefix", Value = "RET", Description = "Return number prefix", Category = "Store" },
+                new Setting { Id = 7, Key = "DefaultGSTRate", Value = "5.0", Description = "Default GST rate percentage", Category = "Tax" },
+                new Setting { Id = 8, Key = "LowStockThreshold", Value = "5", Description = "Default low stock threshold", Category = "Inventory" },
+                new Setting { Id = 9, Key = "Currency", Value = "INR", Description = "Store currency", Category = "Store" }
             );
 
             // Seed sample products
@@ -208,7 +207,7 @@ namespace BhavenaKhadiBhavan.Data
                     Color = "White",
                     Size = "M",
                     Pattern = "Solid",
-                    GSTRate = 5.0m,
+                    GSTRate = 0.0m,
                     IsActive = true,
                     CreatedAt = DateTime.Now,
                     UpdatedAt = DateTime.Now
@@ -228,7 +227,7 @@ namespace BhavenaKhadiBhavan.Data
                     Color = "Blue",
                     Size = "Free Size",
                     Pattern = "Handloom",
-                    GSTRate = 5.0m,
+                    GSTRate = 0.0m,
                     IsActive = true,
                     CreatedAt = DateTime.Now,
                     UpdatedAt = DateTime.Now
@@ -248,7 +247,7 @@ namespace BhavenaKhadiBhavan.Data
                     Color = "Cream",
                     Size = "Free Size",
                     Pattern = "Solid",
-                    GSTRate = 5.0m,
+                    GSTRate = 0.0m,
                     IsActive = true,
                     CreatedAt = DateTime.Now,
                     UpdatedAt = DateTime.Now
@@ -268,7 +267,7 @@ namespace BhavenaKhadiBhavan.Data
                     Color = "Pink",
                     Size = "L",
                     Pattern = "Printed",
-                    GSTRate = 5.0m,
+                    GSTRate = 0.0m,
                     IsActive = true,
                     CreatedAt = DateTime.Now,
                     UpdatedAt = DateTime.Now
@@ -288,7 +287,7 @@ namespace BhavenaKhadiBhavan.Data
                     Color = "Natural",
                     Size = "Per Meter",
                     Pattern = "Plain",
-                    GSTRate = 5.0m,
+                    GSTRate = 0.0m,
                     IsActive = true,
                     CreatedAt = DateTime.Now,
                     UpdatedAt = DateTime.Now

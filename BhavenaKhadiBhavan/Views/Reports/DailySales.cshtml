@@ -1,0 +1,531 @@
+﻿@model DailySalesReportViewModel
+@{
+    ViewData["Title"] = "Daily Sales Report with Analytics";
+}
+
+<div class="container-fluid">
+    <!-- Report Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2>
+                    <i class="fas fa-calendar-day me-2 text-info"></i>
+                    Daily Sales Report
+                    <small class="text-muted">@Model.Date.ToString("dd MMMM yyyy, dddd")</small>
+                </h2>
+                <div class="btn-group">
+                    <a href="@Url.Action("PrintDailySales", "Reports", new { date = Model.Date.ToString("yyyy-MM-dd") })"
+                       class="btn btn-outline-primary" target="_blank">
+                        <i class="fas fa-print me-1"></i>Print Report
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Date Selector -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="get" class="row g-3 align-items-end">
+                        <div class="col-md-4">
+                            <label for="date" class="form-label">Select Date</label>
+                            <input type="date" class="form-control" id="date" name="date"
+                                   value="@ViewBag.SelectedDate" required>
+                        </div>
+                        <div class="col-md-4">
+                            <button type="submit" class="btn btn-info">
+                                <i class="fas fa-search me-1"></i>Load Report
+                            </button>
+                            <a href="@Url.Action("DailySales", "Reports")" class="btn btn-outline-secondary">
+                                <i class="fas fa-calendar me-1"></i>Today
+                            </a>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            @if (Model.Sales.Any())
+                            {
+                                <span class="badge bg-success fs-6">@Model.Sales.Count Orders Today</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary fs-6">No Sales Today</span>
+                            }
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (Model.Sales.Any())
+    {
+        <!-- Daily KPIs -->
+        <div class="row mb-4">
+            <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
+                <div class="card border-left-info shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                    Total Sales
+                                </div>
+                                <div class="h6 mb-0 font-weight-bold text-gray-800">
+                                    ₹@Model.TotalSales.ToString("N2")
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-rupee-sign fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
+                <div class="card border-left-success shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                    Gross Profit
+                                </div>
+                                <div class="h6 mb-0 font-weight-bold text-gray-800">
+                                    ₹@Model.TotalGrossProfit.ToString("N2")
+                                </div>
+                                <small class="text-success">@Model.GrossProfitMargin.ToString("N1")%</small>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-chart-pie fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
+                <div class="card border-left-primary shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                    Total Orders
+                                </div>
+                                <div class="h6 mb-0 font-weight-bold text-gray-800">
+                                    @Model.TotalOrders
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-shopping-cart fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
+                <div class="card border-left-warning shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                    Avg Order
+                                </div>
+                                <div class="h6 mb-0 font-weight-bold text-gray-800">
+                                    ₹@Model.AverageOrderValue.ToString("N2")
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-calculator fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
+                <div class="card border-left-secondary shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1">
+                                    Items Sold
+                                </div>
+                                <div class="h6 mb-0 font-weight-bold text-gray-800">
+                                    @Model.TotalItemsSold.ToString("N0")
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-boxes fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
+                <div class="card border-left-dark shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-dark text-uppercase mb-1">
+                                    Customers
+                                </div>
+                                <div class="h6 mb-0 font-weight-bold text-gray-800">
+                                    @Model.UniqueCustomers
+                                </div>
+                                <small class="text-success">@Model.NewCustomers new</small>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-users fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hourly Sales Breakdown -->
+        <div class="row mb-4">
+            <div class="col-lg-8">
+                <div class="card shadow">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">Hourly Sales Breakdown</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Hour</th>
+                                        <th class="text-center">Orders</th>
+                                        <th class="text-end">Sales Amount</th>
+                                        <th class="text-end">Gross Profit</th>
+                                        <th class="text-center">Performance</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var hour in Model.HourlyBreakdown.OrderBy(h => h.Hour))
+                                    {
+                                        var hourDisplay = $"{hour.Hour:D2}:00 - {hour.Hour:D2}:59";
+                                        var performancePercent = Model.TotalSales > 0 ? (hour.Amount / Model.TotalSales) * 100 : 0;
+
+                                        <tr>
+                                            <td><strong>@hourDisplay</strong></td>
+                                            <td class="text-center">
+                                                @if (hour.Count > 0)
+                                                {
+                                                    <span class="badge bg-info">@hour.Count</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">0</span>
+                                                }
+                                            </td>
+                                            <td class="text-end">
+                                                @if (hour.Amount > 0)
+                                                {
+                                                    <strong>₹@hour.Amount.ToString("N2")</strong>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">₹0.00</span>
+                                                }
+                                            </td>
+                                            <td class="text-end text-success">
+                                                @if (hour.GrossProfit > 0)
+                                                {
+                                                    <span>₹@hour.GrossProfit.ToString("N2")</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">₹0.00</span>
+                                                }
+                                            </td>
+                                            <td class="text-center">
+                                                <div class="progress" style="height: 10px;">
+                                                    <div class="progress-bar @(performancePercent > 10 ? "bg-success" : performancePercent > 5 ? "bg-warning" : "bg-info")"
+                                                         style="width: @Math.Max(performancePercent, 1)%"></div>
+                                                </div>
+                                                <small class="text-muted">@performancePercent.ToString("N1")%</small>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4">
+                <div class="card shadow">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">Payment Methods</h6>
+                    </div>
+                    <div class="card-body">
+                        @foreach (var payment in Model.PaymentMethodBreakdown)
+                        {
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between">
+                                    <span>
+                                        <i class="fas @(payment.Method == "Cash" ? "fa-money-bill-wave" : payment.Method == "Card" ? "fa-credit-card" : "fa-mobile-alt") me-2"></i>
+                                        @payment.Method
+                                    </span>
+                                    <span><strong>₹@payment.Amount.ToString("N2")</strong></span>
+                                </div>
+                                <div class="progress mb-1" style="height: 8px;">
+                                    <div class="progress-bar @(payment.Method == "Cash" ? "bg-success" : payment.Method == "Card" ? "bg-primary" : "bg-info")"
+                                         style="width: @payment.Percentage%"></div>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <small class="text-muted">@payment.Count orders</small>
+                                    <small class="text-muted">@payment.Percentage.ToString("N1")%</small>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Products of the Day -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">Top Products Today</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Rank</th>
+                                        <th>Product</th>
+                                        <th>Category</th>
+                                        <th class="text-center">Qty Sold</th>
+                                        <th class="text-end">Revenue</th>
+                                        <th class="text-end">Gross Profit</th>
+                                        <th class="text-end">Avg Discount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @for (int i = 0; i < Model.TopProducts.Count; i++)
+                                    {
+                                        var product = Model.TopProducts[i];
+                                        var rank = i + 1;
+
+                                        <tr>
+                                            <td>
+                                                <span class="badge @(rank <= 3 ? "bg-warning" : "bg-light text-dark")">
+                                                    #@rank
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <strong>@product.ProductName</strong>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-light text-dark">@product.CategoryName</span>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge bg-primary">@product.QuantitySold.ToString("N0")</span>
+                                            </td>
+                                            <td class="text-end">
+                                                <strong>₹@product.Revenue.ToString("N2")</strong>
+                                            </td>
+                                            <td class="text-end text-success">
+                                                ₹@product.GrossProfit.ToString("N2")
+                                            </td>
+                                            <td class="text-end">
+                                                @if (product.AverageDiscount > 0)
+                                                {
+                                                    <span class="text-warning">@product.AverageDiscount.ToString("N1")%</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">-</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- All Sales Today -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow">
+                    <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                        <h6 class="m-0 font-weight-bold text-primary">All Sales Today (@Model.Sales.Count orders)</h6>
+                        <small class="text-muted">Chronological order (latest first)</small>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Time</th>
+                                        <th>Invoice</th>
+                                        <th>Customer</th>
+                                        <th>Payment</th>
+                                        <th class="text-center">Items</th>
+                                        <th class="text-end">Amount</th>
+                                        <th class="text-center">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var sale in Model.Sales)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <strong>@sale.SaleDate.ToString("HH:mm")</strong>
+                                            </td>
+                                            <td>
+                                                <a href="@Url.Action("Details", "Sales", new { id = sale.Id })"
+                                                   class="text-decoration-none">
+                                                    @sale.InvoiceNumber
+                                                </a>
+                                            </td>
+                                            <td>
+                                                <div>
+                                                    <strong>@sale.CustomerDisplayName</strong>
+                                                    @if (!string.IsNullOrEmpty(sale.CustomerPhone))
+                                                    {
+                                                        <br>
+                                            
+                                                        <small class="text-muted">@sale.CustomerPhone</small>
+                                                    }
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="badge @(sale.PaymentMethod == "Cash" ? "bg-success" : sale.PaymentMethod == "Card" ? "bg-primary" : "bg-info")">
+                                                    @sale.PaymentMethod
+                                                </span>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge bg-secondary">@sale.ItemCount.ToString("N0")</span>
+                                            </td>
+                                            <td class="text-end">
+                                                <strong>₹@sale.TotalAmount.ToString("N2")</strong>
+                                                @if (sale.HasItemLevelDiscounts)
+                                                {
+                                                    <br>
+                                        
+                                                    <small class="text-success">
+                                                        <i class="fas fa-tag fa-sm"></i> Discounted
+                                                    </small>
+                                                }
+                                            </td>
+                                            <td class="text-center">
+                                                <div class="btn-group btn-group-sm">
+                                                    <a href="@Url.Action("Details", "Sales", new { id = sale.Id })"
+                                                       class="btn btn-outline-primary btn-sm" title="View Details">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                    <a href="@Url.Action("PrintInvoice", "Sales", new { id = sale.Id })"
+                                                       class="btn btn-outline-secondary btn-sm" target="_blank" title="Print Invoice">
+                                                        <i class="fas fa-print"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- No Sales Today -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card shadow">
+                    <div class="card-body text-center py-5">
+                        <div class="mb-4">
+                            <i class="fas fa-calendar-times fa-4x text-muted"></i>
+                        </div>
+                        <h4 class="text-muted">No Sales Found</h4>
+                        <p class="text-muted">
+                            No sales were recorded for @Model.Date.ToString("dd MMMM yyyy").
+                            <br>Try selecting a different date or check if any sales were made today.
+                        </p>
+                        <div class="mt-4">
+                            <a href="@Url.Action("Create", "Sales")" class="btn btn-primary">
+                                <i class="fas fa-plus me-2"></i>Create New Sale
+                            </a>
+                            <a href="@Url.Action("DailySales", "Reports", new { date = DateTime.Today.AddDays(-1).ToString("yyyy-MM-dd") })"
+                               class="btn btn-outline-secondary">
+                                <i class="fas fa-calendar-minus me-2"></i>Yesterday's Report
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .border-left-primary {
+        border-left: 0.25rem solid #4e73df !important;
+    }
+
+    .border-left-success {
+        border-left: 0.25rem solid #1cc88a !important;
+    }
+
+    .border-left-info {
+        border-left: 0.25rem solid #36b9cc !important;
+    }
+
+    .border-left-warning {
+        border-left: 0.25rem solid #f6c23e !important;
+    }
+
+    .border-left-secondary {
+        border-left: 0.25rem solid #858796 !important;
+    }
+
+    .border-left-dark {
+        border-left: 0.25rem solid #5a5c69 !important;
+    }
+
+    .text-xs {
+        font-size: 0.7rem;
+    }
+
+    .shadow {
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15) !important;
+    }
+
+    .progress {
+        background-color: #f8f9fc;
+    }
+
+    @@media print {
+        .btn-group
+
+    {
+        display: none !important;
+    }
+
+    .card {
+        border: 1px solid #ddd !important;
+    }
+
+    .shadow {
+        box-shadow: none !important;
+    }
+
+    }
+</style>

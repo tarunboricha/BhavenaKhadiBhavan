@@ -1,0 +1,460 @@
+﻿@model SalesReportViewModel
+@{
+    ViewData["Title"] = "Enhanced Sales Report with Profit Analysis";
+}
+
+<div class="container-fluid">
+    <!-- Report Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2>
+                    <i class="fas fa-chart-line me-2 text-primary"></i>
+                    Enhanced Sales Report
+                    <small class="text-muted">with Profit Margin & Discount Analysis</small>
+                </h2>
+                <div class="btn-group">
+                    <a href="@Url.Action("ExportSalesToCSV", "Reports", new { fromDate = ViewBag.FromDate, toDate = ViewBag.ToDate })"
+                       class="btn btn-success">
+                        <i class="fas fa-download me-1"></i>Export CSV
+                    </a>
+                    <button onclick="window.print()" class="btn btn-outline-primary">
+                        <i class="fas fa-print me-1"></i>Print Report
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Date Range Filter -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="get" class="row g-3 align-items-end">
+                        <div class="col-md-3">
+                            <label for="fromDate" class="form-label">From Date</label>
+                            <input type="date" class="form-control" id="fromDate" name="fromDate" value="@ViewBag.FromDate" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="toDate" class="form-label">To Date</label>
+                            <input type="date" class="form-control" id="toDate" name="toDate" value="@ViewBag.ToDate" required>
+                        </div>
+                        <div class="col-md-3">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-search me-1"></i>Generate Report
+                            </button>
+                        </div>
+                        <div class="col-md-3 text-end">
+                            <span class="text-muted">
+                                Report Period: @Model.FromDate.ToString("dd MMM yyyy") to @Model.ToDate.ToString("dd MMM yyyy")
+                            </span>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Key Performance Indicators -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Total Revenue
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                ₹@Model.TotalSales.ToString("N2")
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-rupee-sign fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Gross Profit
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                ₹@Model.TotalGrossProfit.ToString("N2")
+                            </div>
+                            <small class="text-success">@Model.GrossProfitMargin.ToString("N1")% Margin</small>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-chart-pie fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Total Orders
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                @Model.TotalOrders
+                            </div>
+                            <small class="text-info">Avg: ₹@Model.AverageOrderValue.ToString("N2")</small>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-shopping-cart fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Total Discounts
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                ₹@Model.TotalItemDiscounts.ToString("N2")
+                            </div>
+                            <small class="text-warning">@Model.DiscountPenetration.ToString("N1")% Penetration</small>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-tags fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Financial Breakdown -->
+    <div class="row mb-4">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Financial Breakdown</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <tbody>
+                                <tr>
+                                    <td><strong>Gross Sales (Before Discounts)</strong></td>
+                                    <td class="text-end">₹@Model.TotalSubtotal.ToString("N2")</td>
+                                </tr>
+                                <tr class="text-success">
+                                    <td><i class="fas fa-tag me-1"></i>Less: Item-Level Discounts</td>
+                                    <td class="text-end">-₹@Model.TotalItemDiscounts.ToString("N2")</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Net Sales (After Discounts)</strong></td>
+                                    <td class="text-end">₹@(Model.TotalSubtotal - Model.TotalItemDiscounts).ToString("N2")</td>
+                                </tr>
+                                <tr>
+                                    <td>Plus: GST Collected</td>
+                                    <td class="text-end">₹@Model.TotalGST.ToString("N2")</td>
+                                </tr>
+                                <tr class="table-primary">
+                                    <td><strong>Total Revenue</strong></td>
+                                    <td class="text-end"><strong>₹@Model.TotalSales.ToString("N2")</strong></td>
+                                </tr>
+                                <tr>
+                                    <td>Less: Cost of Goods Sold</td>
+                                    <td class="text-end">₹@Model.TotalCostOfGoodsSold.ToString("N2")</td>
+                                </tr>
+                                <tr class="table-success">
+                                    <td><strong>Gross Profit</strong></td>
+                                    <td class="text-end"><strong>₹@Model.TotalGrossProfit.ToString("N2")</strong></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Gross Profit Margin</strong></td>
+                                    <td class="text-end"><strong>@Model.GrossProfitMargin.ToString("N2")%</strong></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Discount Analysis</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="small text-gray-500">Discount Penetration</div>
+                        <div class="h6">@Model.DiscountPenetration.ToString("N2")%</div>
+                        <div class="progress progress-sm">
+                            <div class="progress-bar bg-warning" style="width: @Model.DiscountPenetration.ToString("N0")%"></div>
+                        </div>
+                        <small class="text-muted">@Model.SalesWithDiscounts of @Model.TotalOrders sales had discounts</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="small text-gray-500">Average Discount per Sale</div>
+                        <div class="h6">₹@Model.AverageDiscountPerSale.ToString("N2")</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="small text-gray-500">Effective Discount Rate</div>
+                        <div class="h6">@Model.EffectiveDiscountPercentage.ToString("N2")%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Methods & Daily Trends -->
+    <div class="row mb-4">
+        <div class="col-lg-6">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Payment Method Breakdown</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Method</th>
+                                    <th class="text-center">Orders</th>
+                                    <th class="text-end">Amount</th>
+                                    <th class="text-end">%</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var payment in Model.PaymentMethodBreakdown)
+                                {
+                                    <tr>
+                                        <td>
+                                            <i class="fas @(payment.Method == "Cash" ? "fa-money-bill-wave" : payment.Method == "Card" ? "fa-credit-card" : "fa-mobile-alt") me-2"></i>
+                                            @payment.Method
+                                        </td>
+                                        <td class="text-center">@payment.Count</td>
+                                        <td class="text-end">₹@payment.Amount.ToString("N2")</td>
+                                        <td class="text-end">@payment.Percentage.ToString("N1")%</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Items Sold Analysis</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col">
+                            <div class="h4 text-primary">@Model.TotalItemsSold.ToString("N0")</div>
+                            <div class="small text-gray-500">Total Items Sold</div>
+                        </div>
+                        <div class="col">
+                            <div class="h4 text-success">@(Model.TotalOrders > 0 ? (Model.TotalItemsSold / Model.TotalOrders).ToString("N1") : "0")</div>
+                            <div class="small text-gray-500">Avg Items/Order</div>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="small text-gray-600">
+                        <strong>Quick Stats:</strong><br>
+                        • Orders with discounts: @Model.SalesWithDiscounts (@Model.DiscountPenetration.ToString("N1")%)<br>
+                        • Average order value: ₹@Model.AverageOrderValue.ToString("N2")<br>
+                        • Total GST collected: ₹@Model.TotalGST.ToString("N2")
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Products -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">Top Performing Products</h6>
+                    <small class="text-muted">Top 20 by Revenue</small>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Category</th>
+                                    <th class="text-center">Qty Sold</th>
+                                    <th class="text-end">Revenue</th>
+                                    <th class="text-end">Gross Profit</th>
+                                    <th class="text-end">Profit Margin</th>
+                                    <th class="text-end">Avg Discount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var product in Model.TopProducts)
+                                {
+                                    <tr>
+                                        <td>
+                                            <strong>@product.ProductName</strong>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-light text-dark">@product.CategoryName</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-primary">@product.QuantitySold.ToString("N0")</span>
+                                        </td>
+                                        <td class="text-end">
+                                            <strong>₹@product.Revenue.ToString("N2")</strong>
+                                        </td>
+                                        <td class="text-end text-success">
+                                            ₹@product.GrossProfit.ToString("N2")
+                                        </td>
+                                        <td class="text-end">
+                                            <span class="badge @(product.GrossProfitMargin > 30 ? "bg-success" : product.GrossProfitMargin > 15 ? "bg-warning" : "bg-danger")">
+                                                @product.GrossProfitMargin.ToString("N1")%
+                                            </span>
+                                        </td>
+                                        <td class="text-end">
+                                            @if (product.AverageDiscount > 0)
+                                            {
+                                                <span class="text-warning">@product.AverageDiscount.ToString("N1")%</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">-</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Daily Sales Trend -->
+    @if (Model.DailyBreakdown.Any())
+    {
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow">
+                    <div class="card-header py-3">
+                        <h6 class="m-0 font-weight-bold text-primary">Daily Sales Trend</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th class="text-center">Orders</th>
+                                        <th class="text-end">Revenue</th>
+                                        <th class="text-end">Gross Profit</th>
+                                        <th class="text-end">Discounts</th>
+                                        <th class="text-end">Avg Order</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var day in Model.DailyBreakdown.OrderByDescending(d => d.Date))
+                                    {
+                                        <tr>
+                                            <td>
+                                                <strong>@day.Date.ToString("dd MMM yyyy")</strong>
+                                                <br><small class="text-muted">@day.Date.ToString("dddd")</small>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge bg-info">@day.Count</span>
+                                            </td>
+                                            <td class="text-end">
+                                                <strong>₹@day.Amount.ToString("N2")</strong>
+                                            </td>
+                                            <td class="text-end text-success">
+                                                ₹@day.GrossProfit.ToString("N2")
+                                            </td>
+                                            <td class="text-end text-warning">
+                                                ₹@day.DiscountAmount.ToString("N2")
+                                            </td>
+                                            <td class="text-end">
+                                                ₹@(day.Count > 0 ? (day.Amount / day.Count).ToString("N2") : "0")
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .border-left-primary {
+        border-left: 0.25rem solid #4e73df !important;
+    }
+
+    .border-left-success {
+        border-left: 0.25rem solid #1cc88a !important;
+    }
+
+    .border-left-info {
+        border-left: 0.25rem solid #36b9cc !important;
+    }
+
+    .border-left-warning {
+        border-left: 0.25rem solid #f6c23e !important;
+    }
+
+    .text-xs {
+        font-size: 0.7rem;
+    }
+
+    .shadow {
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15) !important;
+    }
+
+    .progress-sm {
+        height: 0.5rem;
+    }
+
+    @@media print {
+        .btn-group
+
+    {
+        display: none !important;
+    }
+
+    .card {
+        border: 1px solid #ddd !important;
+    }
+
+    .shadow {
+        box-shadow: none !important;
+    }
+
+    }
+</style>

@@ -1,0 +1,598 @@
+﻿@model StockReportViewModel
+@{
+    ViewData["Title"] = "Comprehensive Stock Report";
+}
+
+<div class="container-fluid">
+    <!-- Report Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2>
+                    <i class="fas fa-boxes me-2 text-success"></i>
+                    Comprehensive Stock Report
+                    <small class="text-muted">Inventory Analysis with Profitability Insights</small>
+                </h2>
+                <div class="btn-group">
+                    <a href="@Url.Action("ExportStockToCSV", "Reports")" class="btn btn-success">
+                        <i class="fas fa-download me-1"></i>Export CSV
+                    </a>
+                    <button onclick="window.print()" class="btn btn-outline-primary">
+                        <i class="fas fa-print me-1"></i>Print Report
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stock Summary KPIs -->
+    <div class="row mb-4">
+        <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Total Products
+                            </div>
+                            <div class="h6 mb-0 font-weight-bold text-gray-800">
+                                @Model.TotalProducts
+                            </div>
+                            <small class="text-primary">@Model.ActiveProducts active</small>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-cube fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Stock Value
+                            </div>
+                            <div class="h6 mb-0 font-weight-bold text-gray-800">
+                                ₹@Model.TotalStockValue.ToString("N0")
+                            </div>
+                            <small class="text-success">Purchase Price</small>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-rupee-sign fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Potential Sale Value
+                            </div>
+                            <div class="h6 mb-0 font-weight-bold text-gray-800">
+                                ₹@Model.TotalSaleValue.ToString("N0")
+                            </div>
+                            <small class="text-info">At Sale Price</small>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-chart-line fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Potential Profit
+                            </div>
+                            <div class="h6 mb-0 font-weight-bold text-gray-800">
+                                ₹@Model.PotentialProfit.ToString("N0")
+                            </div>
+                            <small class="text-warning">
+                                @(Model.TotalSaleValue > 0 ? ((Model.PotentialProfit / Model.TotalSaleValue) * 100).ToString("N1") : "0")% margin
+                            </small>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-coins fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
+            <div class="card border-left-danger shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                Low Stock
+                            </div>
+                            <div class="h6 mb-0 font-weight-bold text-gray-800">
+                                @Model.LowStockProducts
+                            </div>
+                            <small class="text-danger">@Model.OutOfStockProducts out of stock</small>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
+            <div class="card border-left-secondary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1">
+                                Avg Stock Age
+                            </div>
+                            <div class="h6 mb-0 font-weight-bold text-gray-800">
+                                @Model.AverageStockAge.ToString("N0") days
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-calendar-alt fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category-wise Stock Analysis -->
+    <div class="row mb-4">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Category-wise Stock Analysis</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Category</th>
+                                    <th class="text-center">Products</th>
+                                    <th class="text-center">Total Stock</th>
+                                    <th class="text-end">Stock Value</th>
+                                    <th class="text-end">Sale Value</th>
+                                    <th class="text-end">Potential Profit</th>
+                                    <th class="text-end">Margin %</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var category in Model.CategoryWiseStock)
+                                {
+                                    var marginPercent = category.SaleValue > 0 ? ((category.PotentialProfit / category.SaleValue) * 100) : 0;
+
+                                    <tr>
+                                        <td>
+                                            <strong>@category.Category</strong>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-primary">@category.ProductCount</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-info">@category.TotalStock.ToString("N0")</span>
+                                        </td>
+                                        <td class="text-end">
+                                            ₹@category.StockValue.ToString("N2")
+                                        </td>
+                                        <td class="text-end">
+                                            <strong>₹@category.SaleValue.ToString("N2")</strong>
+                                        </td>
+                                        <td class="text-end text-success">
+                                            ₹@category.PotentialProfit.ToString("N2")
+                                        </td>
+                                        <td class="text-end">
+                                            <span class="badge @(marginPercent > 40 ? "bg-success" : marginPercent > 20 ? "bg-warning" : "bg-danger")">
+                                                @marginPercent.ToString("N1")%
+                                            </span>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Stock Age Analysis</h6>
+                </div>
+                <div class="card-body">
+                    @foreach (var aging in Model.StockAging)
+                    {
+                        var percentage = Model.TotalStockValue > 0 ? ((aging.StockValue / Model.TotalStockValue) * 100) : 0;
+
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <span><strong>@aging.AgeRange</strong></span>
+                                <span>@aging.ProductCount products</span>
+                            </div>
+                            <div class="progress mb-1" style="height: 8px;">
+                                <div class="progress-bar @(aging.AgeRange.Contains("90+") ? "bg-danger" : aging.AgeRange.Contains("61-90") ? "bg-warning" : "bg-success")"
+                                     style="width: @Math.Max(percentage, 1)%"></div>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <small class="text-muted">₹@aging.StockValue.ToString("N0")</small>
+                                <small class="text-muted">@percentage.ToString("N1")%</small>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fast and Slow Moving Products -->
+    <div class="row mb-4">
+        <div class="col-lg-6">
+            <div class="card shadow">
+                <div class="card-header py-3 bg-success text-white">
+                    <h6 class="m-0 font-weight-bold">Fast Moving Products (Last 30 Days)</h6>
+                </div>
+                <div class="card-body">
+                    @if (Model.FastMovingProducts.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Product</th>
+                                        <th class="text-center">Stock</th>
+                                        <th class="text-end">Value</th>
+                                        <th class="text-center">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var product in Model.FastMovingProducts.Take(10))
+                                    {
+                                        <tr>
+                                            <td>
+                                                <div>
+                                                    <strong>@product.Name</strong>
+                                                    @if (!string.IsNullOrEmpty(product.Size))
+                                                    {
+                                                        <br>
+                                            
+                                                        <small class="text-muted">Size: @product.Size</small>
+                                                    }
+                                                </div>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge @(product.IsLowStock ? "bg-warning" : "bg-success")">
+                                                    @product.DisplayStock
+                                                </span>
+                                            </td>
+                                            <td class="text-end">
+                                                ₹@((product.StockQuantity * product.SalePrice)).ToString("N0")
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge @(product.StockQuantity == 0 ? "bg-danger" : product.IsLowStock ? "bg-warning" : "bg-success") badge-sm">
+                                                    @product.StockStatus
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center text-muted py-3">
+                            <i class="fas fa-info-circle me-2"></i>
+                            No fast moving products data available
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card shadow">
+                <div class="card-header py-3 bg-warning">
+                    <h6 class="m-0 font-weight-bold text-dark">Slow Moving Products (Last 30 Days)</h6>
+                </div>
+                <div class="card-body">
+                    @if (Model.SlowMovingProducts.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Product</th>
+                                        <th class="text-center">Stock</th>
+                                        <th class="text-end">Value</th>
+                                        <th class="text-center">Age</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var product in Model.SlowMovingProducts.Take(10))
+                                    {
+                                        var stockAge = (DateTime.Now - product.UpdatedAt).Days;
+
+                                        <tr>
+                                            <td>
+                                                <div>
+                                                    <strong>@product.Name</strong>
+                                                    @if (!string.IsNullOrEmpty(product.Size))
+                                                    {
+                                                        <br>
+                                            
+                                                        <small class="text-muted">Size: @product.Size</small>
+                                                    }
+                                                </div>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge bg-secondary">
+                                                    @product.DisplayStock
+                                                </span>
+                                            </td>
+                                            <td class="text-end">
+                                                ₹@((product.StockQuantity * product.PurchasePrice)).ToString("N0")
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge @(stockAge > 90 ? "bg-danger" : stockAge > 60 ? "bg-warning" : "bg-info") badge-sm">
+                                                    @stockAge days
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center text-muted py-3">
+                            <i class="fas fa-info-circle me-2"></i>
+                            All products are moving well
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Complete Stock Inventory -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">Complete Stock Inventory</h6>
+                    <div class="dropdown no-arrow">
+                        <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink"
+                           data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in"
+                             aria-labelledby="dropdownMenuLink">
+                            <div class="dropdown-header">Filter Options:</div>
+                            <a class="dropdown-item" href="#" onclick="filterTable('all')">All Products</a>
+                            <a class="dropdown-item" href="#" onclick="filterTable('low-stock')">Low Stock Only</a>
+                            <a class="dropdown-item" href="#" onclick="filterTable('out-of-stock')">Out of Stock Only</a>
+                            <a class="dropdown-item" href="#" onclick="filterTable('high-value')">High Value Products</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table id="stockTable" class="table table-striped table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Category</th>
+                                    <th>SKU</th>
+                                    <th class="text-center">Stock</th>
+                                    <th class="text-end">Purchase Price</th>
+                                    <th class="text-end">Sale Price</th>
+                                    <th class="text-end">Stock Value</th>
+                                    <th class="text-end">Profit Margin</th>
+                                    <th class="text-center">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var product in Model.Products)
+                                {
+                                    var stockValue = product.StockQuantity * product.PurchasePrice;
+                                    var stockStatus = product.StockQuantity == 0 ? "out-of-stock" :
+                                    product.IsLowStock ? "low-stock" : "normal";
+                                    var isHighValue = stockValue > 10000;
+
+                                    <tr data-filter="@stockStatus @(isHighValue ? "high-value" : "")" class="@stockStatus">
+                                        <td>
+                                            <div>
+                                                <strong>@product.Name</strong>
+                                                @if (!string.IsNullOrEmpty(product.Color) || !string.IsNullOrEmpty(product.Size))
+                                                {
+                                                    <br>
+                                                    <small class="text-muted">
+                                                        @if (!string.IsNullOrEmpty(product.Color))
+                                                        {
+                                                            <span>@product.Color</span>
+                                                        }
+                                                        @if (!string.IsNullOrEmpty(product.Size))
+                                                        {
+                                                            @if (!string.IsNullOrEmpty(product.Color))
+                                                            {
+                                                                <text> | </text>
+                                                            }
+                                                            <span>Size: @product.Size</span>
+                                                        }
+                                                    </small>
+                                                }
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-light text-dark">@(product.Category?.Name ?? "Uncategorized")</span>
+                                        </td>
+                                        <td>
+                                            <code class="small">@(product.SKU ?? "N/A")</code>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge @(product.StockQuantity == 0 ? "bg-danger" : product.IsLowStock ? "bg-warning" : "bg-success")">
+                                                @product.DisplayStock
+                                            </span>
+                                            @if (product.IsLowStock && product.StockQuantity > 0)
+                                            {
+                                                <br>
+                                        
+                                                <small class="text-warning">Min: @product.MinimumStock</small>
+                                            }
+                                        </td>
+                                        <td class="text-end">
+                                            ₹@product.PurchasePrice.ToString("N2")
+                                        </td>
+                                        <td class="text-end">
+                                            <strong>₹@product.SalePrice.ToString("N2")</strong>
+                                        </td>
+                                        <td class="text-end">
+                                            <strong>₹@stockValue.ToString("N2")</strong>
+                                            @if (isHighValue)
+                                            {
+                                                <br>
+                                        
+                                                <small class="text-info"><i class="fas fa-star fa-xs"></i> High Value</small>
+                                            }
+                                        </td>
+                                        <td class="text-end">
+                                            <span class="badge @(product.ProfitMargin > 40 ? "bg-success" : product.ProfitMargin > 20 ? "bg-warning" : "bg-danger")">
+                                                @product.ProfitMargin.ToString("N1")%
+                                            </span>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge @(product.StockQuantity == 0 ? "bg-danger" : product.IsLowStock ? "bg-warning" : "bg-success") badge-sm">
+                                                @product.StockStatus
+                                            </span>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .border-left-primary {
+        border-left: 0.25rem solid #4e73df !important;
+    }
+
+    .border-left-success {
+        border-left: 0.25rem solid #1cc88a !important;
+    }
+
+    .border-left-info {
+        border-left: 0.25rem solid #36b9cc !important;
+    }
+
+    .border-left-warning {
+        border-left: 0.25rem solid #f6c23e !important;
+    }
+
+    .border-left-danger {
+        border-left: 0.25rem solid #e74a3b !important;
+    }
+
+    .border-left-secondary {
+        border-left: 0.25rem solid #858796 !important;
+    }
+
+    .text-xs {
+        font-size: 0.7rem;
+    }
+
+    .shadow {
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15) !important;
+    }
+
+    .progress {
+        background-color: #f8f9fc;
+    }
+
+    .badge-sm {
+        font-size: 0.65rem;
+    }
+
+    .out-of-stock {
+        background-color: #f8d7da !important;
+    }
+
+    .low-stock {
+        background-color: #fff3cd !important;
+    }
+
+    @@media print {
+        .btn-group
+
+    {
+        display: none !important;
+    }
+
+    .card {
+        border: 1px solid #ddd !important;
+    }
+
+    .shadow {
+        box-shadow: none !important;
+    }
+
+    .dropdown {
+        display: none !important;
+    }
+
+    }
+</style>
+
+<script>
+    function filterTable(filter) {
+        const table = document.getElementById('stockTable');
+        const rows = table.getElementsByTagName('tr');
+
+        for (let i = 1; i < rows.length; i++) {
+            const row = rows[i];
+            const filterAttr = row.getAttribute('data-filter') || '';
+
+            if (filter === 'all') {
+                row.style.display = '';
+            } else {
+                row.style.display = filterAttr.includes(filter) ? '' : 'none';
+            }
+        }
+
+        // Update active filter indication
+        document.querySelectorAll('.dropdown-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        event.target.classList.add('active');
+    }
+
+    // Initialize table sorting if needed
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('Stock report loaded with @Model.Products.Count products');
+    });
+</script>

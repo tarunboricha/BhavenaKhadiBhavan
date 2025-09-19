@@ -24,7 +24,7 @@ namespace BhavenaKhadiBhavan.Controllers
         }
 
         /// <summary>
-        /// Reports dashboard
+        /// Reports dashboard with enhanced analytics
         /// </summary>
         public IActionResult Index()
         {
@@ -32,7 +32,7 @@ namespace BhavenaKhadiBhavan.Controllers
         }
 
         /// <summary>
-        /// Sales report
+        /// ENHANCED: Sales report with profit margins and item-level discount analysis
         /// </summary>
         public async Task<IActionResult> Sales(DateTime? fromDate, DateTime? toDate)
         {
@@ -42,7 +42,7 @@ namespace BhavenaKhadiBhavan.Controllers
                 fromDate ??= new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
                 toDate ??= DateTime.Today;
 
-                var report = await _reportService.GetSalesReportAsync(fromDate.Value, toDate.Value);
+                var report = await _reportService.GetDetailedSalesReportAsync(fromDate.Value, toDate.Value);
 
                 ViewBag.FromDate = fromDate.Value.ToString("yyyy-MM-dd");
                 ViewBag.ToDate = toDate.Value.ToString("yyyy-MM-dd");
@@ -52,53 +52,122 @@ namespace BhavenaKhadiBhavan.Controllers
             catch (Exception ex)
             {
                 TempData["Error"] = "Error generating sales report: " + ex.Message;
-                return View(new ReportsViewModel());
+                return View(new SalesReportViewModel());
             }
         }
 
         /// <summary>
-        /// Stock/Inventory report
+        /// ENHANCED: Stock/Inventory report with comprehensive analytics
         /// </summary>
         public async Task<IActionResult> Stock()
         {
             try
             {
-                var products = await _reportService.GetStockReportAsync();
-
-                var stockSummary = new
-                {
-                    TotalProducts = products.Count,
-                    ActiveProducts = products.Count(p => p.IsActive),
-                    LowStockProducts = products.Count(p => p.IsLowStock),
-                    OutOfStockProducts = products.Count(p => p.StockQuantity == 0),
-                    TotalStockValue = products.Sum(p => p.StockQuantity * p.PurchasePrice),
-                    TotalSaleValue = products.Sum(p => p.StockQuantity * p.SalePrice),
-                    CategoryWiseStock = products
-                        .Where(p => p.Category != null)
-                        .GroupBy(p => p.Category!.Name)
-                        .Select(g => new
-                        {
-                            Category = g.Key,
-                            ProductCount = g.Count(),
-                            TotalStock = g.Sum(p => p.StockQuantity),
-                            StockValue = g.Sum(p => p.StockQuantity * p.PurchasePrice)
-                        })
-                        .OrderByDescending(x => x.StockValue)
-                        .ToList()
-                };
-
-                ViewBag.StockSummary = stockSummary;
-                return View(products);
+                var report = await _reportService.GetDetailedStockReportAsync();
+                return View(report);
             }
             catch (Exception ex)
             {
                 TempData["Error"] = "Error generating stock report: " + ex.Message;
-                return View(new List<Product>());
+                return View(new StockReportViewModel());
             }
         }
 
         /// <summary>
-        /// GST report for tax compliance
+        /// ENHANCED: Daily sales report with hour-by-hour analysis
+        /// </summary>
+        public async Task<IActionResult> DailySales(DateTime? date)
+        {
+            try
+            {
+                date ??= DateTime.Today;
+
+                var report = await _reportService.GetDetailedDailySalesReportAsync(date.Value);
+
+                ViewBag.SelectedDate = date.Value.ToString("yyyy-MM-dd");
+                return View(report);
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = "Error generating daily sales report: " + ex.Message;
+                return View(new DailySalesReportViewModel());
+            }
+        }
+
+        /// <summary>
+        /// NEW: Profit margin analysis report
+        /// </summary>
+        public async Task<IActionResult> ProfitMargin(DateTime? fromDate, DateTime? toDate)
+        {
+            try
+            {
+                fromDate ??= new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
+                toDate ??= DateTime.Today;
+
+                var report = await _reportService.GetProfitMarginReportAsync(fromDate.Value, toDate.Value);
+
+                ViewBag.FromDate = fromDate.Value.ToString("yyyy-MM-dd");
+                ViewBag.ToDate = toDate.Value.ToString("yyyy-MM-dd");
+
+                return View(report);
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = "Error generating profit margin report: " + ex.Message;
+                return View(new ProfitMarginReportViewModel());
+            }
+        }
+
+        /// <summary>
+        /// NEW: Product profitability analysis
+        /// </summary>
+        public async Task<IActionResult> ProductProfitability(DateTime? fromDate, DateTime? toDate)
+        {
+            try
+            {
+                fromDate ??= new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
+                toDate ??= DateTime.Today;
+
+                var report = await _reportService.GetProductProfitabilityReportAsync(fromDate.Value, toDate.Value);
+
+                ViewBag.FromDate = fromDate.Value.ToString("yyyy-MM-dd");
+                ViewBag.ToDate = toDate.Value.ToString("yyyy-MM-dd");
+
+                return View(report);
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = "Error generating product profitability report: " + ex.Message;
+                return View(new ProductProfitabilityReportViewModel());
+            }
+        }
+
+        /// <summary>
+        /// NEW: Item-level discount analysis report
+        /// </summary>
+        public async Task<IActionResult> DiscountAnalysis(DateTime? fromDate, DateTime? toDate)
+        {
+            try
+            {
+                fromDate ??= new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
+                toDate ??= DateTime.Today;
+
+                var report = await _reportService.GetDiscountAnalysisReportAsync(fromDate.Value, toDate.Value);
+
+                ViewBag.FromDate = fromDate.Value.ToString("yyyy-MM-dd");
+                ViewBag.ToDate = toDate.Value.ToString("yyyy-MM-dd");
+
+                return View(report);
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = "Error generating discount analysis report: " + ex.Message;
+                return View(new DiscountAnalysisReportViewModel());
+            }
+        }
+
+        /// <summary>
+        /// ENHANCED: GST report for tax compliance with discount impact
         /// </summary>
         public async Task<IActionResult> GST(DateTime? fromDate, DateTime? toDate)
         {
@@ -116,12 +185,16 @@ namespace BhavenaKhadiBhavan.Controllers
                     FromDate = fromDate.Value,
                     ToDate = toDate.Value,
                     TotalSales = sales.Sum(s => s.TotalAmount),
+                    TotalTaxableAmount = sales.Sum(s => s.SubTotal - s.TotalItemDiscounts),
                     TotalGST = sales.Sum(s => s.GSTAmount),
+                    TotalDiscounts = sales.Sum(s => s.TotalItemDiscounts),
                     GSTBreakdown = gstBreakdown,
                     Sales = sales,
                     GSTPercentage = sales.Sum(s => s.TotalAmount) > 0
                         ? (sales.Sum(s => s.GSTAmount) / sales.Sum(s => s.TotalAmount)) * 100
-                        : 0
+                        : 0,
+                    SalesWithDiscounts = sales.Count(s => s.HasItemLevelDiscounts),
+                    DiscountImpactOnGST = sales.Sum(s => s.TotalItemDiscounts * 0.05m) // Assuming 5% average GST
                 };
 
                 ViewBag.FromDate = fromDate.Value.ToString("yyyy-MM-dd");
@@ -137,7 +210,7 @@ namespace BhavenaKhadiBhavan.Controllers
         }
 
         /// <summary>
-        /// Customer report
+        /// ENHANCED: Customer report with detailed analytics
         /// </summary>
         public async Task<IActionResult> Customers()
         {
@@ -187,59 +260,7 @@ namespace BhavenaKhadiBhavan.Controllers
         }
 
         /// <summary>
-        /// Daily sales summary
-        /// </summary>
-        public async Task<IActionResult> DailySales(DateTime? date)
-        {
-            try
-            {
-                date ??= DateTime.Today;
-
-                var sales = await _salesService.GetSalesByDateAsync(date.Value);
-
-                var dailyReport = new
-                {
-                    Date = date.Value,
-                    TotalSales = sales.Sum(s => s.TotalAmount),
-                    TotalOrders = sales.Count,
-                    TotalItems = sales.Sum(s => s.ItemCount),
-                    TotalGST = sales.Sum(s => s.GSTAmount),
-                    AverageOrderValue = sales.Any() ? sales.Average(s => s.TotalAmount) : 0,
-                    PaymentMethodBreakdown = sales
-                        .GroupBy(s => s.PaymentMethod)
-                        .Select(g => new
-                        {
-                            Method = g.Key,
-                            Count = g.Count(),
-                            Amount = g.Sum(s => s.TotalAmount)
-                        })
-                        .OrderByDescending(x => x.Amount)
-                        .ToList(),
-                    HourlySales = sales
-                        .GroupBy(s => s.SaleDate.Hour)
-                        .Select(g => new
-                        {
-                            Hour = g.Key,
-                            Count = g.Count(),
-                            Amount = g.Sum(s => s.TotalAmount)
-                        })
-                        .OrderBy(x => x.Hour)
-                        .ToList(),
-                    Sales = sales.OrderByDescending(s => s.SaleDate).ToList()
-                };
-
-                ViewBag.SelectedDate = date.Value.ToString("yyyy-MM-dd");
-                return View(dailyReport);
-            }
-            catch (Exception ex)
-            {
-                TempData["Error"] = "Error generating daily sales report: " + ex.Message;
-                return View();
-            }
-        }
-
-        /// <summary>
-        /// Low stock alert report
+        /// ENHANCED: Low stock alert report with comprehensive analysis
         /// </summary>
         public async Task<IActionResult> LowStock()
         {
@@ -253,6 +274,7 @@ namespace BhavenaKhadiBhavan.Controllers
                     OutOfStockProducts = lowStockProducts.Count(p => p.StockQuantity == 0),
                     CriticalStockProducts = lowStockProducts.Count(p => p.StockQuantity <= 2),
                     TotalValueAtRisk = lowStockProducts.Sum(p => p.StockQuantity * p.SalePrice),
+                    PotentialLostRevenue = lowStockProducts.Where(p => p.StockQuantity == 0).Sum(p => p.SalePrice * 10), // Estimate
                     CategoryWiseLowStock = lowStockProducts
                         .Where(p => p.Category != null)
                         .GroupBy(p => p.Category!.Name)
@@ -277,7 +299,7 @@ namespace BhavenaKhadiBhavan.Controllers
         }
 
         /// <summary>
-        /// Export sales report to CSV
+        /// ENHANCED: Export sales report to CSV with item-level discount details
         /// </summary>
         public async Task<IActionResult> ExportSalesToCSV(DateTime fromDate, DateTime toDate)
         {
@@ -286,18 +308,20 @@ namespace BhavenaKhadiBhavan.Controllers
                 var sales = await _salesService.GetSalesAsync(fromDate, toDate);
 
                 var csv = new System.Text.StringBuilder();
-                csv.AppendLine("Invoice Number,Date,Customer,Phone,Payment Method,Items,Subtotal,GST,Discount,Total,Status");
+                csv.AppendLine("Invoice Number,Date,Customer,Phone,Payment Method,Items,Subtotal,Item Discounts,GST,Total,Profit Margin,Status");
 
                 foreach (var sale in sales)
                 {
+                    var profitMargin = CalculateProfitMarginForSale(sale);
+
                     csv.AppendLine($"\"{sale.InvoiceNumber}\",\"{sale.SaleDate:dd/MM/yyyy HH:mm}\"," +
-                                  $"\"{sale.CustomerDisplayName}\",\"{sale.CustomerPhone}\"," +
-                                  $"\"{sale.PaymentMethod}\",{sale.ItemCount}," +
-                                  $"{sale.SubTotal:F2},{sale.GSTAmount:F2},{sale.DiscountAmount:F2}," +
-                                  $"{sale.TotalAmount:F2},\"{sale.Status}\"");
+                                   $"\"{sale.CustomerDisplayName}\",\"{sale.CustomerPhone}\"," +
+                                   $"\"{sale.PaymentMethod}\",{sale.ItemCount}," +
+                                   $"{sale.SubTotal:F2},{sale.TotalItemDiscounts:F2},{sale.GSTAmount:F2}," +
+                                   $"{sale.TotalAmount:F2},{profitMargin:F2}%,\"{sale.Status}\"");
                 }
 
-                var fileName = $"Sales_Report_{fromDate:yyyyMMdd}_to_{toDate:yyyyMMdd}.csv";
+                var fileName = $"Enhanced_Sales_Report_{fromDate:yyyyMMdd}_to_{toDate:yyyyMMdd}.csv";
                 return File(System.Text.Encoding.UTF8.GetBytes(csv.ToString()), "text/csv", fileName);
             }
             catch (Exception ex)
@@ -308,7 +332,7 @@ namespace BhavenaKhadiBhavan.Controllers
         }
 
         /// <summary>
-        /// Export stock report to CSV
+        /// ENHANCED: Export stock report to CSV with profitability analysis
         /// </summary>
         public async Task<IActionResult> ExportStockToCSV()
         {
@@ -318,20 +342,23 @@ namespace BhavenaKhadiBhavan.Controllers
 
                 var csv = new System.Text.StringBuilder();
                 csv.AppendLine("Product Name,Category,SKU,Fabric Type,Color,Size,Purchase Price,Sale Price," +
-                              "Stock Quantity,Minimum Stock,Stock Value,Sale Value,Stock Status,Profit Margin");
+                              "Stock Quantity,Minimum Stock,Stock Value,Sale Value,Potential Profit,Stock Status,Profit Margin %,Unit of Measure");
 
                 foreach (var product in products)
                 {
+                    var stockValue = product.StockQuantity * product.PurchasePrice;
+                    var saleValue = product.StockQuantity * product.SalePrice;
+                    var potentialProfit = saleValue - stockValue;
+
                     csv.AppendLine($"\"{product.Name}\",\"{product.Category?.Name}\"," +
-                                  $"\"{product.SKU}\",\"{product.FabricType}\",\"{product.Color}\"," +
-                                  $"\"{product.Size}\",{product.PurchasePrice:F2},{product.SalePrice:F2}," +
-                                  $"{product.StockQuantity},{product.MinimumStock}," +
-                                  $"{(product.StockQuantity * product.PurchasePrice):F2}," +
-                                  $"{(product.StockQuantity * product.SalePrice):F2}," +
-                                  $"\"{product.StockStatus}\",{product.ProfitMargin:F2}%");
+                                   $"\"{product.SKU}\",\"{product.FabricType}\",\"{product.Color}\"," +
+                                   $"\"{product.Size}\",{product.PurchasePrice:F2},{product.SalePrice:F2}," +
+                                   $"{product.StockQuantity},{product.MinimumStock}," +
+                                   $"{stockValue:F2},{saleValue:F2},{potentialProfit:F2}," +
+                                   $"\"{product.StockStatus}\",{product.ProfitMargin:F2}%,\"{product.UnitOfMeasure}\"");
                 }
 
-                var fileName = $"Stock_Report_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
+                var fileName = $"Enhanced_Stock_Report_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
                 return File(System.Text.Encoding.UTF8.GetBytes(csv.ToString()), "text/csv", fileName);
             }
             catch (Exception ex)
@@ -342,29 +369,43 @@ namespace BhavenaKhadiBhavan.Controllers
         }
 
         /// <summary>
-        /// Print daily sales summary
+        /// NEW: Export profit margin report to CSV
+        /// </summary>
+        public async Task<IActionResult> ExportProfitMarginToCSV(DateTime fromDate, DateTime toDate)
+        {
+            try
+            {
+                var report = await _reportService.GetProfitMarginReportAsync(fromDate, toDate);
+
+                var csv = new System.Text.StringBuilder();
+                csv.AppendLine("Product Name,Category,Quantity Sold,Revenue,Cost of Goods Sold,Gross Profit,Gross Profit Margin %,Total Discounts,Profit After Discounts");
+
+                foreach (var product in report.ProductProfits)
+                {
+                    csv.AppendLine($"\"{product.ProductName}\",\"{product.CategoryName}\"," +
+                                   $"{product.QuantitySold},{product.Revenue:F2},{product.CostOfGoodsSold:F2}," +
+                                   $"{product.GrossProfit:F2},{product.GrossProfitMargin:F2}%," +
+                                   $"{product.TotalDiscounts:F2},{product.ProfitAfterDiscounts:F2}");
+                }
+
+                var fileName = $"Profit_Margin_Report_{fromDate:yyyyMMdd}_to_{toDate:yyyyMMdd}.csv";
+                return File(System.Text.Encoding.UTF8.GetBytes(csv.ToString()), "text/csv", fileName);
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = "Error exporting profit margin report: " + ex.Message;
+                return RedirectToAction(nameof(ProfitMargin));
+            }
+        }
+
+        /// <summary>
+        /// ENHANCED: Print daily sales summary with detailed analytics
         /// </summary>
         public async Task<IActionResult> PrintDailySales(DateTime date)
         {
             try
             {
-                var sales = await _salesService.GetSalesByDateAsync(date);
-
-                var report = new
-                {
-                    Date = date,
-                    Sales = sales,
-                    Summary = new
-                    {
-                        TotalSales = sales.Sum(s => s.TotalAmount),
-                        TotalOrders = sales.Count,
-                        TotalItems = sales.Sum(s => s.ItemCount),
-                        TotalGST = sales.Sum(s => s.GSTAmount),
-                        CashSales = sales.Where(s => s.PaymentMethod == "Cash").Sum(s => s.TotalAmount),
-                        CardSales = sales.Where(s => s.PaymentMethod == "Card").Sum(s => s.TotalAmount),
-                        UPISales = sales.Where(s => s.PaymentMethod == "UPI").Sum(s => s.TotalAmount)
-                    }
-                };
+                var report = await _reportService.GetDetailedDailySalesReportAsync(date);
 
                 return View(report);
             }
@@ -374,5 +415,67 @@ namespace BhavenaKhadiBhavan.Controllers
                 return RedirectToAction(nameof(DailySales), new { date });
             }
         }
+
+        /// <summary>
+        /// NEW: Analytics dashboard with comprehensive KPIs
+        /// </summary>
+        public async Task<IActionResult> Analytics(DateTime? fromDate, DateTime? toDate)
+        {
+            try
+            {
+                fromDate ??= DateTime.Today.AddDays(-30);
+                toDate ??= DateTime.Today;
+
+                var salesAnalytics = await _reportService.GetSalesAnalyticsAsync(fromDate.Value, toDate.Value);
+                var salesReport = await _reportService.GetDetailedSalesReportAsync(fromDate.Value, toDate.Value);
+
+                var analytics = new
+                {
+                    FromDate = fromDate.Value,
+                    ToDate = toDate.Value,
+                    SalesAnalytics = salesAnalytics,
+                    Profitability = new
+                    {
+                        TotalRevenue = salesReport.TotalSales,
+                        TotalProfit = salesReport.TotalGrossProfit,
+                        ProfitMargin = salesReport.GrossProfitMargin,
+                        DiscountImpact = salesReport.TotalItemDiscounts
+                    },
+                    DiscountMetrics = new
+                    {
+                        DiscountPenetration = salesReport.DiscountPenetration,
+                        AverageDiscount = salesReport.AverageDiscountPerSale,
+                        SalesWithDiscounts = salesReport.SalesWithDiscounts
+                    },
+                    TopPerformers = salesReport.TopProducts.Take(5),
+                    TrendData = salesReport.DailyBreakdown
+                };
+
+                ViewBag.FromDate = fromDate.Value.ToString("yyyy-MM-dd");
+                ViewBag.ToDate = toDate.Value.ToString("yyyy-MM-dd");
+
+                return View(analytics);
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = "Error loading analytics: " + ex.Message;
+                return View();
+            }
+        }
+
+        #region Helper Methods
+
+        private decimal CalculateProfitMarginForSale(Sale sale)
+        {
+            if (sale.SaleItems == null || !sale.SaleItems.Any())
+                return 0;
+
+            var totalCost = sale.SaleItems.Sum(si => si.Product?.PurchasePrice * si.Quantity ?? 0);
+            var revenue = sale.TotalAmount;
+
+            return revenue > 0 ? ((revenue - totalCost) / revenue) * 100 : 0;
+        }
+
+        #endregion
     }
 }

@@ -722,4 +722,504 @@ namespace BhavenaKhadiBhavan.Models
 
         public bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
     }
+
+    /// <summary>
+    /// Enhanced Sales Report with Profit Margins and Item-Level Discount Analysis
+    /// </summary>
+    public class SalesReportViewModel
+    {
+        public DateTime FromDate { get; set; }
+        public DateTime ToDate { get; set; }
+        public List<Sale> Sales { get; set; } = new();
+
+        // Sales Summary
+        public decimal TotalSales { get; set; }
+        public int TotalOrders { get; set; }
+        public decimal AverageOrderValue { get; set; }
+        public decimal TotalItemsSold { get; set; }
+
+        // Financial Breakdown
+        public decimal TotalSubtotal { get; set; }
+        public decimal TotalItemDiscounts { get; set; }
+        public decimal TotalGST { get; set; }
+        public decimal TotalCostOfGoodsSold { get; set; }
+        public decimal TotalGrossProfit { get; set; }
+        public decimal GrossProfitMargin { get; set; }
+
+        // Discount Analysis
+        public decimal EffectiveDiscountPercentage { get; set; }
+        public int SalesWithDiscounts { get; set; }
+        public decimal AverageDiscountPerSale { get; set; }
+        public decimal DiscountPenetration { get; set; } // % of sales with discounts
+
+        // Payment Method Breakdown
+        public List<PaymentMethodSummary> PaymentMethodBreakdown { get; set; } = new();
+
+        // Daily Breakdown
+        public List<DailySalesSummary> DailyBreakdown { get; set; } = new();
+
+        // Top Products
+        public List<TopProductSummary> TopProducts { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Enhanced Daily Sales Report with Hour-by-Hour Analysis
+    /// </summary>
+    public class DailySalesReportViewModel
+    {
+        public DateTime Date { get; set; }
+        public List<Sale> Sales { get; set; } = new();
+
+        // Daily Summary
+        public decimal TotalSales { get; set; }
+        public int TotalOrders { get; set; }
+        public decimal AverageOrderValue { get; set; }
+        public decimal TotalItemsSold { get; set; }
+        public decimal TotalGrossProfit { get; set; }
+        public decimal GrossProfitMargin { get; set; }
+
+        // Hourly Breakdown
+        public List<HourlySalesSummary> HourlyBreakdown { get; set; } = new();
+
+        // Payment Methods
+        public List<PaymentMethodSummary> PaymentMethodBreakdown { get; set; } = new();
+
+        // Top Products of the Day
+        public List<TopProductSummary> TopProducts { get; set; } = new();
+
+        // Customer Analysis
+        public int UniqueCustomers { get; set; }
+        public int NewCustomers { get; set; }
+        public int ReturningCustomers { get; set; }
+    }
+
+    /// <summary>
+    /// Comprehensive Stock Report with Movement Analysis
+    /// </summary>
+    public class StockReportViewModel
+    {
+        public List<Product> Products { get; set; } = new();
+
+        // Stock Summary
+        public int TotalProducts { get; set; }
+        public int ActiveProducts { get; set; }
+        public int LowStockProducts { get; set; }
+        public int OutOfStockProducts { get; set; }
+        public decimal TotalStockValue { get; set; }
+        public decimal TotalSaleValue { get; set; }
+        public decimal PotentialProfit { get; set; }
+
+        // Category Wise Stock
+        public List<CategoryStockSummary> CategoryWiseStock { get; set; } = new();
+
+        // Fast/Slow Moving Analysis
+        public List<Product> FastMovingProducts { get; set; } = new();
+        public List<Product> SlowMovingProducts { get; set; } = new();
+
+        // Stock Age Analysis
+        public decimal AverageStockAge { get; set; }
+        public List<StockAgingSummary> StockAging { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Stock Movement Analysis Report
+    /// </summary>
+    public class StockMovementReportViewModel
+    {
+        public DateTime FromDate { get; set; }
+        public DateTime ToDate { get; set; }
+
+        // Movement Summary
+        public List<ProductMovementSummary> ProductMovements { get; set; } = new();
+
+        // Top Movers
+        public List<TopProductSummary> TopSellingProducts { get; set; } = new();
+        public List<Product> LeastSellingProducts { get; set; } = new();
+
+        // Stock Turnover Analysis
+        public List<StockTurnoverSummary> StockTurnover { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Profit Margin Analysis Report
+    /// </summary>
+    public class ProfitMarginReportViewModel
+    {
+        public DateTime FromDate { get; set; }
+        public DateTime ToDate { get; set; }
+
+        // Overall Profit Analysis
+        public decimal TotalRevenue { get; set; }
+        public decimal TotalCostOfGoodsSold { get; set; }
+        public decimal TotalGrossProfit { get; set; }
+        public decimal GrossProfitMargin { get; set; }
+
+        // Impact of Discounts on Profit
+        public decimal ProfitWithoutDiscounts { get; set; }
+        public decimal ProfitWithDiscounts { get; set; }
+        public decimal DiscountImpactOnProfit { get; set; }
+
+        // Category-wise Profit
+        public List<CategoryProfitSummary> CategoryProfits { get; set; } = new();
+
+        // Product-wise Profit Analysis
+        public List<ProductProfitSummary> ProductProfits { get; set; } = new();
+
+        // Profit Trends
+        public List<DailyProfitSummary> DailyProfitTrends { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Product Profitability Analysis
+    /// </summary>
+    public class ProductProfitabilityReportViewModel
+    {
+        public DateTime FromDate { get; set; }
+        public DateTime ToDate { get; set; }
+
+        // Most Profitable Products
+        public List<ProductProfitSummary> MostProfitableProducts { get; set; } = new();
+
+        // Least Profitable Products
+        public List<ProductProfitSummary> LeastProfitableProducts { get; set; } = new();
+
+        // Products by Profit Margin Categories
+        public List<ProductProfitSummary> HighMarginProducts { get; set; } = new(); // >50%
+        public List<ProductProfitSummary> MediumMarginProducts { get; set; } = new(); // 20-50%
+        public List<ProductProfitSummary> LowMarginProducts { get; set; } = new(); // <20%
+        public List<ProductProfitSummary> LossProducts { get; set; } = new(); // <0%
+    }
+
+    /// <summary>
+    /// Enhanced GST Report with Item-Level Discount Impact
+    /// </summary>
+    public class GSTReportViewModel
+    {
+        public DateTime FromDate { get; set; }
+        public DateTime ToDate { get; set; }
+
+        // GST Summary
+        public decimal TotalTaxableAmount { get; set; }
+        public decimal TotalGSTAmount { get; set; }
+        public decimal EffectiveGSTRate { get; set; }
+
+        // GST Rate-wise Breakdown
+        public List<GSTRateSummary> GSTRateBreakdown { get; set; } = new();
+
+        // Impact of Discounts on GST
+        public decimal GSTWithoutDiscounts { get; set; }
+        public decimal GSTWithDiscounts { get; set; }
+        public decimal DiscountImpactOnGST { get; set; }
+
+        // Monthly GST Trends
+        public List<MonthlyGSTSummary> MonthlyGSTTrends { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Customer Analysis Report
+    /// </summary>
+    public class CustomerReportViewModel
+    {
+        public DateTime FromDate { get; set; }
+        public DateTime ToDate { get; set; }
+
+        // Customer Summary
+        public int TotalCustomers { get; set; }
+        public int NewCustomers { get; set; }
+        public int ActiveCustomers { get; set; }
+        public int ReturningCustomers { get; set; }
+        public decimal TotalRevenue { get; set; }
+        public decimal AverageOrderValue { get; set; }
+
+        // Customer Segmentation
+        public List<Customer> TopCustomers { get; set; } = new();
+        public List<CustomerSegmentSummary> CustomerSegments { get; set; } = new();
+
+        // Customer Acquisition Trends
+        public List<MonthlyCustomerSummary> CustomerAcquisitionTrends { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Item-Level Discount Analysis Report
+    /// </summary>
+    public class DiscountAnalysisReportViewModel
+    {
+        public DateTime FromDate { get; set; }
+        public DateTime ToDate { get; set; }
+
+        // Discount Summary
+        public decimal TotalDiscountsGiven { get; set; }
+        public decimal AverageDiscountPercentage { get; set; }
+        public int SalesWithDiscounts { get; set; }
+        public decimal DiscountPenetration { get; set; }
+
+        // Item-Level Discount Analysis
+        public List<ProductDiscountSummary> ProductDiscountAnalysis { get; set; } = new();
+
+        // Discount Impact Analysis
+        public decimal RevenueImpact { get; set; }
+        public decimal ProfitImpact { get; set; }
+        public decimal GSTImpact { get; set; }
+
+        // Discount Trends
+        public List<DailyDiscountSummary> DailyDiscountTrends { get; set; } = new();
+
+        // Top Discounted Products
+        public List<ProductDiscountSummary> MostDiscountedProducts { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Category Performance Analysis
+    /// </summary>
+    public class CategoryPerformanceReportViewModel
+    {
+        public DateTime FromDate { get; set; }
+        public DateTime ToDate { get; set; }
+
+        // Category Performance Summary
+        public List<CategoryPerformanceSummary> CategoryPerformance { get; set; } = new();
+
+        // Category Trends
+        public List<CategoryTrendSummary> CategoryTrends { get; set; } = new();
+
+        // Best and Worst Performing Categories
+        public List<CategoryPerformanceSummary> BestPerformingCategories { get; set; } = new();
+        public List<CategoryPerformanceSummary> WorstPerformingCategories { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Return Analysis Report
+    /// </summary>
+    public class ReturnAnalysisReportViewModel
+    {
+        public DateTime FromDate { get; set; }
+        public DateTime ToDate { get; set; }
+
+        // Return Summary
+        public decimal TotalReturnAmount { get; set; }
+        public int TotalReturns { get; set; }
+        public decimal ReturnRate { get; set; } // % of sales returned
+        public decimal AverageReturnValue { get; set; }
+
+        // Return Reasons Analysis
+        public List<ReturnReasonSummary> ReturnReasons { get; set; } = new();
+
+        // Product Return Analysis
+        public List<ProductReturnSummary> ProductReturns { get; set; } = new();
+
+        // Return Trends
+        public List<DailyReturnSummary> DailyReturnTrends { get; set; } = new();
+
+        // Impact on Profit
+        public decimal ProfitImpactOfReturns { get; set; }
+    }
+
+    // =============================
+    // SUPPORTING SUMMARY CLASSES
+    // =============================
+
+    public class PaymentMethodSummary
+    {
+        public string Method { get; set; } = string.Empty;
+        public int Count { get; set; }
+        public decimal Amount { get; set; }
+        public decimal Percentage { get; set; }
+    }
+
+    public class DailySalesSummary
+    {
+        public DateTime Date { get; set; }
+        public int Count { get; set; }
+        public decimal Amount { get; set; }
+        public decimal GrossProfit { get; set; }
+        public decimal DiscountAmount { get; set; }
+    }
+
+    public class HourlySalesSummary
+    {
+        public int Hour { get; set; }
+        public int Count { get; set; }
+        public decimal Amount { get; set; }
+        public decimal GrossProfit { get; set; }
+    }
+
+    public class TopProductSummary
+    {
+        public int ProductId { get; set; }
+        public string ProductName { get; set; } = string.Empty;
+        public string CategoryName { get; set; } = string.Empty;
+        public decimal QuantitySold { get; set; }
+        public decimal Revenue { get; set; }
+        public decimal GrossProfit { get; set; }
+        public decimal GrossProfitMargin { get; set; }
+        public decimal AverageDiscount { get; set; }
+    }
+
+    public class CategoryStockSummary
+    {
+        public string Category { get; set; } = string.Empty;
+        public int ProductCount { get; set; }
+        public decimal TotalStock { get; set; }
+        public decimal StockValue { get; set; }
+        public decimal SaleValue { get; set; }
+        public decimal PotentialProfit { get; set; }
+    }
+
+    public class StockAgingSummary
+    {
+        public string AgeRange { get; set; } = string.Empty; // 0-30 days, 31-60 days, etc.
+        public int ProductCount { get; set; }
+        public decimal StockValue { get; set; }
+    }
+
+    public class ProductMovementSummary
+    {
+        public int ProductId { get; set; }
+        public string ProductName { get; set; } = string.Empty;
+        public string CategoryName { get; set; } = string.Empty;
+        public decimal OpeningStock { get; set; }
+        public decimal QuantitySold { get; set; }
+        public decimal ClosingStock { get; set; }
+        public decimal StockTurnover { get; set; }
+    }
+
+    public class StockTurnoverSummary
+    {
+        public string Category { get; set; } = string.Empty;
+        public decimal AverageStockTurnover { get; set; }
+        public string TurnoverCategory { get; set; } = string.Empty; // Fast, Medium, Slow
+    }
+
+    public class ProductProfitSummary
+    {
+        public int ProductId { get; set; }
+        public string ProductName { get; set; } = string.Empty;
+        public string CategoryName { get; set; } = string.Empty;
+        public decimal QuantitySold { get; set; }
+        public decimal Revenue { get; set; }
+        public decimal CostOfGoodsSold { get; set; }
+        public decimal GrossProfit { get; set; }
+        public decimal GrossProfitMargin { get; set; }
+        public decimal TotalDiscounts { get; set; }
+        public decimal ProfitAfterDiscounts { get; set; }
+    }
+
+    public class CategoryProfitSummary
+    {
+        public string CategoryName { get; set; } = string.Empty;
+        public decimal Revenue { get; set; }
+        public decimal CostOfGoodsSold { get; set; }
+        public decimal GrossProfit { get; set; }
+        public decimal GrossProfitMargin { get; set; }
+        public decimal TotalDiscounts { get; set; }
+        public int ProductsSold { get; set; }
+    }
+
+    public class DailyProfitSummary
+    {
+        public DateTime Date { get; set; }
+        public decimal Revenue { get; set; }
+        public decimal CostOfGoodsSold { get; set; }
+        public decimal GrossProfit { get; set; }
+        public decimal GrossProfitMargin { get; set; }
+    }
+
+    public class GSTRateSummary
+    {
+        public decimal GSTRate { get; set; }
+        public decimal TaxableAmount { get; set; }
+        public decimal GSTAmount { get; set; }
+        public int TransactionCount { get; set; }
+    }
+
+    public class MonthlyGSTSummary
+    {
+        public int Year { get; set; }
+        public int Month { get; set; }
+        public string MonthName { get; set; } = string.Empty;
+        public decimal TaxableAmount { get; set; }
+        public decimal GSTAmount { get; set; }
+    }
+
+    public class CustomerSegmentSummary
+    {
+        public string Segment { get; set; } = string.Empty; // New, Regular, VIP, etc.
+        public int CustomerCount { get; set; }
+        public decimal TotalRevenue { get; set; }
+        public decimal AverageOrderValue { get; set; }
+    }
+
+    public class MonthlyCustomerSummary
+    {
+        public int Year { get; set; }
+        public int Month { get; set; }
+        public string MonthName { get; set; } = string.Empty;
+        public int NewCustomers { get; set; }
+        public int ActiveCustomers { get; set; }
+    }
+
+    public class ProductDiscountSummary
+    {
+        public int ProductId { get; set; }
+        public string ProductName { get; set; } = string.Empty;
+        public string CategoryName { get; set; } = string.Empty;
+        public decimal AverageDiscountPercentage { get; set; }
+        public decimal TotalDiscountAmount { get; set; }
+        public int TimesDiscounted { get; set; }
+        public decimal QuantitySold { get; set; }
+        public decimal RevenueImpact { get; set; }
+    }
+
+    public class DailyDiscountSummary
+    {
+        public DateTime Date { get; set; }
+        public decimal TotalDiscounts { get; set; }
+        public decimal AverageDiscountPercentage { get; set; }
+        public int SalesWithDiscounts { get; set; }
+        public decimal DiscountPenetration { get; set; }
+    }
+
+    public class CategoryPerformanceSummary
+    {
+        public string CategoryName { get; set; } = string.Empty;
+        public decimal Revenue { get; set; }
+        public decimal GrossProfit { get; set; }
+        public decimal GrossProfitMargin { get; set; }
+        public int ProductsSold { get; set; }
+        public decimal AverageDiscount { get; set; }
+        public decimal MarketShare { get; set; } // % of total revenue
+    }
+
+    public class CategoryTrendSummary
+    {
+        public string CategoryName { get; set; } = string.Empty;
+        public List<DailySalesSummary> DailyTrends { get; set; } = new();
+    }
+
+    public class ReturnReasonSummary
+    {
+        public string Reason { get; set; } = string.Empty;
+        public int Count { get; set; }
+        public decimal Amount { get; set; }
+        public decimal Percentage { get; set; }
+    }
+
+    public class ProductReturnSummary
+    {
+        public int ProductId { get; set; }
+        public string ProductName { get; set; } = string.Empty;
+        public string CategoryName { get; set; } = string.Empty;
+        public decimal ReturnQuantity { get; set; }
+        public decimal ReturnAmount { get; set; }
+        public decimal ReturnRate { get; set; }
+        public List<string> CommonReturnReasons { get; set; } = new();
+    }
+
+    public class DailyReturnSummary
+    {
+        public DateTime Date { get; set; }
+        public int Count { get; set; }
+        public decimal Amount { get; set; }
+        public decimal ReturnRate { get; set; }
+    }
 }

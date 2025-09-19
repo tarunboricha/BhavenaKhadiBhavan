@@ -1,0 +1,570 @@
+﻿@model Return
+@using BhavenaKhadiBhavan.Services
+@{
+    ViewData["Title"] = "Create Return";
+    var sale = ViewBag.Sale as Sale;
+    var returnableItems = ViewBag.ReturnableItems as List<ReturnableItemInfo> ?? new List<ReturnableItemInfo>();
+    var returnReasons = ViewBag.ReturnReasons as List<SelectListItem> ?? new List<SelectListItem>();
+}
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2>
+                <i class="fas fa-undo me-2"></i>Create Return
+            </h2>
+            <div>
+                <a href="@Url.Action("Details", "Sales", new { id = sale?.Id })" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Back to Sale
+                </a>
+                <a href="@Url.Action("Index", "Returns")" class="btn btn-outline-primary">
+                    <i class="fas fa-list me-1"></i>All Returns
+                </a>
+            </div>
+        </div>
+        <hr>
+    </div>
+</div>
+
+<!-- Sale Information -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-receipt me-2"></i>Original Sale Details</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-2">
+                    <div class="col-4"><strong>Invoice:</strong></div>
+                    <div class="col-8">@sale?.InvoiceNumber</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-4"><strong>Date:</strong></div>
+                    <div class="col-8">@sale?.SaleDate.ToString("dd/MM/yyyy HH:mm")</div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-4"><strong>Customer:</strong></div>
+                    <div class="col-8">
+                        @sale?.CustomerDisplayName
+                        @if (!string.IsNullOrEmpty(sale?.CustomerPhone))
+                        {
+                            <br><small class="text-muted">@sale.CustomerPhone</small>
+                        }
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-4"><strong>Total:</strong></div>
+                    <div class="col-8 text-success">₹@sale?.TotalAmount.ToString("N2")</div>
+                </div>
+                @if (sale?.DiscountPercentage > 0)
+                {
+                    <div class="row mb-2">
+                        <div class="col-4"><strong>Original Discount:</strong></div>
+                        <div class="col-8 text-info">@sale.DiscountPercentage.ToString("0.##")% (₹@sale.DiscountAmount.ToString("N2"))</div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Return Guidelines</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li><i class="fas fa-check text-success me-2"></i>Items can be returned within policy period</li>
+                    <li><i class="fas fa-check text-success me-2"></i><strong>Partial quantities are allowed</strong></li>
+                    <li><i class="fas fa-check text-success me-2"></i>Original discounts will be proportionally refunded</li>
+                    <li><i class="fas fa-check text-success me-2"></i>GST will be calculated accurately</li>
+                    <li><i class="fas fa-exclamation-triangle text-warning me-2"></i>Stock will be restored automatically</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Return Form -->
+<form id="returnForm" method="post" action="@Url.Action("Create", "Returns")" novalidate>
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="SaleId" value="@Model.SaleId" />
+    
+    <!-- Return Details -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-edit me-2"></i>Return Information</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label">Return Reason *</label>
+                        <select class="form-select" name="returnReason" required>
+                            @foreach (var reason in returnReasons)
+                            {
+                                <option value="@reason.Value">@reason.Text</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label">Return Date</label>
+                        <input type="text" class="form-control" value="@DateTime.Now.ToString("dd/MM/yyyy HH:mm")" readonly />
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Additional Notes</label>
+                <textarea class="form-control" name="notes" rows="3" 
+                          placeholder="Any additional information about this return..."></textarea>
+            </div>
+        </div>
+    </div>
+    
+    <!-- CRITICAL FIX: Items Selection with Individual Quantities -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-box me-2"></i>Select Items to Return
+                    <span class="badge bg-info ms-2">@returnableItems.Count items available</span>
+                </h5>
+                <div>
+                    <button type="button" class="btn btn-sm btn-outline-success" onclick="selectAllMaxQuantities()">
+                        <i class="fas fa-check-double me-1"></i>Select All Max
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearAllSelections()">
+                        <i class="fas fa-times me-1"></i>Clear All
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            @if (returnableItems.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th width="5%">Select</th>
+                                <th>Product</th>
+                                <th>Original Qty</th>
+                                <th>Already Returned</th>
+                                <th>Available to Return</th>
+                                <th>Return Quantity</th>
+                                <th>Unit Price</th>
+                                <th>Estimated Refund</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (int i = 0; i < returnableItems.Count; i++)
+                            {
+                                var item = returnableItems[i];
+                                <tr class="return-item-row" data-sale-item-id="@item.SaleItemId">
+                                    <td>
+                                        <input type="checkbox" class="form-check-input item-checkbox" 
+                                               data-sale-item-id="@item.SaleItemId"
+                                               onchange="toggleItemSelection(@item.SaleItemId)">
+                                    </td>
+                                    <td>
+                                        <strong>@item.ProductName</strong>
+                                        <br>
+                                        <small class="text-muted">
+                                            GST: @item.GSTRate% | Unit: @item.UnitOfMeasure
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-primary">@item.OriginalQuantity.ToString("0.###") @item.UnitOfMeasure</span>
+                                    </td>
+                                    <td>
+                                        @if (item.AlreadyReturnedQuantity > 0)
+                                        {
+                                            <span class="badge bg-warning text-dark">@item.AlreadyReturnedQuantity.ToString("0.###") @item.UnitOfMeasure</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">None</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-success">@item.ReturnableQuantity.ToString("0.###") @item.UnitOfMeasure</span>
+                                    </td>
+                                    <td>
+                                        <div class="input-group" style="width: 140px;">
+                                            <input type="number" 
+                                                   class="form-control form-control-sm return-quantity-input" 
+                                                   name="returnQuantities[@item.SaleItemId]"
+                                                   data-sale-item-id="@item.SaleItemId"
+                                                   min="0" 
+                                                   max="@item.ReturnableQuantity" 
+                                                   step="@(item.UnitOfMeasure == "Meter" ? "0.1" : "1")" 
+                                                   value="0"
+                                                   onchange="updateReturnCalculation()"
+                                                   disabled>
+                                            <span class="input-group-text">@item.UnitOfMeasure</span>
+                                        </div>
+                                        <small class="text-muted">Max: @item.ReturnableQuantity.ToString("0.###")</small>
+                                    </td>
+                                    <td>
+                                        <strong>₹@item.UnitPrice.ToString("N2")</strong>
+                                        <br>
+                                        <small class="text-muted">per @item.UnitOfMeasure</small>
+                                    </td>
+                                    <td class="estimated-refund" data-sale-item-id="@item.SaleItemId">
+                                        <div class="refund-display">
+                                            <strong class="text-success">₹0.00</strong>
+                                            <br>
+                                            <small class="text-muted">Subtotal: ₹0.00</small>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-4">
+                    <i class="fas fa-info-circle fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No Returnable Items</h5>
+                    <p class="text-muted">All items from this sale have already been returned or cannot be returned.</p>
+                </div>
+            }
+        </div>
+    </div>
+    
+    <!-- Return Summary -->
+    <div class="card mb-4" id="returnSummaryCard" style="display: none;">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-calculator me-2"></i>Return Summary
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="row mb-2">
+                        <div class="col-6">Items Subtotal:</div>
+                        <div class="col-6 text-end" id="summarySubtotal">₹0.00</div>
+                    </div>
+                    <div class="row mb-2" id="summaryDiscountRow" style="display: none;">
+                        <div class="col-6 text-success">Proportional Discount:</div>
+                        <div class="col-6 text-end text-success" id="summaryDiscount">-₹0.00</div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-6">GST Amount:</div>
+                        <div class="col-6 text-end" id="summaryGST">₹0.00</div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-6"><strong>Total Refund:</strong></div>
+                        <div class="col-6 text-end"><h5 class="text-success mb-0" id="summaryTotal">₹0.00</h5></div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="alert alert-info mb-0">
+                        <h6><i class="fas fa-info-circle me-2"></i>Refund Details</h6>
+                        <ul class="mb-0" id="refundDetails">
+                            <li>Original sale discount: <strong>@(sale?.DiscountPercentage.ToString("0.##") ?? "0")%</strong></li>
+                            <li>Discount applied proportionally to returned items</li>
+                            <li>GST calculated on discounted amounts</li>
+                            <li>Stock will be automatically restored</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Form Actions -->
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between">
+                <div>
+                    <a href="@Url.Action("Details", "Sales", new { id = sale?.Id })" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-1"></i>Cancel
+                    </a>
+                </div>
+                <div>
+                    <button type="submit" class="btn btn-success btn-lg" id="submitReturnBtn" disabled>
+                        <i class="fas fa-check me-1"></i>Create Return
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <script>
+        // Global variables for return calculation
+        let saleId = @Model.SaleId;
+        let originalDiscountPercentage = @(sale?.DiscountPercentage ?? 0);
+        let returnableItems = @Html.Raw(Json.Serialize(returnableItems.ToDictionary(ri => ri.SaleItemId, ri => new {
+            saleItemId = ri.SaleItemId,
+            productName = ri.ProductName,
+            returnableQuantity = ri.ReturnableQuantity,
+            unitPrice = ri.UnitPrice,
+            gstRate = ri.GSTRate,
+            unitOfMeasure = ri.UnitOfMeasure
+        })));
+        
+        $(document).ready(function() {
+            console.log('Return create page loaded');
+            console.log('Returnable items:', returnableItems);
+            
+            // Initialize form
+            initializeReturnForm();
+        });
+        
+        function initializeReturnForm() {
+            // Form submission validation
+            $('#returnForm').on('submit', function(e) {
+                const selectedItems = getSelectedReturnItems();
+                
+                if (selectedItems.length === 0) {
+                    e.preventDefault();
+                    showAlert('Please select at least one item to return', 'error');
+                    return false;
+                }
+                
+                const reason = $('select[name="returnReason"]').val();
+                if (!reason) {
+                    e.preventDefault();
+                    showAlert('Please select a return reason', 'error');
+                    return false;
+                }
+                
+                // Show loading state
+                const $submitBtn = $('#submitReturnBtn');
+                $submitBtn.prop('disabled', true)
+                          .html('<i class="fas fa-spinner fa-spin me-1"></i>Creating Return...');
+                
+                return true;
+            });
+        }
+        
+        // CRITICAL FIX: Toggle item selection
+        function toggleItemSelection(saleItemId) {
+            const $checkbox = $(`.item-checkbox[data-sale-item-id="${saleItemId}"]`);
+            const $quantityInput = $(`.return-quantity-input[data-sale-item-id="${saleItemId}"]`);
+            const $row = $(`.return-item-row[data-sale-item-id="${saleItemId}"]`);
+            
+            if ($checkbox.is(':checked')) {
+                // Enable quantity input and set default value
+                $quantityInput.prop('disabled', false);
+                const maxQuantity = parseFloat($quantityInput.attr('max'));
+                $quantityInput.val(maxQuantity > 0 ? maxQuantity : 1);
+                $row.addClass('table-active');
+            } else {
+                // Disable quantity input and reset value
+                $quantityInput.prop('disabled', true).val(0);
+                $row.removeClass('table-active');
+            }
+            
+            updateReturnCalculation();
+        }
+        
+        // CRITICAL FIX: Update return calculation with proper validation
+        function updateReturnCalculation() {
+            const selectedItems = getSelectedReturnItems();
+            
+            if (selectedItems.length === 0) {
+                $('#returnSummaryCard').hide();
+                $('#submitReturnBtn').prop('disabled', true);
+                // Clear all refund displays
+                $('.estimated-refund .refund-display').html('<strong class="text-success">₹0.00</strong><br><small class="text-muted">Subtotal: ₹0.00</small>');
+                return;
+            }
+            
+            // Calculate return preview via AJAX
+            const returnQuantities = {};
+            selectedItems.forEach(item => {
+                returnQuantities[item.saleItemId] = item.quantity;
+            });
+            
+            $.ajax({
+                url: '@Url.Action("CalculateReturnPreview", "Returns")',
+                type: 'POST',
+                data: {
+                    saleId: saleId,
+                    returnQuantities: returnQuantities
+                },
+                success: function(response) {
+                    if (response.success) {
+                        updateReturnSummaryDisplay(response);
+                        updateIndividualItemDisplays(response.items);
+                        $('#returnSummaryCard').show();
+                        $('#submitReturnBtn').prop('disabled', false);
+                    } else {
+                        showAlert(response.error || 'Error calculating return', 'error');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error calculating return preview:', error);
+                    showAlert('Error calculating return preview', 'error');
+                }
+            });
+        }
+        
+        // Update return summary display
+        function updateReturnSummaryDisplay(response) {
+            $('#summarySubtotal').text(formatCurrency(response.summary.subtotal));
+            $('#summaryGST').text(formatCurrency(response.summary.gstAmount));
+            $('#summaryTotal').text(formatCurrency(response.summary.totalRefund));
+            
+            if (response.summary.discountAmount > 0) {
+                $('#summaryDiscountRow').show();
+                $('#summaryDiscount').text('-' + formatCurrency(response.summary.discountAmount));
+            } else {
+                $('#summaryDiscountRow').hide();
+            }
+        }
+        
+        // Update individual item refund displays
+        function updateIndividualItemDisplays(items) {
+            items.forEach(function(item) {
+                const $refundDisplay = $(`.estimated-refund[data-sale-item-id="${item.productName}"]`);
+                const html = `
+                    <strong class="text-success">${formatCurrency(item.refundAmount)}</strong>
+                    <br>
+                    <small class="text-muted">Subtotal: ${formatCurrency(item.subtotal)}</small>
+                    ${item.discountAmount > 0 ? `<br><small class="text-success">Discount: -${formatCurrency(item.discountAmount)}</small>` : ''}
+                `;
+                
+                // Find by sale item ID instead
+                const saleItemId = Object.keys(returnableItems).find(key => 
+                    returnableItems[key].productName === item.productName);
+                if (saleItemId) {
+                    $(`.estimated-refund[data-sale-item-id="${saleItemId}"] .refund-display`).html(html);
+                }
+            });
+        }
+        
+        // Get selected return items with quantities
+        function getSelectedReturnItems() {
+            const selectedItems = [];
+            
+            $('.item-checkbox:checked').each(function() {
+                const saleItemId = $(this).data('sale-item-id');
+                const $quantityInput = $(`.return-quantity-input[data-sale-item-id="${saleItemId}"]`);
+                const quantity = parseFloat($quantityInput.val()) || 0;
+                
+                if (quantity > 0) {
+                    selectedItems.push({
+                        saleItemId: saleItemId,
+                        quantity: quantity
+                    });
+                }
+            });
+            
+            return selectedItems;
+        }
+        
+        // Select all items with maximum returnable quantities
+        function selectAllMaxQuantities() {
+            $('.item-checkbox').each(function() {
+                if (!$(this).is(':checked')) {
+                    $(this).prop('checked', true);
+                    const saleItemId = $(this).data('sale-item-id');
+                    toggleItemSelection(saleItemId);
+                }
+            });
+        }
+        
+        // Clear all selections
+        function clearAllSelections() {
+            $('.item-checkbox:checked').each(function() {
+                $(this).prop('checked', false);
+                const saleItemId = $(this).data('sale-item-id');
+                toggleItemSelection(saleItemId);
+            });
+        }
+        
+        // Utility functions
+        function formatCurrency(amount) {
+            return '₹' + parseFloat(amount || 0).toFixed(2);
+        }
+        
+        function showAlert(message, type = 'info') {
+            const alertClass = type === 'error' ? 'alert-danger' : 
+                              type === 'success' ? 'alert-success' : 
+                              type === 'warning' ? 'alert-warning' : 'alert-info';
+            
+            const alertHtml = `
+                <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+                    <i class="fas fa-${type === 'error' ? 'exclamation-circle' : 
+                                     type === 'success' ? 'check-circle' : 
+                                     type === 'warning' ? 'exclamation-triangle' : 'info-circle'} me-2"></i>
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            `;
+            
+            // Remove existing alerts
+            $('.alert').remove();
+            
+            // Add new alert at the top of the page
+            $('main .container-fluid').prepend(alertHtml);
+            
+            // Auto-dismiss after 5 seconds
+            setTimeout(function() {
+                $('.alert').alert('close');
+            }, 5000);
+        }
+        
+        // Debug function
+        window.debugReturn = function() {
+            console.log('Selected items:', getSelectedReturnItems());
+            console.log('Returnable items:', returnableItems);
+        };
+    </script>
+}
+
+<style>
+    .return-item-row {
+        transition: all 0.2s ease;
+    }
+    
+    .return-item-row.table-active {
+        background-color: rgba(25, 135, 84, 0.1) !important;
+        border-left: 3px solid #198754;
+    }
+    
+    .return-quantity-input:disabled {
+        background-color: #f8f9fa;
+        opacity: 0.6;
+    }
+    
+    .return-quantity-input:enabled {
+        background-color: #fff;
+        border-color: #198754;
+    }
+    
+    .estimated-refund {
+        min-width: 120px;
+    }
+    
+    .card {
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    }
+    
+    .badge {
+        font-size: 0.75rem;
+    }
+    
+    .table th {
+        border-top: none;
+        font-weight: 600;
+        color: #495057;
+        background-color: #f8f9fa;
+    }
+    
+    .input-group-text {
+        font-size: 0.875rem;
+    }
+</style>

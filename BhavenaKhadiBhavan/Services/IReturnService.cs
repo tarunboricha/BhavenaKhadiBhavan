@@ -32,11 +32,17 @@ namespace BhavenaKhadiBhavan.Services
         public decimal GSTRate { get; set; }
         public string UnitOfMeasure { get; set; } = "Piece";
 
-        // For display purposes
-        public string DisplayText => $"{ProductName} - Available: {ReturnableQuantity:0.###} {UnitOfMeasure}";
+        // CRITICAL: Individual item discount information
+        public decimal ItemDiscountPercentage { get; set; }
+        public decimal ItemDiscountAmount { get; set; }
+
         public bool CanBeReturned => ReturnableQuantity > 0;
+        public string DisplayText => $"{ProductName} ({ReturnableQuantity:0.###} {UnitOfMeasure} available)";
     }
 
+    /// <summary>
+    /// ENHANCED: Return calculation result with individual discount tracking
+    /// </summary>
     public class ReturnCalculationResult
     {
         public decimal SubTotal { get; set; }
@@ -46,6 +52,9 @@ namespace BhavenaKhadiBhavan.Services
         public List<ReturnItemCalculation> Items { get; set; } = new List<ReturnItemCalculation>();
     }
 
+    /// <summary>
+    /// ENHANCED: Individual return item calculation with discount details
+    /// </summary>
     public class ReturnItemCalculation
     {
         public int SaleItemId { get; set; }
@@ -57,5 +66,9 @@ namespace BhavenaKhadiBhavan.Services
         public decimal LineDiscount { get; set; }
         public decimal LineTotal { get; set; }
         public string UnitOfMeasure { get; set; } = "Piece";
+
+        // CRITICAL: Individual discount tracking
+        public decimal ItemDiscountPercentage { get; set; }
+        public decimal ItemDiscountAmount { get; set; }
     }
 }

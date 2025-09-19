@@ -1,8 +1,8 @@
 ﻿@model Sale
 @{
     ViewData["Title"] = $"Invoice - {Model.InvoiceNumber}";
-    Layout = null; // No layout for printing
-    var storeSettings = ViewBag.StoreSettings as Dictionary<string, string>;
+    Layout = null;
+    var storeSettings = ViewBag.StoreSettings as Dictionary<string, string?> ?? new Dictionary<string, string?>();
 }
 
 <!DOCTYPE html>
@@ -12,7 +12,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Invoice - @Model.InvoiceNumber</title>
 
-    <!-- Bootstrap CSS for printing -->
+    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
     <style>
@@ -35,10 +35,6 @@
                 display: none !important;
             }
 
-            .print-break {
-                page-break-after: always;
-            }
-
             body {
                 font-size: 12px;
             }
@@ -52,13 +48,9 @@
                 margin-top: 2rem;
             }
 
-            table {
-                border-collapse: collapse;
-            }
-
             th, td {
                 border: 1px solid #000 !important;
-                padding: 8px !important;
+                padding: 6px !important;
             }
         }
 
@@ -79,6 +71,7 @@
         }
 
         .invoice-header {
+            text-align: center;
             padding-bottom: 1rem;
             margin-bottom: 1rem;
         }
@@ -87,12 +80,9 @@
             font-size: 2rem;
             font-weight: bold;
             color: #8B4513;
-            text-align: center;
-            margin-bottom: 0.5rem;
         }
 
         .store-details {
-            text-align: center;
             color: #666;
             font-size: 0.9rem;
         }
@@ -128,19 +118,6 @@
             border-radius: 5px;
         }
 
-        .signature-section {
-            margin-top: 2rem;
-            display: flex;
-            justify-content: space-between;
-        }
-
-        .signature-box {
-            text-align: center;
-            padding: 1rem;
-            border-top: 1px solid #333;
-            width: 200px;
-        }
-
         .footer-text {
             text-align: center;
             font-size: 0.8rem;
@@ -149,60 +126,42 @@
             font-style: italic;
         }
 
-        .gst-info {
-            font-size: 0.85rem;
-            color: #666;
+        .discount-info {
+            color: #28a745;
+            font-size: 0.8rem;
+            font-style: italic;
         }
     </style>
 </head>
 <body>
     <div class="invoice-container">
-        <!-- Print Button (only visible on screen) -->
-        <div class="no-print text-end mb-3">
-            <button onclick="window.print()" class="btn btn-primary">
-                <i class="fas fa-print"></i> Print Invoice
-            </button>
-            <button onclick="window.close()" class="btn btn-outline-secondary ms-2">
-                <i class="fas fa-times"></i> Close
-            </button>
-        </div>
-
-        <!-- Store Header -->
+        <!-- Header -->
         <div class="invoice-header">
-            <div class="store-logo">
-                @(storeSettings?.GetValueOrDefault("StoreName", "Khadi Store"))
-            </div>
+            <div class="store-logo">@(storeSettings.GetValueOrDefault("StoreName", "Khadi Store"))</div>
             <div class="store-details">
-                @if (storeSettings != null)
+                @if (storeSettings.ContainsKey("StoreAddress"))
                 {
-                    @if (storeSettings.ContainsKey("StoreAddress"))
+                    <div>@storeSettings["StoreAddress"]</div>
+                }
+                <div>
+                    @if (storeSettings.ContainsKey("StorePhone"))
                     {
-                        <div>@storeSettings["StoreAddress"]</div>
+                        <span>Phone: @storeSettings["StorePhone"]</span>
                     }
-                    <div>
-                        @if (storeSettings.ContainsKey("StorePhone"))
-                        {
-                            <span>Phone: @storeSettings["StorePhone"]</span>
-                        }
-                        @if (storeSettings.ContainsKey("StoreEmail"))
-                        {
-                            <span class="ms-3">Email: @storeSettings["StoreEmail"]</span>
-                        }
-                    </div>
+                    @if (storeSettings.ContainsKey("StoreEmail"))
+                    {
+                        <span class="ms-3">Email: @storeSettings["StoreEmail"]</span>
+                    }
                     @if (storeSettings.ContainsKey("GSTIN"))
                     {
-                        <div><strong>GSTIN: @storeSettings["GSTIN"]</strong></div>
+                        <span class="ms-3">GSTIN: @storeSettings["GSTIN"]</span>
                     }
-                }
+                </div>
             </div>
+            <div class="invoice-title">TAX INVOICE</div>
         </div>
 
-        <!-- Invoice Title -->
-        <div class="invoice-title">
-            TAX INVOICE
-        </div>
-
-        <!-- Invoice Details -->
+        <!-- Invoice & Customer Details -->
         <div class="row invoice-details">
             <div class="col-md-6">
                 <h6>Bill To:</h6>
@@ -212,27 +171,21 @@
                     <br>
                     @Model.CustomerPhone
                 }
-                @if (Model.Customer != null && !string.IsNullOrEmpty(Model.Customer.Email))
+                @if (Model.Customer?.Email != null)
                 {
                     <br>
                     @Model.Customer.Email
                 }
-                @if (Model.Customer != null && !string.IsNullOrEmpty(Model.Customer.Address))
+                @if (Model.Customer?.Address != null)
                 {
                     <br>
                     @Model.Customer.Address
                 }
             </div>
             <div class="col-md-6 text-md-end">
-                <div class="mb-2">
-                    <strong>Invoice #:</strong> @Model.InvoiceNumber
-                </div>
-                <div class="mb-2">
-                    <strong>Date:</strong> @Model.SaleDate.ToString("dd/MM/yyyy")
-                </div>
-                <div class="mb-2">
-                    <strong>Payment Method:</strong> @Model.PaymentMethod
-                </div>
+                <div><strong>Invoice #:</strong> @Model.InvoiceNumber</div>
+                <div><strong>Date:</strong> @Model.SaleDate.ToString("dd/MM/yyyy")</div>
+                <div><strong>Payment:</strong> @Model.PaymentMethod</div>
             </div>
         </div>
 
@@ -241,63 +194,86 @@
             <table class="table table-bordered table-invoice">
                 <thead>
                     <tr>
-                        <th style="width: 5%;">#</th>
-                        <th style="width: 40%;">Description</th>
-                        <th style="width: 10%;">Qty</th>
-                        <th style="width: 15%;">Rate</th>
-                        <th style="width: 10%;">GST %</th>
-                        <th style="width: 20%;">Amount</th>
+                        <th>#</th>
+                        <th>Description</th>
+                        <th>Qty</th>
+                        <th>Rate</th>
+                        <th>GST %</th>
+                        <th>Discount</th>
+                        <th>Amount</th>
                     </tr>
                 </thead>
                 <tbody>
                     @{
-                        var itemNumber = 1;
-                        decimal totalQty = 0;
-                        var totalTaxableAmount = 0m;
-                        var totalGSTAmount = 0m;
+                        int itemNumber = 1;
+                        decimal totalQty = 0, totalTaxableAmount = 0, totalDiscountAmount = 0, totalGSTAmount = 0;
                     }
                     @foreach (var item in Model.SaleItems)
                     {
-                        var itemTaxableAmount = item.UnitPrice * item.Quantity;
-                        var itemGSTAmount = itemTaxableAmount * item.GSTRate / 100;
-                        var itemTotal = itemTaxableAmount + itemGSTAmount;
+                        var itemSubtotal = item.UnitPrice * item.Quantity;
+                        var itemDiscount = item.ItemDiscountAmount;
+                        var afterDiscount = itemSubtotal - itemDiscount;
+                        var gstAmount = afterDiscount * item.GSTRate / 100;
+                        var itemTotal = afterDiscount + gstAmount;
 
                         totalQty += item.Quantity;
-                        totalTaxableAmount += itemTaxableAmount;
-                        totalGSTAmount += itemGSTAmount;
+                        totalDiscountAmount += itemDiscount;
+                        totalTaxableAmount += afterDiscount;
+                        totalGSTAmount += gstAmount;
 
                         <tr>
                             <td class="text-center">@itemNumber</td>
                             <td>
                                 <strong>@item.ProductName</strong>
-                                @if (item.Product != null)
+                                @if (item.Product != null &&
+                                                            (!string.IsNullOrEmpty(item.Product.Color) || !string.IsNullOrEmpty(item.Product.Size)))
                                 {
-                                    @if (!string.IsNullOrEmpty(item.Product.Color) || !string.IsNullOrEmpty(item.Product.Size))
-                                    {
-                                        <br>
-                                        <small class="text-muted">
-                                            @(!string.IsNullOrEmpty(item.Product.Color) ? $"Color: {item.Product.Color}" : "")
-                                            @(!string.IsNullOrEmpty(item.Product.Size) ? $" | Size: {item.Product.Size}" : "")
-                                        </small>
-                                    }
+                                    <br />
+                                    <small class="text-muted">
+                                        @(string.IsNullOrEmpty(item.Product.Color) ? "" : $"Color: {item.Product.Color}")
+                                        @(string.IsNullOrEmpty(item.Product.Size) ? "" : $" | Size: {item.Product.Size}")
+                                    </small>
                                 }
                             </td>
-                            <td class="text-center">@item.Quantity</td>
+                            <td class="text-center">@item.Quantity.ToString("0.###") @(item.UnitOfMeasure ?? "Pcs")</td>
                             <td class="text-center">₹@item.UnitPrice.ToString("N2")</td>
                             <td class="text-center">@item.GSTRate%</td>
+                            <td class="text-center">
+                                @if (item.HasItemDiscount)
+                                {
+                                    <div class="text-success">@item.ItemDiscountPercentage.ToString("0.##")%</div>
+                                    <div class="discount-info">-₹@item.ItemDiscountAmount.ToString("N2")</div>
+                                }
+                                else
+                                {
+
+                                    <span>-</span>
+                                }
+                            </td>
                             <td class="text-end">₹@itemTotal.ToString("N2")</td>
                         </tr>
-
                         itemNumber++;
                     }
                 </tbody>
                 <tfoot>
                     <tr class="table-light">
                         <th colspan="2" class="text-end">Total:</th>
-                        <th class="text-center">@totalQty</th>
+                        <th class="text-center">@totalQty.ToString("0.###")</th>
                         <th></th>
                         <th></th>
+                        <th class="text-center">
+                            @if (totalDiscountAmount > 0)
+                            {
+                                <strong class="text-success">-₹@totalDiscountAmount.ToString("N2")</strong>
+                            }
+                            else
+                            {
+
+                                <strong>-</strong>
+                            }
+                        </th>
                         <th class="text-end">@("₹" + (totalTaxableAmount + totalGSTAmount).ToString("N2"))</th>
+
                     </tr>
                 </tfoot>
             </table>
@@ -334,7 +310,7 @@
                     @if (Model.DiscountAmount > 0)
                     {
                         <div class="d-flex justify-content-between mb-2 text-success">
-                            <span>Discount (@Model.DiscountPercentage%):</span>
+                            <span>Discount :</span>
                             <span>-₹@Model.DiscountAmount.ToString("N2")</span>
                         </div>
                     }
@@ -353,41 +329,12 @@
             </div>
         </div>
 
-        
-
-        <!-- Signature Section -->
-        <div class="signature-section no-print">
-            <div class="signature-box">
-                <div>Customer Signature</div>
-            </div>
-            <div class="signature-box">
-                <div>Authorized Signatory</div>
-            </div>
-        </div>
-
         <!-- Footer -->
         <div class="footer-text">
-            <div>Thank you for supporting Khadi and promoting Make in India.</div>
-            <div class="mt-1">Generated on @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</div>
+            Thank you for supporting Khadi and promoting Make in India.<br />
+            Generated on @DateTime.Now.ToString("dd/MM/yyyy HH:mm")
         </div>
     </div>
-
-    <!-- Bootstrap JS for printing -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-
-    <script>
-        // Auto print when page loads (optional)
-        // window.onload = function() { window.print(); }
-
-        // Print shortcut
-        document.addEventListener('keydown', function(e) {
-            if (e.ctrlKey && e.key === 'p') {
-                e.preventDefault();
-                window.print();
-            }
-        });
-    </script>
 </body>
 </html>
 

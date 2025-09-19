@@ -1,393 +1,383 @@
 ﻿@model Return
 @{
-    ViewData["Title"] = $"Return Receipt - {Model.ReturnNumber}";
-    Layout = null; // No layout for printing
-    var storeSettings = ViewBag.StoreSettings as Dictionary<string, string> ?? new Dictionary<string, string>();
+    ViewData["Title"] = "Return Receipt";
+    Layout = null;
+    var storeSettings = ViewBag.StoreSettings as Dictionary<string, string?> ?? new Dictionary<string, string?>();
 }
 
 <!DOCTYPE html>
 <html>
 <head>
-    <title>@ViewData["Title"]</title>
+    <title>Return Receipt - @Model.ReturnNumber</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Courier New', monospace;
-            font-size: 11px;
-            line-height: 1.4;
-            color: #333;
-            background: white;
-            padding: 10mm;
-        }
-
-        .receipt {
-            max-width: 80mm;
-            margin: 0 auto;
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 15px;
-            border-bottom: 2px solid #333;
-            padding-bottom: 10px;
-        }
-
-        .store-name {
-            font-size: 16px;
-            font-weight: bold;
-            margin-bottom: 3px;
-            text-transform: uppercase;
-        }
-
-        .store-info {
-            font-size: 9px;
-            margin-bottom: 2px;
-        }
-
-        .receipt-title {
-            font-size: 14px;
-            font-weight: bold;
-            margin: 10px 0;
-            text-align: center;
-            text-transform: uppercase;
-            border: 1px solid #333;
-            padding: 5px;
-        }
-
-        .return-info {
-            margin-bottom: 15px;
-        }
-
-        .return-info-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 3px;
-        }
-
-        .return-info-label {
-            font-weight: bold;
-        }
-
-        .separator {
-            border-top: 1px dashed #333;
-            margin: 10px 0;
-        }
-
-        .items-header {
-            font-weight: bold;
-            text-align: center;
-            margin-bottom: 8px;
-            text-transform: uppercase;
-        }
-
-        .item {
-            margin-bottom: 8px;
-            padding-bottom: 5px;
-            border-bottom: 1px dotted #666;
-        }
-
-        .item:last-child {
-            border-bottom: none;
-        }
-
-        .item-name {
-            font-weight: bold;
-            margin-bottom: 2px;
-        }
-
-        .item-details {
-            display: flex;
-            justify-content: space-between;
-            font-size: 10px;
-            margin-bottom: 1px;
-        }
-
-        .totals {
-            margin-top: 10px;
-            border-top: 2px solid #333;
-            padding-top: 8px;
-        }
-
-        .total-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 3px;
-        }
-
-        .total-row.final {
-            font-weight: bold;
-            font-size: 12px;
-            margin-top: 5px;
-            padding-top: 5px;
-            border-top: 1px solid #333;
-        }
-
-        .footer {
-            margin-top: 20px;
-            text-align: center;
-            font-size: 9px;
-            border-top: 1px dashed #333;
-            padding-top: 10px;
-        }
-
-        .signature-area {
-            margin-top: 20px;
-            text-align: center;
-        }
-
-        .signature-line {
-            border-bottom: 1px solid #333;
-            width: 150px;
-            margin: 20px auto 5px;
-        }
-
-        .print-info {
-            margin-top: 15px;
-            text-align: center;
-            font-size: 8px;
-            color: #666;
-        }
-
         @@media print {
+            .row {
+                display: flex !important;
+                flex-wrap: wrap !important;
+            }
+
+            .col-md-6 {
+                flex: 0 0 50% !important;
+                max-width: 50% !important;
+            }
+
+            .text-md-end {
+                text-align: right !important;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
             body {
-                padding: 0;
+                font-size: 12px;
             }
-            
-            .receipt {
-                max-width: none;
+
+            .invoice-header {
+                border-bottom: 2px solid #000;
             }
-            
-            .print-info {
-                display: none;
+
+            .invoice-footer {
+                border-top: 1px solid #000;
+                margin-top: 2rem;
+            }
+
+            th, td {
+                border: 1px solid #000 !important;
+                padding: 6px !important;
             }
         }
 
-        .discount-info {
-            color: #008000;
+        @@media screen {
+            body {
+                background-color: #f8f9fa;
+                padding: 2rem;
+            }
+
+            .invoice-container {
+                background: white;
+                max-width: 800px;
+                margin: 0 auto;
+                padding: 2rem;
+                box-shadow: 0 0 20px rgba(0,0,0,0.1);
+                border-radius: 8px;
+            }
+        }
+
+        .invoice-header {
+            text-align: center;
+            padding-bottom: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .store-logo {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #8B4513;
+        }
+
+        .store-details {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .invoice-title {
+            text-align: center;
+            font-size: 1.4rem;
+            font-weight: bold;
+            margin: 1rem 0;
+            color: #333;
+        }
+
+        .notice-box {
+            background-color: #fff3cd;
+            border: 1px solid #ffeeba;
+            padding: 10px;
+            text-align: center;
+            border-radius: 5px;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .invoice-details, .customer-details {
+            font-size: 0.9rem;
+        }
+
+        .info-box {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .table-invoice th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .table-invoice td {
+            vertical-align: middle;
+        }
+
+        .totals-section {
+            background-color: #f8f9fa;
+            padding: 1rem;
+            border-radius: 5px;
+            margin-top: 1rem;
+        }
+
+        .footer-text {
+            text-align: center;
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 2rem;
             font-style: italic;
         }
 
-        .original-sale {
-            background: #f5f5f5;
-            padding: 5px;
-            margin-bottom: 10px;
-            border: 1px solid #ddd;
+        .reason-box {
+            background-color: #eaf4ff;
+            border: 1px solid #bcdcff;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 1rem 0;
         }
 
-        .text-center {
-            text-align: center;
-        }
-
-        .text-right {
-            text-align: right;
+        .discount-info {
+            color: #28a745;
+            font-size: 0.8rem;
+            font-style: italic;
         }
     </style>
 </head>
 <body>
-    <div class="receipt">
-        <!-- Store Header -->
-        <div class="header">
-            <div class="store-name">
-                @(storeSettings.GetValueOrDefault("StoreName", "Khadi Store"))
-            </div>
-            @if (storeSettings.ContainsKey("StoreAddress"))
-            {
-                <div class="store-info">@storeSettings["StoreAddress"]</div>
-            }
-            @if (storeSettings.ContainsKey("StorePhone"))
-            {
-                <div class="store-info">Phone: @storeSettings["StorePhone"]</div>
-            }
-            @if (storeSettings.ContainsKey("StoreEmail"))
-            {
-                <div class="store-info">Email: @storeSettings["StoreEmail"]</div>
-            }
-            @if (storeSettings.ContainsKey("GSTNumber"))
-            {
-                <div class="store-info">GSTIN: @storeSettings["GSTNumber"]</div>
-            }
-        </div>
-
-        <!-- Receipt Title -->
-        <div class="receipt-title">RETURN RECEIPT</div>
-
-        <!-- Return Information -->
-        <div class="return-info">
-            <div class="return-info-row">
-                <span class="return-info-label">Return #:</span>
-                <span>@Model.ReturnNumber</span>
-            </div>
-            <div class="return-info-row">
-                <span class="return-info-label">Date:</span>
-                <span>@Model.ReturnDate.ToString("dd/MM/yyyy HH:mm")</span>
-            </div>
-            <div class="return-info-row">
-                <span class="return-info-label">Customer:</span>
-                <span>@Model.CustomerName</span>
-            </div>
-            @if (!string.IsNullOrEmpty(Model.Sale?.CustomerPhone))
-            {
-                <div class="return-info-row">
-                    <span class="return-info-label">Phone:</span>
-                    <span>@Model.Sale.CustomerPhone</span>
+    <div class="invoice-container">
+        <!-- Header -->
+        <div class="invoice-header">
+            <div class="store-logo">@(storeSettings.GetValueOrDefault("StoreName", "Khadi Store"))</div>
+            <div class="store-details">
+                @if (storeSettings.ContainsKey("StoreAddress"))
+                {
+                    <div>@storeSettings["StoreAddress"]</div>
+                }
+                <div>
+                    @if (storeSettings.ContainsKey("StorePhone"))
+                    {
+                        <span>Phone: @storeSettings["StorePhone"]</span>
+                    }
+                    @if (storeSettings.ContainsKey("StoreGST"))
+                    {
+                        <span class="ms-3">GST: @storeSettings["StoreGST"]</span>
+                    }
+                    @if (storeSettings.ContainsKey("StoreWebsite"))
+                    {
+                        <span class="ms-3">@storeSettings["StoreWebsite"]</span>
+                    }
                 </div>
-            }
-            <div class="return-info-row">
-                <span class="return-info-label">Reason:</span>
-                <span>@Model.Reason</span>
+            </div>
+            <div class="invoice-title">RETURN RECEIPT</div>
+        </div>
+
+        <!-- Notice -->
+        <div class="notice-box">
+            ⚠️ This is a return receipt for returned merchandise
+        </div>
+
+        <!-- Return & Customer -->
+        <div class="row info-box">
+            <div class="col-md-6">
+                <h6>Return Details</h6>
+                <div><strong>No:</strong> @Model.ReturnNumber</div>
+                <div><strong>Date:</strong> @Model.ReturnDate.ToString("dd/MM/yyyy")</div>
+                <div><strong>Time:</strong> @Model.ReturnDate.ToString("HH:mm")</div>
+                <div><strong>Status:</strong> <span class="text-success">@Model.Status</span></div>
+            </div>
+            <div class="col-md-6">
+                <h6>Customer Details</h6>
+                <div><strong>Name:</strong> @Model.CustomerName</div>
+                @if (!string.IsNullOrEmpty(Model.Sale?.CustomerPhone))
+                {
+                    <div><strong>Phone:</strong> @Model.Sale.CustomerPhone</div>
+                }
+                @if (Model.Sale?.Customer?.Address != null)
+                {
+                    <div><strong>Address:</strong> @Model.Sale.Customer.Address</div>
+                }
             </div>
         </div>
 
-        <!-- Original Sale Information -->
-        <div class="original-sale">
-            <div class="text-center" style="font-weight: bold; margin-bottom: 5px;">ORIGINAL SALE</div>
-            <div class="return-info-row">
-                <span>Invoice #:</span>
-                <span>@Model.Sale?.InvoiceNumber</span>
-            </div>
-            <div class="return-info-row">
-                <span>Sale Date:</span>
-                <span>@Model.Sale?.SaleDate.ToString("dd/MM/yyyy")</span>
-            </div>
-            <div class="return-info-row">
-                <span>Original Amount:</span>
-                <span>₹@Model.Sale?.TotalAmount.ToString("N2")</span>
-            </div>
-            @if (Model.Sale?.DiscountPercentage > 0)
-            {
-                <div class="return-info-row">
-                    <span>Original Discount:</span>
-                    <span>@Model.Sale.DiscountPercentage.ToString("0.##")%</span>
+        <!-- Original Sale -->
+        <div class="info-box">
+            <h6 style="color:#0d6efd;">Original Sale Information</h6>
+            <div class="d-flex justify-content-between mt-2">
+                <div>
+                    <strong>Invoice No:</strong> @Model.Sale?.InvoiceNumber<br>
+                    <strong>Date:</strong> @Model.Sale?.SaleDate.ToString("dd/MM/yyyy")
                 </div>
-            }
+                <div class="text-end">
+                    <strong>Original Amount:</strong> ₹@Model.Sale?.TotalAmount.ToString("N2")<br>
+                    <strong>Payment:</strong> @Model.Sale?.PaymentMethod
+                </div>
+            </div>
         </div>
 
-        <div class="separator"></div>
+        <!-- Reason -->
+        @if (!string.IsNullOrEmpty(Model.Reason))
+        {
+            <div class="reason-box">
+                <strong>Reason:</strong> @Model.Reason
+                @if (!string.IsNullOrEmpty(Model.Notes))
+                {
+                    <br>
+                    <strong>Notes:</strong>
+
+                    @Model.Notes
+                }
+            </div>
+        }
 
         <!-- Returned Items -->
-        <div class="items-header">RETURNED ITEMS</div>
+        <div class="table-responsive">
+            <table class="table table-bordered table-invoice">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Description</th>
+                        <th>Return Qty</th>
+                        <th>Rate</th>
+                        <th>GST %</th>
+                        <th>Discount</th>
+                        <th>Refund</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{
+                        int itemNumber = 1;
+                        decimal totalReturnQty = 0, totalRefundBeforeGST = 0, totalDiscountAmount = 0, totalGSTAmount = 0;
+                    }
+                    @foreach (var item in Model.ReturnItems)
+                    {
+                        var itemSubtotal = item.UnitPrice * item.ReturnQuantity;
+                        var itemDiscountAmount = item.DiscountAmount;
+                        var itemAfterDiscount = itemSubtotal - itemDiscountAmount;
+                        var itemGST = item.GSTAmount;
+                        var itemRefundTotal = item.LineTotal;
 
-        @foreach (var item in Model.ReturnItems)
-        {
-            <div class="item">
-                <div class="item-name">@item.ProductName</div>
-                <div class="item-details">
-                    <span>@item.ReturnQuantity.ToString("0.###") @(item.UnitOfMeasure ?? "Pcs")</span>
-                    <span>₹@item.UnitPrice.ToString("N2")</span>
-                </div>
-                <div class="item-details">
-                    <span>Subtotal:</span>
-                    <span>₹@((item.UnitPrice * item.ReturnQuantity).ToString("N2"))</span>
-                </div>
-                @if (item.DiscountAmount > 0)
-                {
-                    <div class="item-details discount-info">
-                        <span>Discount:</span>
-                        <span>-₹@item.DiscountAmount.ToString("N2")</span>
-                    </div>
-                }
-                @if (item.GSTAmount > 0)
-                {
-                    <div class="item-details">
-                        <span>GST (@item.GSTRate%):</span>
-                        <span>₹@item.GSTAmount.ToString("N2")</span>
-                    </div>
-                }
-                <div class="item-details" style="font-weight: bold;">
-                    <span>Item Total:</span>
-                    <span>₹@item.LineTotal.ToString("N2")</span>
-                </div>
-            </div>
-        }
+                        totalReturnQty += item.ReturnQuantity;
+                        totalRefundBeforeGST += itemAfterDiscount;
+                        totalDiscountAmount += itemDiscountAmount;
+                        totalGSTAmount += itemGST;
 
-        <div class="separator"></div>
+                        var originalSaleItem = item.SaleItem;
+                        var discountPercentage = originalSaleItem?.ItemDiscountPercentage ?? 0;
 
-        <!-- Totals -->
-        <div class="totals">
-            <div class="total-row">
-                <span>Subtotal (@Model.ReturnItems.Count item(s)):</span>
-                <span>₹@Model.SubTotal.ToString("N2")</span>
-            </div>
+                        <tr>
+                            <td class="text-center">@itemNumber</td>
+                            <td>
+                                <strong>@item.ProductName</strong>
+                                @if (item.Product != null && (!string.IsNullOrEmpty(item.Product.Color) || !string.IsNullOrEmpty(item.Product.Size)))
+                                {
+                                    <br>
 
-            @if (Model.DiscountAmount > 0)
-            {
-                <div class="total-row discount-info">
-                    <span>Total Discount:</span>
-                    <span>-₹@Model.DiscountAmount.ToString("N2")</span>
-                </div>
-            }
+                                    <small class="text-muted">
+                                        @(string.IsNullOrEmpty(item.Product.Color) ? "" : $"Color: {item.Product.Color}")
+                                        @(string.IsNullOrEmpty(item.Product.Size) ? "" : $" | Size: {item.Product.Size}")
+                                    </small>
+                                }
+                                <div class="text-muted">Original Qty: @originalSaleItem?.Quantity.ToString("0.###") @(item.UnitOfMeasure ?? "Pcs")</div>
+                            </td>
+                            <td class="text-center">@item.ReturnQuantity.ToString("0.###") @(item.UnitOfMeasure ?? "Pcs")</td>
+                            <td class="text-center">₹@item.UnitPrice.ToString("N2")</td>
+                            <td class="text-center">@item.GSTRate%</td>
+                            <td class="text-center">
+                                @if (discountPercentage > 0)
+                                {
+                                    <div class="text-success">@discountPercentage.ToString("0.##")%</div>
+                                    <div class="discount-info">-₹@itemDiscountAmount.ToString("N2")</div>
+                                }
+                                else
+                                {
 
-            @if (Model.GSTAmount > 0)
-            {
-                <div class="total-row">
-                    <span>Total GST:</span>
-                    <span>₹@Model.GSTAmount.ToString("N2")</span>
-                </div>
-            }
+                                    <span>-</span>
+                                }
+                            </td>
+                            <td class="text-end text-danger">₹@itemRefundTotal.ToString("N2")</td>
+                        </tr>
+                        itemNumber++;
+                    }
+                </tbody>
+                <tfoot>
+                    <tr class="table-light">
+                        <th colspan="2" class="text-end">Total:</th>
+                        <th class="text-center">@totalReturnQty.ToString("0.###")</th>
+                        <th></th>
+                        <th></th>
+                        <th class="text-center">
+                            @if (totalDiscountAmount > 0)
+                            {
+                                <strong class="text-success">-₹@totalDiscountAmount.ToString("N2")</strong>
+                            }
+                            else
+                            {
 
-            <div class="total-row final">
-                <span>REFUND AMOUNT:</span>
-                <span>₹@Model.TotalAmount.ToString("N2")</span>
-            </div>
+                                <strong>-</strong>
+                            }
+                        </th>
+                        <th class="text-end text-danger">₹@Model.TotalAmount.ToString("N2")</th>
+                    </tr>
+                </tfoot>
+            </table>
         </div>
 
-        @if (!string.IsNullOrWhiteSpace(Model.Notes))
-        {
-            <div class="separator"></div>
-            <div style="margin-bottom: 10px;">
-                <div style="font-weight: bold;">Notes:</div>
-                <div style="font-size: 10px;">@Model.Notes</div>
+        <!-- Totals -->
+        <div class="totals-section">
+            <div class="d-flex justify-content-between mb-2">
+                <span>Return Subtotal:</span>
+                <span>₹@Model.SubTotal.ToString("N2")</span>
             </div>
-        }
-
-        <!-- Signature Area -->
-        <div class="signature-area">
-            <div class="signature-line"></div>
-            <div>Customer Signature</div>
+            @if (totalDiscountAmount > 0)
+            {
+                <div class="d-flex justify-content-between mb-2 text-success">
+                    <span>Less: Discounts Refunded:</span>
+                    <span>-₹@totalDiscountAmount.ToString("N2")</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Taxable Return Amount:</span>
+                    <span>₹@totalRefundBeforeGST.ToString("N2")</span>
+                </div>
+            }
+            @if (totalGSTAmount > 0)
+            {
+                <div class="d-flex justify-content-between mb-2">
+                    <span>GST Refunded:</span>
+                    <span>₹@totalGSTAmount.ToString("N2")</span>
+                </div>
+            }
+            <hr>
+            <div class="d-flex justify-content-between mb-3">
+                <strong style="font-size: 1.1rem;">Total Refund:</strong>
+                <strong style="font-size: 1.2rem; color: #dc3545;">₹@Model.TotalAmount.ToString("N2")</strong>
+            </div>
         </div>
 
         <!-- Footer -->
-        <div class="footer">
-            <div>Thank you for shopping with us!</div>
-            <div>Return processed successfully</div>
-            @if (Model.DiscountAmount > 0)
-            {
-                <div class="discount-info" style="margin-top: 5px;">
-                    * Original sale discount applied proportionally
-                </div>
-            }
-        </div>
-
-        <!-- Print Information (hidden in print) -->
-        <div class="print-info">
-            <div>Return Status: @Model.Status</div>
-            <div>Printed on: @DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss")</div>
-            <div>Stock has been restored to inventory</div>
+        <div class="footer-text">
+            Return processed successfully.<br />
+            Returned Items: @Model.ReturnItems.Count | Total Qty: @totalReturnQty.ToString("0.###")<br />
+            Generated on @DateTime.Now.ToString("dd/MM/yyyy HH:mm")<br />
+            <small>This is a computer-generated return receipt</small>
         </div>
     </div>
 
     <script>
-        // Auto-print when page loads
         window.onload = function() {
-            // Small delay to ensure page is fully loaded
-            setTimeout(function() {
-                window.print();
-            }, 500);
-        };
-
-        // Handle print completion
-        window.onafterprint = function() {
-            // Ask if user wants to close the window
-            if (confirm('Print completed. Close this window?')) {
-                window.close();
-            }
+            setTimeout(function() { window.print(); }, 500);
         };
     </script>
 </body>

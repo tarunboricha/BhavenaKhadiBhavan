@@ -4,7 +4,7 @@ using BhavenaKhadiBhavan.Models;
 namespace BhavenaKhadiBhavan.Data
 {
     /// <summary>
-    /// Simple Entity Framework DbContext for Khadi Store
+    /// FIXED: ApplicationDbContext with proper item-level discount configuration and corrected seed data
     /// </summary>
     public class ApplicationDbContext : DbContext
     {
@@ -31,6 +31,8 @@ namespace BhavenaKhadiBhavan.Data
                 entity.Property(p => p.PurchasePrice).HasPrecision(18, 2);
                 entity.Property(p => p.SalePrice).HasPrecision(18, 2);
                 entity.Property(p => p.GSTRate).HasPrecision(5, 2);
+                entity.Property(p => p.StockQuantity).HasPrecision(10, 3);
+                entity.Property(p => p.MinimumStock).HasPrecision(10, 3);
 
                 // Index for better performance
                 entity.HasIndex(p => p.Name);
@@ -70,12 +72,30 @@ namespace BhavenaKhadiBhavan.Data
                 entity.HasIndex(s => s.Status);
             });
 
+            // CRITICAL FIX: Configure SaleItem with item-level discount fields
             modelBuilder.Entity<SaleItem>(entity =>
             {
+                entity.Property(si => si.Quantity).HasPrecision(10, 3);
                 entity.Property(si => si.UnitPrice).HasPrecision(18, 2);
                 entity.Property(si => si.GSTRate).HasPrecision(5, 2);
                 entity.Property(si => si.GSTAmount).HasPrecision(18, 2);
                 entity.Property(si => si.LineTotal).HasPrecision(18, 2);
+                entity.Property(si => si.ReturnedQuantity).HasPrecision(10, 3);
+
+                // CRITICAL: Add item-level discount configurations
+                entity.Property(si => si.ItemDiscountPercentage)
+                      .HasPrecision(5, 2)
+                      .HasDefaultValue(0);
+
+                entity.Property(si => si.ItemDiscountAmount)
+                      .HasPrecision(18, 2)
+                      .HasDefaultValue(0);
+
+                // Add check constraints
+                entity.HasCheckConstraint("CK_SaleItem_ItemDiscountPercentage",
+                                         "[ItemDiscountPercentage] >= 0 AND [ItemDiscountPercentage] <= 100");
+                entity.HasCheckConstraint("CK_SaleItem_ItemDiscountAmount",
+                                         "[ItemDiscountAmount] >= 0");
             });
 
             modelBuilder.Entity<Return>(entity =>
@@ -94,6 +114,7 @@ namespace BhavenaKhadiBhavan.Data
 
             modelBuilder.Entity<ReturnItem>(entity =>
             {
+                entity.Property(ri => ri.ReturnQuantity).HasPrecision(10, 3);
                 entity.Property(ri => ri.UnitPrice).HasPrecision(18, 2);
                 entity.Property(ri => ri.DiscountAmount).HasPrecision(18, 2);
                 entity.Property(ri => ri.GSTRate).HasPrecision(5, 2);
@@ -190,24 +211,26 @@ namespace BhavenaKhadiBhavan.Data
                 new Setting { Id = 9, Key = "Currency", Value = "INR", Description = "Store currency", Category = "Store" }
             );
 
-            // Seed sample products
+            // CRITICAL FIX: Corrected seed products with proper names and sizes
             modelBuilder.Entity<Product>().HasData(
+                // Men's Kurtas with different sizes
                 new Product
                 {
                     Id = 1,
-                    Name = "Cotton Khadi Kurta - White",
+                    Name = "Cotton Khadi Kurta",
                     Description = "Pure cotton khadi kurta in white color",
                     CategoryId = 1,
                     PurchasePrice = 400,
                     SalePrice = 650,
                     StockQuantity = 25,
                     MinimumStock = 5,
-                    SKU = "KHD-CK-W-001",
+                    SKU = "KHD-CK-W-M-001",
                     FabricType = "Cotton Khadi",
                     Color = "White",
                     Size = "M",
                     Pattern = "Solid",
-                    GSTRate = 0.0m,
+                    UnitOfMeasure = "Piece",
+                    GSTRate = 5.0m,
                     IsActive = true,
                     CreatedAt = DateTime.Now,
                     UpdatedAt = DateTime.Now
@@ -215,7 +238,116 @@ namespace BhavenaKhadiBhavan.Data
                 new Product
                 {
                     Id = 2,
-                    Name = "Silk Khadi Saree - Blue",
+                    Name = "Cotton Khadi Kurta",
+                    Description = "Pure cotton khadi kurta in white color",
+                    CategoryId = 1,
+                    PurchasePrice = 400,
+                    SalePrice = 650,
+                    StockQuantity = 20,
+                    MinimumStock = 5,
+                    SKU = "KHD-CK-W-L-002",
+                    FabricType = "Cotton Khadi",
+                    Color = "White",
+                    Size = "L",
+                    Pattern = "Solid",
+                    UnitOfMeasure = "Piece",
+                    GSTRate = 5.0m,
+                    IsActive = true,
+                    CreatedAt = DateTime.Now,
+                    UpdatedAt = DateTime.Now
+                },
+                new Product
+                {
+                    Id = 3,
+                    Name = "Cotton Khadi Kurta",
+                    Description = "Pure cotton khadi kurta in white color",
+                    CategoryId = 1,
+                    PurchasePrice = 400,
+                    SalePrice = 650,
+                    StockQuantity = 15,
+                    MinimumStock = 5,
+                    SKU = "KHD-CK-W-XL-003",
+                    FabricType = "Cotton Khadi",
+                    Color = "White",
+                    Size = "XL",
+                    Pattern = "Solid",
+                    UnitOfMeasure = "Piece",
+                    GSTRate = 5.0m,
+                    IsActive = true,
+                    CreatedAt = DateTime.Now,
+                    UpdatedAt = DateTime.Now
+                },
+
+                // CRITICAL FIX: Women's Khadi Kurta with different sizes
+                new Product
+                {
+                    Id = 4,
+                    Name = "Women's Khadi Kurta",
+                    Description = "Cotton khadi kurta for women in pink",
+                    CategoryId = 2,
+                    PurchasePrice = 380,
+                    SalePrice = 580,
+                    StockQuantity = 30,
+                    MinimumStock = 8,
+                    SKU = "KHD-WK-P-S-004",
+                    FabricType = "Cotton Khadi",
+                    Color = "Pink",
+                    Size = "S",
+                    Pattern = "Printed",
+                    UnitOfMeasure = "Piece",
+                    GSTRate = 5.0m,
+                    IsActive = true,
+                    CreatedAt = DateTime.Now,
+                    UpdatedAt = DateTime.Now
+                },
+                new Product
+                {
+                    Id = 5,
+                    Name = "Women's Khadi Kurta",
+                    Description = "Cotton khadi kurta for women in pink",
+                    CategoryId = 2,
+                    PurchasePrice = 380,
+                    SalePrice = 580,
+                    StockQuantity = 25,
+                    MinimumStock = 8,
+                    SKU = "KHD-WK-P-M-005",
+                    FabricType = "Cotton Khadi",
+                    Color = "Pink",
+                    Size = "M",
+                    Pattern = "Printed",
+                    UnitOfMeasure = "Piece",
+                    GSTRate = 5.0m,
+                    IsActive = true,
+                    CreatedAt = DateTime.Now,
+                    UpdatedAt = DateTime.Now
+                },
+                new Product
+                {
+                    Id = 6,
+                    Name = "Women's Khadi Kurta",
+                    Description = "Cotton khadi kurta for women in pink",
+                    CategoryId = 2,
+                    PurchasePrice = 380,
+                    SalePrice = 580,
+                    StockQuantity = 20,
+                    MinimumStock = 8,
+                    SKU = "KHD-WK-P-L-006",
+                    FabricType = "Cotton Khadi",
+                    Color = "Pink",
+                    Size = "L",
+                    Pattern = "Printed",
+                    UnitOfMeasure = "Piece",
+                    GSTRate = 5.0m,
+                    IsActive = true,
+                    CreatedAt = DateTime.Now,
+                    UpdatedAt = DateTime.Now
+                },
+
+                // Other products
+                new Product
+                {
+                    Id = 7,
+                    Name = "Silk Khadi Saree",
                     Description = "Handwoven silk khadi saree in royal blue",
                     CategoryId = 4,
                     PurchasePrice = 1200,
@@ -227,15 +359,16 @@ namespace BhavenaKhadiBhavan.Data
                     Color = "Blue",
                     Size = "Free Size",
                     Pattern = "Handloom",
-                    GSTRate = 0.0m,
+                    UnitOfMeasure = "Piece",
+                    GSTRate = 5.0m,
                     IsActive = true,
                     CreatedAt = DateTime.Now,
                     UpdatedAt = DateTime.Now
                 },
                 new Product
                 {
-                    Id = 3,
-                    Name = "Traditional Dhoti - Cream",
+                    Id = 8,
+                    Name = "Traditional Dhoti",
                     Description = "Pure cotton dhoti in cream color",
                     CategoryId = 3,
                     PurchasePrice = 300,
@@ -247,34 +380,15 @@ namespace BhavenaKhadiBhavan.Data
                     Color = "Cream",
                     Size = "Free Size",
                     Pattern = "Solid",
-                    GSTRate = 0.0m,
+                    UnitOfMeasure = "Piece",
+                    GSTRate = 5.0m,
                     IsActive = true,
                     CreatedAt = DateTime.Now,
                     UpdatedAt = DateTime.Now
                 },
                 new Product
                 {
-                    Id = 4,
-                    Name = "Women's Khadi Kurta - Pink",
-                    Description = "Cotton khadi kurta for women in pink",
-                    CategoryId = 2,
-                    PurchasePrice = 380,
-                    SalePrice = 580,
-                    StockQuantity = 30,
-                    MinimumStock = 8,
-                    SKU = "KHD-WK-P-001",
-                    FabricType = "Cotton Khadi",
-                    Color = "Pink",
-                    Size = "L",
-                    Pattern = "Printed",
-                    GSTRate = 0.0m,
-                    IsActive = true,
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
-                },
-                new Product
-                {
-                    Id = 5,
+                    Id = 9,
                     Name = "Khadi Cotton Fabric",
                     Description = "Pure khadi cotton fabric per meter",
                     CategoryId = 6,
@@ -287,14 +401,15 @@ namespace BhavenaKhadiBhavan.Data
                     Color = "Natural",
                     Size = "Per Meter",
                     Pattern = "Plain",
-                    GSTRate = 0.0m,
+                    UnitOfMeasure = "Meter",
+                    GSTRate = 5.0m,
                     IsActive = true,
                     CreatedAt = DateTime.Now,
                     UpdatedAt = DateTime.Now
                 }
             );
 
-            // Seed sample customer
+            // Seed sample customers
             modelBuilder.Entity<Customer>().HasData(
                 new Customer
                 {
@@ -357,7 +472,7 @@ namespace BhavenaKhadiBhavan.Data
             // Add any additional test data if needed
             if (!context.Sales.Any())
             {
-                // Add sample sales data for testing
+                // Add sample sales data for testing with item-level discounts
                 var testSale = new Sale
                 {
                     InvoiceNumber = "KHD000001",
@@ -379,12 +494,16 @@ namespace BhavenaKhadiBhavan.Data
                 {
                     SaleId = testSale.Id,
                     ProductId = 1,
-                    ProductName = "Cotton Khadi Kurta - White",
+                    ProductName = "Cotton Khadi Kurta",
                     Quantity = 1,
                     UnitPrice = 650,
                     GSTRate = 5.0m,
                     GSTAmount = 32.50m,
-                    LineTotal = 682.50m
+                    LineTotal = 682.50m,
+                    UnitOfMeasure = "Piece",
+                    // Item-level discount fields
+                    ItemDiscountPercentage = 0,
+                    ItemDiscountAmount = 0
                 };
 
                 context.SaleItems.Add(testSaleItem);

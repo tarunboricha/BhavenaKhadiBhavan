@@ -37,7 +37,7 @@ namespace BhavenaKhadiBhavan.Services
         }
 
         /// <summary>
-        /// CRITICAL FIX: Get detailed returnable item information
+        /// CRITICAL FIX: Get detailed returnable item information with individual discounts
         /// </summary>
         public async Task<List<ReturnableItemInfo>> GetReturnableItemsAsync(int saleId)
         {
@@ -64,7 +64,10 @@ namespace BhavenaKhadiBhavan.Services
                         ReturnableQuantity = returnableQuantity,
                         UnitPrice = saleItem.UnitPrice,
                         GSTRate = saleItem.GSTRate,
-                        UnitOfMeasure = saleItem.UnitOfMeasure ?? "Piece"
+                        UnitOfMeasure = saleItem.UnitOfMeasure ?? "Piece",
+                        // CRITICAL FIX: Include individual item discount info
+                        ItemDiscountPercentage = saleItem.ItemDiscountPercentage,
+                        ItemDiscountAmount = saleItem.ItemDiscountAmount
                     });
                 }
             }
@@ -73,7 +76,7 @@ namespace BhavenaKhadiBhavan.Services
         }
 
         /// <summary>
-        /// CRITICAL FIX: Calculate return totals with proper discount handling
+        /// CRITICAL FIX: Calculate return totals with INDIVIDUAL item discount handling
         /// </summary>
         public async Task<ReturnCalculationResult> CalculateReturnTotalsAsync(int saleId, Dictionary<int, decimal> returnQuantities)
         {
@@ -98,12 +101,12 @@ namespace BhavenaKhadiBhavan.Services
 
                 // Calculate proportional amounts
                 var lineSubtotal = saleItem.UnitPrice * returnQuantity;
-                var lineGST = lineSubtotal * (saleItem.GSTRate / 100);
 
-                // CRITICAL: Apply proportional discount from original sale
-                var totalBeforeDiscount = lineSubtotal + lineGST;
-                var proportionalDiscount = totalBeforeDiscount * (sale.DiscountPercentage / 100);
-                var lineTotal = totalBeforeDiscount - proportionalDiscount;
+                // CRITICAL FIX: Use INDIVIDUAL item discount, not overall sale discount
+                var proportionalDiscount = (lineSubtotal * saleItem.ItemDiscountPercentage) / 100;
+                var lineAfterDiscount = lineSubtotal - proportionalDiscount;
+                var lineGST = lineAfterDiscount * (saleItem.GSTRate / 100);
+                var lineTotal = lineAfterDiscount + lineGST;
 
                 result.SubTotal += lineSubtotal;
                 result.GSTAmount += lineGST;
@@ -120,7 +123,10 @@ namespace BhavenaKhadiBhavan.Services
                     LineGST = lineGST,
                     LineDiscount = proportionalDiscount,
                     LineTotal = lineTotal,
-                    UnitOfMeasure = saleItem.UnitOfMeasure ?? "Piece"
+                    UnitOfMeasure = saleItem.UnitOfMeasure ?? "Piece",
+                    // CRITICAL: Include individual discount info in return calculation
+                    ItemDiscountPercentage = saleItem.ItemDiscountPercentage,
+                    ItemDiscountAmount = proportionalDiscount
                 });
             }
 
@@ -167,7 +173,7 @@ namespace BhavenaKhadiBhavan.Services
         }
 
         /// <summary>
-        /// ENHANCED: Create return with proper quantity handling
+        /// ENHANCED: Create return with proper individual discount handling
         /// </summary>
         public async Task<Return> CreateReturnAsync(Return returnEntity, List<ReturnItem> returnItems)
         {
@@ -189,7 +195,7 @@ namespace BhavenaKhadiBhavan.Services
                     throw new InvalidOperationException("Invalid return quantities");
                 }
 
-                // Calculate accurate totals
+                // Calculate accurate totals with INDIVIDUAL discounts
                 var calculation = await CalculateReturnTotalsAsync(returnEntity.SaleId, returnQuantities);
 
                 returnEntity.SubTotal = calculation.SubTotal;
@@ -201,17 +207,17 @@ namespace BhavenaKhadiBhavan.Services
                 _context.Returns.Add(returnEntity);
                 await _context.SaveChangesAsync();
 
-                // Process each return item
+                // Process each return item with individual discount calculations
                 foreach (var returnItem in returnItems)
                 {
                     returnItem.ReturnId = returnEntity.Id;
 
-                    // Get matching calculation
+                    // Get matching calculation with individual discount
                     var calc = calculation.Items.FirstOrDefault(i => i.SaleItemId == returnItem.SaleItemId);
                     if (calc != null)
                     {
                         returnItem.GSTAmount = calc.LineGST;
-                        returnItem.DiscountAmount = calc.LineDiscount;
+                        returnItem.DiscountAmount = calc.LineDiscount; // This is now individual item discount
                         returnItem.LineTotal = calc.LineTotal;
                     }
 
@@ -221,8 +227,8 @@ namespace BhavenaKhadiBhavan.Services
                     {
                         saleItem.ReturnedQuantity += returnItem.ReturnQuantity;
 
-                        _logger.LogInformation("Updated sale item {SaleItemId}: returned quantity {ReturnedQuantity} of {TotalQuantity}",
-                            saleItem.Id, saleItem.ReturnedQuantity, saleItem.Quantity);
+                        _logger.LogInformation("Updated sale item {SaleItemId}: returned quantity {ReturnedQuantity} of {TotalQuantity}, individual discount {DiscountPercent}%",
+                            saleItem.Id, saleItem.ReturnedQuantity, saleItem.Quantity, saleItem.ItemDiscountPercentage);
                     }
 
                     // Restore stock to product
@@ -242,7 +248,7 @@ namespace BhavenaKhadiBhavan.Services
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
-                _logger.LogInformation("Return {ReturnNumber} created successfully with total refund ₹{TotalAmount}",
+                _logger.LogInformation("Return {ReturnNumber} created successfully with total refund ₹{TotalAmount} (using individual item discounts)",
                     returnEntity.ReturnNumber, returnEntity.TotalAmount);
 
                 return returnEntity;
@@ -262,11 +268,11 @@ namespace BhavenaKhadiBhavan.Services
         {
             return await _context.Returns
                 .Include(r => r.Sale)
-                    .ThenInclude(s => s.Customer)
+                .ThenInclude(s => s.Customer)
                 .Include(r => r.ReturnItems)
-                    .ThenInclude(ri => ri.Product)
+                .ThenInclude(ri => ri.Product)
                 .Include(r => r.ReturnItems)
-                    .ThenInclude(ri => ri.SaleItem)
+                .ThenInclude(ri => ri.SaleItem)
                 .FirstOrDefaultAsync(r => r.Id == id);
         }
 
@@ -344,4 +350,8 @@ namespace BhavenaKhadiBhavan.Services
             return $"{prefix}{sequence:D3}";
         }
     }
+
+    /// <summary>
+    /// ENHANCED: Returnable item info with individual discount data
+    /// </summary>
 }

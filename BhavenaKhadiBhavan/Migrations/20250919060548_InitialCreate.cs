@@ -102,8 +102,8 @@ namespace BhavenaKhadiBhavan.Migrations
                     PurchasePrice = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
                     SalePrice = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
                     GSTRate = table.Column<decimal>(type: "decimal(5,2)", precision: 5, scale: 2, nullable: false),
-                    StockQuantity = table.Column<decimal>(type: "decimal(10,3)", nullable: false),
-                    MinimumStock = table.Column<decimal>(type: "decimal(10,3)", nullable: false),
+                    StockQuantity = table.Column<decimal>(type: "decimal(10,3)", precision: 10, scale: 3, nullable: false),
+                    MinimumStock = table.Column<decimal>(type: "decimal(10,3)", precision: 10, scale: 3, nullable: false),
                     UnitOfMeasure = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
                     IsActive = table.Column<bool>(type: "bit", nullable: false),
                     CategoryId = table.Column<int>(type: "int", nullable: false),
@@ -189,19 +189,21 @@ namespace BhavenaKhadiBhavan.Migrations
                     SaleId = table.Column<int>(type: "int", nullable: false),
                     ProductId = table.Column<int>(type: "int", nullable: false),
                     ProductName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    Quantity = table.Column<decimal>(type: "decimal(10,3)", nullable: false),
+                    Quantity = table.Column<decimal>(type: "decimal(10,3)", precision: 10, scale: 3, nullable: false),
                     UnitPrice = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
                     GSTRate = table.Column<decimal>(type: "decimal(5,2)", precision: 5, scale: 2, nullable: false),
                     GSTAmount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
                     LineTotal = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
-                    ReturnedQuantity = table.Column<decimal>(type: "decimal(10,3)", nullable: false),
+                    ReturnedQuantity = table.Column<decimal>(type: "decimal(10,3)", precision: 10, scale: 3, nullable: false),
                     UnitOfMeasure = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
-                    ItemDiscountPercentage = table.Column<decimal>(type: "decimal(5,2)", nullable: false),
-                    ItemDiscountAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false)
+                    ItemDiscountPercentage = table.Column<decimal>(type: "decimal(5,2)", precision: 5, scale: 2, nullable: false, defaultValue: 0m),
+                    ItemDiscountAmount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false, defaultValue: 0m)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_SaleItems", x => x.Id);
+                    table.CheckConstraint("CK_SaleItem_ItemDiscountAmount", "[ItemDiscountAmount] >= 0");
+                    table.CheckConstraint("CK_SaleItem_ItemDiscountPercentage", "[ItemDiscountPercentage] >= 0 AND [ItemDiscountPercentage] <= 100");
                     table.ForeignKey(
                         name: "FK_SaleItems_Products_ProductId",
                         column: x => x.ProductId,
@@ -226,7 +228,7 @@ namespace BhavenaKhadiBhavan.Migrations
                     SaleItemId = table.Column<int>(type: "int", nullable: false),
                     ProductId = table.Column<int>(type: "int", nullable: false),
                     ProductName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    ReturnQuantity = table.Column<decimal>(type: "decimal(10,3)", nullable: false),
+                    ReturnQuantity = table.Column<decimal>(type: "decimal(10,3)", precision: 10, scale: 3, nullable: false),
                     UnitPrice = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
                     GSTRate = table.Column<decimal>(type: "decimal(5,2)", precision: 5, scale: 2, nullable: false),
                     GSTAmount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
@@ -262,13 +264,13 @@ namespace BhavenaKhadiBhavan.Migrations
                 columns: new[] { "Id", "CreatedAt", "Description", "IsActive", "Name" },
                 values: new object[,]
                 {
-                    { 1, new DateTime(2025, 9, 19, 10, 47, 19, 541, DateTimeKind.Local).AddTicks(5721), "Traditional kurtas for men", true, "Men's Kurtas" },
-                    { 2, new DateTime(2025, 9, 19, 10, 47, 19, 541, DateTimeKind.Local).AddTicks(5725), "Traditional kurtas for women", true, "Women's Kurtas" },
-                    { 3, new DateTime(2025, 9, 19, 10, 47, 19, 541, DateTimeKind.Local).AddTicks(5727), "Traditional dhotis", true, "Dhotis" },
-                    { 4, new DateTime(2025, 9, 19, 10, 47, 19, 541, DateTimeKind.Local).AddTicks(5730), "Traditional sarees", true, "Sarees" },
-                    { 5, new DateTime(2025, 9, 19, 10, 47, 19, 541, DateTimeKind.Local).AddTicks(5732), "Khadi shirts", true, "Shirts" },
-                    { 6, new DateTime(2025, 9, 19, 10, 47, 19, 541, DateTimeKind.Local).AddTicks(5734), "Khadi fabrics by meter", true, "Fabrics" },
-                    { 7, new DateTime(2025, 9, 19, 10, 47, 19, 541, DateTimeKind.Local).AddTicks(5736), "Khadi accessories and bags", true, "Accessories" }
+                    { 1, new DateTime(2025, 9, 19, 11, 35, 47, 868, DateTimeKind.Local).AddTicks(6574), "Traditional kurtas for men", true, "Men's Kurtas" },
+                    { 2, new DateTime(2025, 9, 19, 11, 35, 47, 868, DateTimeKind.Local).AddTicks(6577), "Traditional kurtas for women", true, "Women's Kurtas" },
+                    { 3, new DateTime(2025, 9, 19, 11, 35, 47, 868, DateTimeKind.Local).AddTicks(6579), "Traditional dhotis", true, "Dhotis" },
+                    { 4, new DateTime(2025, 9, 19, 11, 35, 47, 868, DateTimeKind.Local).AddTicks(6580), "Traditional sarees", true, "Sarees" },
+                    { 5, new DateTime(2025, 9, 19, 11, 35, 47, 868, DateTimeKind.Local).AddTicks(6582), "Khadi shirts", true, "Shirts" },
+                    { 6, new DateTime(2025, 9, 19, 11, 35, 47, 868, DateTimeKind.Local).AddTicks(6584), "Khadi fabrics by meter", true, "Fabrics" },
+                    { 7, new DateTime(2025, 9, 19, 11, 35, 47, 868, DateTimeKind.Local).AddTicks(6586), "Khadi accessories and bags", true, "Accessories" }
                 });
 
             migrationBuilder.InsertData(
@@ -276,8 +278,8 @@ namespace BhavenaKhadiBhavan.Migrations
                 columns: new[] { "Id", "Address", "CreatedAt", "Email", "LastPurchaseDate", "Name", "Phone", "TotalOrders", "TotalPurchases" },
                 values: new object[,]
                 {
-                    { 1, "456 MG Road, Mumbai, Maharashtra - 400001", new DateTime(2025, 9, 19, 10, 47, 19, 728, DateTimeKind.Local).AddTicks(8050), "rajesh@example.com", null, "Rajesh Kumar", "9876543210", 0, 0m },
-                    { 2, "789 Park Street, Delhi - 110001", new DateTime(2025, 9, 19, 10, 47, 19, 728, DateTimeKind.Local).AddTicks(8054), "priya@example.com", null, "Priya Sharma", "9876543211", 0, 0m }
+                    { 1, "456 MG Road, Mumbai, Maharashtra - 400001", new DateTime(2025, 9, 19, 11, 35, 48, 29, DateTimeKind.Local).AddTicks(9201), "rajesh@example.com", null, "Rajesh Kumar", "9876543210", 0, 0m },
+                    { 2, "789 Park Street, Delhi - 110001", new DateTime(2025, 9, 19, 11, 35, 48, 29, DateTimeKind.Local).AddTicks(9204), "priya@example.com", null, "Priya Sharma", "9876543211", 0, 0m }
                 });
 
             migrationBuilder.InsertData(
@@ -285,32 +287,36 @@ namespace BhavenaKhadiBhavan.Migrations
                 columns: new[] { "Id", "Category", "Description", "Key", "UpdatedAt", "Value" },
                 values: new object[,]
                 {
-                    { 1, "Store", "Store name for invoices", "StoreName", new DateTime(2025, 9, 19, 10, 47, 19, 728, DateTimeKind.Local).AddTicks(7663), "Bhavena Khadi Bhavan" },
-                    { 2, "Store", "Store address", "StoreAddress", new DateTime(2025, 9, 19, 10, 47, 19, 728, DateTimeKind.Local).AddTicks(7668), "Shop No 102, Viklang Mart, Nr. Water Tank, Kaliyabid, Bhavnagar, Gujarat - 364002" },
-                    { 3, "Store", "Store phone number", "StorePhone", new DateTime(2025, 9, 19, 10, 47, 19, 728, DateTimeKind.Local).AddTicks(7669), "+91 278-4051174" },
-                    { 4, "Tax", "Store GST number", "GSTNumber", new DateTime(2025, 9, 19, 10, 47, 19, 728, DateTimeKind.Local).AddTicks(7671), "27AAAAA0000A1Z5" },
-                    { 5, "Store", "Invoice number prefix", "InvoicePrefix", new DateTime(2025, 9, 19, 10, 47, 19, 728, DateTimeKind.Local).AddTicks(7673), "KHD" },
-                    { 6, "Store", "Return number prefix", "ReturnPrefix", new DateTime(2025, 9, 19, 10, 47, 19, 728, DateTimeKind.Local).AddTicks(7674), "RET" },
-                    { 7, "Tax", "Default GST rate percentage", "DefaultGSTRate", new DateTime(2025, 9, 19, 10, 47, 19, 728, DateTimeKind.Local).AddTicks(7675), "5.0" },
-                    { 8, "Inventory", "Default low stock threshold", "LowStockThreshold", new DateTime(2025, 9, 19, 10, 47, 19, 728, DateTimeKind.Local).AddTicks(7677), "5" },
-                    { 9, "Store", "Store currency", "Currency", new DateTime(2025, 9, 19, 10, 47, 19, 728, DateTimeKind.Local).AddTicks(7678), "INR" }
+                    { 1, "Store", "Store name for invoices", "StoreName", new DateTime(2025, 9, 19, 11, 35, 48, 29, DateTimeKind.Local).AddTicks(8840), "Bhavena Khadi Bhavan" },
+                    { 2, "Store", "Store address", "StoreAddress", new DateTime(2025, 9, 19, 11, 35, 48, 29, DateTimeKind.Local).AddTicks(8843), "Shop No 102, Viklang Mart, Nr. Water Tank, Kaliyabid, Bhavnagar, Gujarat - 364002" },
+                    { 3, "Store", "Store phone number", "StorePhone", new DateTime(2025, 9, 19, 11, 35, 48, 29, DateTimeKind.Local).AddTicks(8845), "+91 278-4051174" },
+                    { 4, "Tax", "Store GST number", "GSTNumber", new DateTime(2025, 9, 19, 11, 35, 48, 29, DateTimeKind.Local).AddTicks(8846), "27AAAAA0000A1Z5" },
+                    { 5, "Store", "Invoice number prefix", "InvoicePrefix", new DateTime(2025, 9, 19, 11, 35, 48, 29, DateTimeKind.Local).AddTicks(8848), "KHD" },
+                    { 6, "Store", "Return number prefix", "ReturnPrefix", new DateTime(2025, 9, 19, 11, 35, 48, 29, DateTimeKind.Local).AddTicks(8849), "RET" },
+                    { 7, "Tax", "Default GST rate percentage", "DefaultGSTRate", new DateTime(2025, 9, 19, 11, 35, 48, 29, DateTimeKind.Local).AddTicks(8850), "5.0" },
+                    { 8, "Inventory", "Default low stock threshold", "LowStockThreshold", new DateTime(2025, 9, 19, 11, 35, 48, 29, DateTimeKind.Local).AddTicks(8852), "5" },
+                    { 9, "Store", "Store currency", "Currency", new DateTime(2025, 9, 19, 11, 35, 48, 29, DateTimeKind.Local).AddTicks(8853), "INR" }
                 });
 
             migrationBuilder.InsertData(
                 table: "Users",
                 columns: new[] { "Id", "CreatedAt", "Email", "FullName", "IsActive", "LastLogin", "PasswordHash", "Role", "Username" },
-                values: new object[] { 1, new DateTime(2025, 9, 19, 10, 47, 19, 728, DateTimeKind.Local).AddTicks(7275), "admin@khadistore.com", "Store Administrator", true, null, "$2a$11$Nkr/sa8ys1zlp1Hb0A8/seNiNObm/vA2NrviHj7DsqQb8Behgjv3e", "Admin", "admin" });
+                values: new object[] { 1, new DateTime(2025, 9, 19, 11, 35, 48, 29, DateTimeKind.Local).AddTicks(8359), "admin@khadistore.com", "Store Administrator", true, null, "$2a$11$yUWPn1DJV/5D950avjV3z.7Zi13qL9VRG6xTSA/mr4dsbK8S0XEiK", "Admin", "admin" });
 
             migrationBuilder.InsertData(
                 table: "Products",
                 columns: new[] { "Id", "CategoryId", "Color", "CreatedAt", "Description", "FabricType", "GSTRate", "IsActive", "MinimumStock", "Name", "Pattern", "PurchasePrice", "SKU", "SalePrice", "Size", "StockQuantity", "UnitOfMeasure", "UpdatedAt" },
                 values: new object[,]
                 {
-                    { 1, 1, "White", new DateTime(2025, 9, 19, 10, 47, 19, 728, DateTimeKind.Local).AddTicks(7905), "Pure cotton khadi kurta in white color", "Cotton Khadi", 0.0m, true, 5m, "Cotton Khadi Kurta - White", "Solid", 400m, "KHD-CK-W-001", 650m, "M", 25m, "Piece", new DateTime(2025, 9, 19, 10, 47, 19, 728, DateTimeKind.Local).AddTicks(7906) },
-                    { 2, 4, "Blue", new DateTime(2025, 9, 19, 10, 47, 19, 728, DateTimeKind.Local).AddTicks(7912), "Handwoven silk khadi saree in royal blue", "Silk Khadi", 0.0m, true, 3m, "Silk Khadi Saree - Blue", "Handloom", 1200m, "KHD-SS-B-001", 1800m, "Free Size", 15m, "Piece", new DateTime(2025, 9, 19, 10, 47, 19, 728, DateTimeKind.Local).AddTicks(7917) },
-                    { 3, 3, "Cream", new DateTime(2025, 9, 19, 10, 47, 19, 728, DateTimeKind.Local).AddTicks(7923), "Pure cotton dhoti in cream color", "Cotton Khadi", 0.0m, true, 5m, "Traditional Dhoti - Cream", "Solid", 300m, "KHD-D-C-001", 480m, "Free Size", 20m, "Piece", new DateTime(2025, 9, 19, 10, 47, 19, 728, DateTimeKind.Local).AddTicks(7924) },
-                    { 4, 2, "Pink", new DateTime(2025, 9, 19, 10, 47, 19, 728, DateTimeKind.Local).AddTicks(7929), "Cotton khadi kurta for women in pink", "Cotton Khadi", 0.0m, true, 8m, "Women's Khadi Kurta - Pink", "Printed", 380m, "KHD-WK-P-001", 580m, "L", 30m, "Piece", new DateTime(2025, 9, 19, 10, 47, 19, 728, DateTimeKind.Local).AddTicks(7929) },
-                    { 5, 6, "Natural", new DateTime(2025, 9, 19, 10, 47, 19, 728, DateTimeKind.Local).AddTicks(7950), "Pure khadi cotton fabric per meter", "Cotton Khadi", 0.0m, true, 20m, "Khadi Cotton Fabric", "Plain", 80m, "KHD-CF-N-001", 120m, "Per Meter", 100m, "Piece", new DateTime(2025, 9, 19, 10, 47, 19, 728, DateTimeKind.Local).AddTicks(7964) }
+                    { 1, 1, "White", new DateTime(2025, 9, 19, 11, 35, 48, 29, DateTimeKind.Local).AddTicks(8927), "Pure cotton khadi kurta in white color", "Cotton Khadi", 5.0m, true, 5m, "Cotton Khadi Kurta", "Solid", 400m, "KHD-CK-W-M-001", 650m, "M", 25m, "Piece", new DateTime(2025, 9, 19, 11, 35, 48, 29, DateTimeKind.Local).AddTicks(8927) },
+                    { 2, 1, "White", new DateTime(2025, 9, 19, 11, 35, 48, 29, DateTimeKind.Local).AddTicks(8935), "Pure cotton khadi kurta in white color", "Cotton Khadi", 5.0m, true, 5m, "Cotton Khadi Kurta", "Solid", 400m, "KHD-CK-W-L-002", 650m, "L", 20m, "Piece", new DateTime(2025, 9, 19, 11, 35, 48, 29, DateTimeKind.Local).AddTicks(8935) },
+                    { 3, 1, "White", new DateTime(2025, 9, 19, 11, 35, 48, 29, DateTimeKind.Local).AddTicks(8940), "Pure cotton khadi kurta in white color", "Cotton Khadi", 5.0m, true, 5m, "Cotton Khadi Kurta", "Solid", 400m, "KHD-CK-W-XL-003", 650m, "XL", 15m, "Piece", new DateTime(2025, 9, 19, 11, 35, 48, 29, DateTimeKind.Local).AddTicks(8941) },
+                    { 4, 2, "Pink", new DateTime(2025, 9, 19, 11, 35, 48, 29, DateTimeKind.Local).AddTicks(8945), "Cotton khadi kurta for women in pink", "Cotton Khadi", 5.0m, true, 8m, "Women's Khadi Kurta", "Printed", 380m, "KHD-WK-P-S-004", 580m, "S", 30m, "Piece", new DateTime(2025, 9, 19, 11, 35, 48, 29, DateTimeKind.Local).AddTicks(8946) },
+                    { 5, 2, "Pink", new DateTime(2025, 9, 19, 11, 35, 48, 29, DateTimeKind.Local).AddTicks(8962), "Cotton khadi kurta for women in pink", "Cotton Khadi", 5.0m, true, 8m, "Women's Khadi Kurta", "Printed", 380m, "KHD-WK-P-M-005", 580m, "M", 25m, "Piece", new DateTime(2025, 9, 19, 11, 35, 48, 29, DateTimeKind.Local).AddTicks(8969) },
+                    { 6, 2, "Pink", new DateTime(2025, 9, 19, 11, 35, 48, 29, DateTimeKind.Local).AddTicks(8983), "Cotton khadi kurta for women in pink", "Cotton Khadi", 5.0m, true, 8m, "Women's Khadi Kurta", "Printed", 380m, "KHD-WK-P-L-006", 580m, "L", 20m, "Piece", new DateTime(2025, 9, 19, 11, 35, 48, 29, DateTimeKind.Local).AddTicks(8983) },
+                    { 7, 4, "Blue", new DateTime(2025, 9, 19, 11, 35, 48, 29, DateTimeKind.Local).AddTicks(8987), "Handwoven silk khadi saree in royal blue", "Silk Khadi", 5.0m, true, 3m, "Silk Khadi Saree", "Handloom", 1200m, "KHD-SS-B-001", 1800m, "Free Size", 15m, "Piece", new DateTime(2025, 9, 19, 11, 35, 48, 29, DateTimeKind.Local).AddTicks(8988) },
+                    { 8, 3, "Cream", new DateTime(2025, 9, 19, 11, 35, 48, 29, DateTimeKind.Local).AddTicks(8992), "Pure cotton dhoti in cream color", "Cotton Khadi", 5.0m, true, 5m, "Traditional Dhoti", "Solid", 300m, "KHD-D-C-001", 480m, "Free Size", 20m, "Piece", new DateTime(2025, 9, 19, 11, 35, 48, 29, DateTimeKind.Local).AddTicks(8993) },
+                    { 9, 6, "Natural", new DateTime(2025, 9, 19, 11, 35, 48, 29, DateTimeKind.Local).AddTicks(9131), "Pure khadi cotton fabric per meter", "Cotton Khadi", 5.0m, true, 20m, "Khadi Cotton Fabric", "Plain", 80m, "KHD-CF-N-001", 120m, "Per Meter", 100m, "Meter", new DateTime(2025, 9, 19, 11, 35, 48, 29, DateTimeKind.Local).AddTicks(9132) }
                 });
 
             migrationBuilder.CreateIndex(

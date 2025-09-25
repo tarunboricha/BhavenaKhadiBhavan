@@ -212,35 +212,10 @@
                                            class="btn btn-sm btn-outline-primary" title="Print Invoice" target="_blank">
                                             <i class="fas fa-print"></i>
                                         </a>
-                                        <div class="btn-group">
-                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle"
-                                                    data-bs-toggle="dropdown" title="More Actions">
-                                                <i class="fas fa-ellipsis-v"></i>
-                                            </button>
-                                            <ul class="dropdown-menu">
-                                                <li>
-                                                    <a class="dropdown-item"
-                                                       href="@Url.Action("Create", "Returns", new { saleId = sale.Id })">
-                                                        <i class="fas fa-undo me-2"></i>Process Return
-                                                    </a>
-                                                </li>
-                                                @if (!string.IsNullOrEmpty(sale.CustomerPhone))
-                                                {
-                                                    <li>
-                                                        <a class="dropdown-item"
-                                                           href="@Url.Action("Create", "Sales", new { customerPhone = sale.CustomerPhone })">
-                                                            <i class="fas fa-plus me-2"></i>New Sale (Same Customer)
-                                                        </a>
-                                                    </li>
-                                                }
-                                                <li><hr class="dropdown-divider"></li>
-                                                <li>
-                                                    <a class="dropdown-item text-muted" href="#" onclick="copySaleDetails(@sale.Id)">
-                                                        <i class="fas fa-copy me-2"></i>Copy Details
-                                                    </a>
-                                                </li>
-                                            </ul>
-                                        </div>
+                                        <a href="@Url.Action("Create", "Returns", new { saleId = sale.Id })"
+                                           class="btn btn-sm btn-outline-primary" title="Process Return" target="_blank">
+                                            <i class="fas fa-undo me-2"></i>
+                                        </a>
                                     </div>
                                 </td>
                             </tr>

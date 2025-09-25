@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 namespace BhavenaKhadiBhavan.Controllers
 {
     /// <summary>
-    /// Sales controller for sales process and billing
+    /// Sales controller for sales process and billing - Enhanced with step-by-step product selection
     /// </summary>
     public class SalesController : Controller
     {
@@ -30,7 +30,7 @@ namespace BhavenaKhadiBhavan.Controllers
         }
 
         /// <summary>
-        /// Display sales list (unchanged)
+        /// Display sales list
         /// </summary>
         public async Task<IActionResult> Index(DateTime? fromDate, DateTime? toDate, string search)
         {
@@ -68,7 +68,7 @@ namespace BhavenaKhadiBhavan.Controllers
         }
 
         /// <summary>
-        /// ENHANCED: Show sale details with item-level discount information
+        /// Show sale details with item-level discount information
         /// </summary>
         public async Task<IActionResult> Details(int id)
         {
@@ -86,7 +86,7 @@ namespace BhavenaKhadiBhavan.Controllers
                 ViewBag.ReturnableQuantities = returnableQuantities;
                 ViewBag.HasReturnableItems = returnableQuantities.Any();
 
-                // CRITICAL: Add discount summary
+                // Add discount summary
                 var discountSummary = await _salesService.GetSaleDiscountSummaryAsync(id);
                 ViewBag.DiscountSummary = discountSummary;
 
@@ -100,7 +100,7 @@ namespace BhavenaKhadiBhavan.Controllers
         }
 
         /// <summary>
-        /// Create new sale - main sales interface (unchanged)
+        /// Create new sale - main sales interface
         /// </summary>
         public async Task<IActionResult> Create()
         {
@@ -118,7 +118,7 @@ namespace BhavenaKhadiBhavan.Controllers
         }
 
         /// <summary>
-        /// FIXED: Process sale creation with item-level discounts
+        /// Process sale creation with item-level discounts
         /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -126,8 +126,11 @@ namespace BhavenaKhadiBhavan.Controllers
         {
             try
             {
+                // Get cart from session
+                var cartItems = GetCartFromSession();
+
                 // Validate cart has items
-                if (!model.CartItems.Any())
+                if (!cartItems.Any())
                 {
                     TempData["Error"] = "Please add items to cart before creating sale.";
                     await LoadSalesViewModelAsync(model);
@@ -163,7 +166,7 @@ namespace BhavenaKhadiBhavan.Controllers
                 }
 
                 // Validate stock availability
-                foreach (var item in model.CartItems)
+                foreach (var item in cartItems)
                 {
                     var product = await _productService.GetProductByIdAsync(item.ProductId);
                     if (product == null || !product.IsActive)
@@ -181,8 +184,11 @@ namespace BhavenaKhadiBhavan.Controllers
                     }
                 }
 
-                // CRITICAL: Use the correct method for cart items
-                var sale = await _salesService.CreateSaleFromCartAsync(model.Sale, model.CartItems);
+                // Create sale from cart items
+                var sale = await _salesService.CreateSaleFromCartAsync(model.Sale, cartItems);
+
+                // Clear cart after successful sale
+                SaveCartToSession(new List<CartItemViewModel>());
 
                 TempData["Success"] = $"Sale {sale.InvoiceNumber} created successfully! Total: ₹{sale.TotalAmount:N2}";
                 return RedirectToAction(nameof(Details), new { id = sale.Id });
@@ -196,7 +202,130 @@ namespace BhavenaKhadiBhavan.Controllers
         }
 
         /// <summary>
-        /// ENHANCED: AJAX endpoint to add item to cart with discount support
+        /// STEP 1: Get distinct product names (performance optimized)
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> GetProductNames(int? categoryId = null, string? searchTerm = null)
+        {
+            try
+            {
+                var query = _context.Products
+                    .Where(p => p.IsActive && p.StockQuantity > 0);
+
+                // Apply category filter
+                if (categoryId.HasValue)
+                {
+                    query = query.Where(p => p.CategoryId == categoryId.Value);
+                }
+
+                // Apply search filter
+                if (!string.IsNullOrEmpty(searchTerm))
+                {
+                    query = query.Where(p => p.Name.ToLower().Contains(searchTerm.ToLower()));
+                }
+
+                // Group by product name and get summary info
+                var productNames = await query
+                    .GroupBy(p => p.Name)
+                    .Select(g => new
+                    {
+                        name = g.Key,
+                        categoryName = g.First().Category != null ? g.First().Category.Name : "Uncategorized",
+                        minPrice = g.Min(p => p.SalePrice),
+                        maxPrice = g.Max(p => p.SalePrice),
+                        totalVariants = g.Count(),
+                        totalStock = g.Sum(p => p.StockQuantity),
+                        gstRate = g.First().GSTRate,
+                        fabricType = g.First().FabricType
+                    })
+                    .OrderBy(pn => pn.name)
+                    .ToListAsync();
+
+                return Json(new { success = true, productNames });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Error loading product names: " + ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// STEP 2: Get colors for selected product name
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> GetProductColors(string productName)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(productName))
+                {
+                    return Json(new { success = false, message = "Product name is required" });
+                }
+
+                var colors = await _context.Products
+                    .Where(p => p.IsActive && p.Name == productName && p.StockQuantity > 0)
+                    .Where(p => !string.IsNullOrEmpty(p.Color))
+                    .GroupBy(p => p.Color)
+                    .Select(g => new
+                    {
+                        color = g.Key!,
+                        variantCount = g.Count(),
+                        totalStock = g.Sum(p => p.StockQuantity),
+                        minPrice = g.Min(p => p.SalePrice),
+                        maxPrice = g.Max(p => p.SalePrice)
+                    })
+                    .OrderBy(c => c.color)
+                    .ToListAsync();
+
+                return Json(new { success = true, colors });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Error loading colors: " + ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// STEP 3: Get sizes for selected product name and color
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> GetProductSizes(string productName, string color)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(productName) || string.IsNullOrEmpty(color))
+                {
+                    return Json(new { success = false, message = "Product name and color are required" });
+                }
+
+                var sizes = await _context.Products
+                    .Where(p => p.IsActive && p.Name == productName && p.Color == color && p.StockQuantity > 0)
+                    .Select(p => new
+                    {
+                        productId = p.Id,
+                        size = p.Size ?? "Free Size",
+                        salePrice = p.SalePrice,
+                        stockQuantity = p.StockQuantity,
+                        gstRate = p.GSTRate,
+                        unitOfMeasure = p.UnitOfMeasure ?? "Piece",
+                        priceWithGST = p.SalePrice + (p.SalePrice * p.GSTRate / 100),
+                        isLowStock = p.IsLowStock,
+                        stockStatus = p.StockStatus,
+                        displayStock = p.DisplayStock
+                    })
+                    .OrderBy(s => s.size)
+                    .ToListAsync();
+
+                return Json(new { success = true, sizes });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Error loading sizes: " + ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Add item to cart with discount support
         /// </summary>
         [HttpPost]
         public async Task<IActionResult> AddToCart(int productId, decimal quantity, decimal discountPercentage = 0)
@@ -224,7 +353,7 @@ namespace BhavenaKhadiBhavan.Controllers
                     UnitOfMeasure = product.UnitOfMeasure ?? "Piece"
                 };
 
-                // CRITICAL: Apply discount if provided
+                // Apply discount if provided
                 if (discountPercentage > 0)
                 {
                     cartItem.ApplyDiscountPercentage(discountPercentage);
@@ -255,7 +384,6 @@ namespace BhavenaKhadiBhavan.Controllers
                 }
 
                 SaveCartToSession(cart);
-
                 var cartTotals = _salesService.CalculateCartTotalsWithDiscounts(cart);
 
                 return Json(new
@@ -275,7 +403,7 @@ namespace BhavenaKhadiBhavan.Controllers
         }
 
         /// <summary>
-        /// Remove item from cart (unchanged)
+        /// Remove item from cart
         /// </summary>
         [HttpPost]
         public IActionResult RemoveFromCart(int productId)
@@ -305,7 +433,7 @@ namespace BhavenaKhadiBhavan.Controllers
         }
 
         /// <summary>
-        /// ENHANCED: Update cart item quantity and discount
+        /// Update cart item quantity and discount
         /// </summary>
         [HttpPost]
         public async Task<IActionResult> UpdateCartQuantity(int productId, decimal quantity, decimal? discountPercentage = null)
@@ -330,11 +458,12 @@ namespace BhavenaKhadiBhavan.Controllers
 
                 var cart = GetCartFromSession();
                 var cartItem = cart.FirstOrDefault(c => c.ProductId == productId);
+
                 if (cartItem != null)
                 {
                     cartItem.Quantity = quantity;
 
-                    // CRITICAL: Update discount if provided
+                    // Update discount if provided
                     if (discountPercentage.HasValue)
                     {
                         cartItem.ApplyDiscountPercentage(discountPercentage.Value);
@@ -362,7 +491,7 @@ namespace BhavenaKhadiBhavan.Controllers
         }
 
         /// <summary>
-        /// NEW: Apply overall discount to all cart items
+        /// Apply overall discount to all cart items
         /// </summary>
         [HttpPost]
         public IActionResult ApplyOverallDiscount(decimal discountPercentage)
@@ -378,7 +507,6 @@ namespace BhavenaKhadiBhavan.Controllers
                 }
 
                 SaveCartToSession(cart);
-
                 var cartTotals = _salesService.CalculateCartTotalsWithDiscounts(cart);
 
                 return Json(new
@@ -398,7 +526,7 @@ namespace BhavenaKhadiBhavan.Controllers
         }
 
         /// <summary>
-        /// NEW: Apply discount to specific cart item
+        /// Apply discount to specific cart item
         /// </summary>
         [HttpPost]
         public IActionResult ApplyItemDiscount(int productId, decimal discountPercentage)
@@ -435,50 +563,7 @@ namespace BhavenaKhadiBhavan.Controllers
         }
 
         /// <summary>
-        /// NEW: Remove discount from specific cart item
-        /// </summary>
-        [HttpPost]
-        public IActionResult RemoveItemDiscount(int productId)
-        {
-            return ApplyItemDiscount(productId, 0);
-        }
-
-        /// <summary>
-        /// NEW: Clear all discounts from cart
-        /// </summary>
-        [HttpPost]
-        public IActionResult ClearAllDiscounts()
-        {
-            try
-            {
-                var cart = GetCartFromSession();
-
-                foreach (var item in cart)
-                {
-                    item.ItemDiscountPercentage = 0;
-                    item.ItemDiscountAmount = 0;
-                }
-
-                SaveCartToSession(cart);
-
-                var cartTotals = _salesService.CalculateCartTotalsWithDiscounts(cart);
-
-                return Json(new
-                {
-                    success = true,
-                    message = "Cleared all discounts from cart",
-                    cartTotal = cartTotals.Total,
-                    discountAmount = 0
-                });
-            }
-            catch (Exception ex)
-            {
-                return Json(new { success = false, message = "Error clearing discounts: " + ex.Message });
-            }
-        }
-
-        /// <summary>
-        /// ENHANCED: Get current cart with discount information
+        /// Get current cart with discount information
         /// </summary>
         [HttpGet]
         public IActionResult GetCart()
@@ -499,7 +584,7 @@ namespace BhavenaKhadiBhavan.Controllers
                         unitPrice = c.UnitPrice,
                         gstRate = c.GSTRate,
                         unitOfMeasure = c.UnitOfMeasure,
-                        // CRITICAL: Item-level discount information
+                        // Item-level discount information
                         itemDiscountPercentage = c.ItemDiscountPercentage,
                         itemDiscountAmount = c.ItemDiscountAmount,
                         lineSubtotal = c.LineSubtotal,
@@ -527,7 +612,7 @@ namespace BhavenaKhadiBhavan.Controllers
         }
 
         /// <summary>
-        /// Clear cart (unchanged)
+        /// Clear cart
         /// </summary>
         [HttpPost]
         public IActionResult ClearCart()
@@ -544,7 +629,7 @@ namespace BhavenaKhadiBhavan.Controllers
         }
 
         /// <summary>
-        /// Print invoice (unchanged)
+        /// Print invoice
         /// </summary>
         public async Task<IActionResult> PrintInvoice(int id)
         {
@@ -572,9 +657,9 @@ namespace BhavenaKhadiBhavan.Controllers
             }
         }
 
-        // =========================================
+        // ============================================
         // Helper methods (enhanced for discounts)
-        // =========================================
+        // ============================================
 
         private List<CartItemViewModel> GetCartFromSession()
         {
@@ -634,7 +719,7 @@ namespace BhavenaKhadiBhavan.Controllers
             model.Customers = await _customerService.GetAllCustomersAsync();
             model.CartItems = GetCartFromSession();
 
-            // CRITICAL: Calculate totals with discounts
+            // Calculate totals with discounts
             var cartTotals = _salesService.CalculateCartTotalsWithDiscounts(model.CartItems);
             model.CartSubtotal = cartTotals.Subtotal;
             model.CartDiscountAmount = cartTotals.DiscountAmount;

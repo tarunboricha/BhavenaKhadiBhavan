@@ -109,140 +109,244 @@
         .loading.show {
             display: inline-block;
         }
+
+        /* Simple Sidebar */
+        .sidebar-nav {
+            position: fixed;
+            top: 60px;
+            left: -250px; /* Hidden by default */
+            width: 250px;
+            height: calc(100vh - 60px);
+            background: var(--color-surface);
+            border-right: 1px solid var(--color-border);
+            transition: left var(--duration-normal) var(--ease-standard);
+            z-index: 1000;
+            overflow-y: auto;
+            box-shadow: var(--shadow-lg);
+            font-family: var(--font-family-base);
+        }
+
+            .sidebar-nav.active {
+                left: 0; /* Visible when active */
+            }
+
+        .sidebar-header {
+            padding: var(--space-16);
+            border-bottom: 1px solid var(--color-border);
+            background: var(--color-secondary);
+        }
+
+            .sidebar-header h6 {
+                margin: 0;
+                color: var(--color-text);
+                font-family: var(--font-family-base);
+                font-weight: var(--font-weight-medium);
+                font-size: var(--font-size-base);
+            }
+
+        .sidebar-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+            .sidebar-menu li {
+                border-bottom: 1px solid var(--color-border);
+            }
+
+            .sidebar-menu a {
+                display: block;
+                padding: var(--space-12) var(--space-16);
+                color: var(--color-text);
+                text-decoration: none;
+                transition: all var(--duration-fast) var(--ease-standard);
+                font-family: var(--font-family-base);
+                font-size: var(--font-size-base);
+            }
+
+                .sidebar-menu a:hover {
+                    background-color: var(--color-secondary-hover);
+                    color: var(--color-primary);
+                    text-decoration: none;
+                }
+
+                .sidebar-menu a:focus {
+                    outline: var(--focus-outline);
+                    outline-offset: -2px;
+                }
+
+            .sidebar-menu .badge {
+                float: right;
+                margin-top: var(--space-2);
+                background-color: var(--color-primary);
+                color: var(--color-btn-primary-text);
+                font-size: var(--font-size-xs);
+                padding: var(--space-2) var(--space-6);
+                border-radius: var(--radius-full);
+            }
+
+        /* Sidebar Overlay */
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(var(--color-slate-900-rgb), 0.5);
+            z-index: 999;
+            display: none;
+            transition: opacity var(--duration-normal) var(--ease-standard);
+        }
+
+            .sidebar-overlay.active {
+                display: block;
+            }
+
+        .no-scroll {
+            overflow: hidden;
+        }
     </style>
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-expand-lg navbar-light bg-light shadow-sm">
-            <div class="container-fluid">
-                <a class="navbar-brand" href="@Url.Action("Index", "Home")">
-                    <i class="fas fa-store me-2"></i>
-                    Khadi Store
-                </a>
+    <!-- Simple Header with Logo and Sidebar Toggle -->
+    <header class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+        <div class="container-fluid">
+            <!-- Sidebar Toggle Button -->
+            <button class="btn btn-outline-secondary me-2" type="button" id="sidebarToggle">
+                <i class="fas fa-bars"></i>
+            </button>
 
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
+            <!-- Logo + Brand Name -->
+            <a class="navbar-brand d-flex align-items-center" asp-area="" asp-controller="Home" asp-action="Index">
+                <img src="https://www.khadiindia.gov.in/images/KhadiIndiaLogopsd.png"
+                     alt="Khadi Logo" height="32" class="me-2"
+                     onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8Y2lyY2xlIGN4PSIyMCIgY3k9IjIwIiByPSIxOCIgZmlsbD0iI0ZGOTkzMyIvPgogIDx0ZXh0IHg9IjIwIiB5PSIyNSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPks8L3RleHQ+Cjwvc3ZnPgo=';">
+                Bhavena Khadi Bhavan
+            </a>
 
-                <div class="collapse navbar-collapse" id="navbarNav">
-                    <ul class="navbar-nav me-auto">
-                        <li class="nav-item">
-                            <a class="nav-link" href="@Url.Action("Index", "Home")">
-                                <i class="fas fa-home me-1"></i> Dashboard
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="@Url.Action("Create", "Sales")">
-                                <i class="fas fa-cash-register me-1"></i> Sales
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="@Url.Action("Index", "Products")">
-                                <i class="fas fa-box me-1"></i> Products
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="@Url.Action("Index", "Customers")">
-                                <i class="fas fa-users me-1"></i> Customers
-                            </a>
-                        </li>
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="reportsDropdown" role="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-chart-bar me-1"></i> Reports
-                            </a>
-                            <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="@Url.Action("Sales", "Reports")">Sales Report</a></li>
-                                <li><a class="dropdown-item" href="@Url.Action("Stock", "Reports")">Stock Report</a></li>
-                                <li><a class="dropdown-item" href="@Url.Action("GST", "Reports")">GST Report</a></li>
-                                <li><a class="dropdown-item" href="@Url.Action("DailySales", "Reports")">Daily Sales</a></li>
-                            </ul>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="@Url.Action("Index", "Returns")">
-                                <i class="fas fa-undo me-1"></i> Returns
-                            </a>
-                        </li>
-                    </ul>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
+                    aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
 
-                    <ul class="navbar-nav">
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="settingsDropdown" role="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-cog me-1"></i> Settings
-                            </a>
-                            <ul class="dropdown-menu dropdown-menu-end">
-                                <li><a class="dropdown-item" href="@Url.Action("Index", "Categories")">Categories</a></li>
-                                <li><a class="dropdown-item" href="@Url.Action("LowStock", "Products")">Low Stock</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="#" onclick="showHelp()">Help</a></li>
-                            </ul>
-                        </li>
-                    </ul>
-                </div>
+            <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+                <ul class="navbar-nav flex-grow-1">
+                    <li class="nav-item">
+                        <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">
+                            <i class="fas fa-home me-1"></i>Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-dark" asp-area="" asp-controller="Sales" asp-action="Index">
+                            <i class="fas fa-shopping-cart me-1"></i>Sales
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-dark" asp-area="" asp-controller="Products" asp-action="Index">
+                            <i class="fas fa-cube me-1"></i>Products
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-dark" asp-area="" asp-controller="Customers" asp-action="Index">
+                            <i class="fas fa-users me-1"></i>Customers
+                        </a>
+                    </li>
+                </ul>
             </div>
-        </nav>
+        </div>
     </header>
 
-    <main>
-        <!-- Alert Messages -->
-        @if (TempData["Success"] != null)
-        {
-            <div class="alert alert-success alert-dismissible fade show m-3" role="alert">
-                <i class="fas fa-check-circle me-2"></i>@TempData["Success"]
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        }
-
-        @if (TempData["Error"] != null)
-        {
-            <div class="alert alert-danger alert-dismissible fade show m-3" role="alert">
-                <i class="fas fa-exclamation-circle me-2"></i>@TempData["Error"]
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        }
-
-        @if (TempData["Warning"] != null)
-        {
-            <div class="alert alert-warning alert-dismissible fade show m-3" role="alert">
-                <i class="fas fa-exclamation-triangle me-2"></i>@TempData["Warning"]
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        }
-
-        @if (TempData["Info"] != null)
-        {
-            <div class="alert alert-info alert-dismissible fade show m-3" role="alert">
-                <i class="fas fa-info-circle me-2"></i>@TempData["Info"]
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        }
-
-        <!-- Main Content -->
-        <div class="container-fluid">
-            @RenderBody()
+    <!-- Simple Sidebar -->
+    <nav class="sidebar-nav" id="sidebar">
+        <div class="sidebar-header">
+            <h6><i class="fas fa-th-large me-2"></i>Quick Access</h6>
         </div>
-    </main>
+        <ul class="sidebar-menu">
+            <li>
+                <a href="@Url.Action("Index", "Returns")">
+                    <i class="fas fa-undo me-2"></i>Returns
+                    @if (ViewBag.PendingReturns > 0)
+                    {
+                        <span class="badge bg-warning">@ViewBag.PendingReturns</span>
+                    }
+                </a>
+            </li>
+            <li>
+                <a href="@Url.Action("LowStock", "Products")">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Low Stock
+                </a>
+            </li>
+            <li>
+                <a href="@Url.Action("Create", "Sales")">
+                    <i class="fas fa-plus me-2"></i>New Sale
+                </a>
+            </li>
+            <li>
+                <a href="@Url.Action("Create", "Products")">
+                    <i class="fas fa-cube me-2"></i>Add Product
+                </a>
+            </li>
+            <li>
+                <a href="@Url.Action("Index", "Categories")">
+                    <i class="fas fa-tags me-2"></i>Categories
+                </a>
+            </li>
+            <li>
+                <a href="@Url.Action("Index", "Reports")">
+                    <i class="fas fa-chart-bar me-2"></i>Reports
+                </a>
+            </li>
+        </ul>
+    </nav>
 
-    <!-- Loading Spinner Modal -->
-    <div class="modal fade" id="loadingModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-        <div class="modal-dialog modal-sm modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-body text-center py-4">
-                    <div class="spinner-border text-primary mb-3" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                    <div>Processing...</div>
+    <!-- Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- Main Content -->
+    <div class="container-fluid">
+        <main role="main" class="pb-3">
+            @if (TempData["Success"] != null)
+            {
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    @TempData["Success"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
-            </div>
-        </div>
+            }
+            @if (TempData["Error"] != null)
+            {
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    @TempData["Error"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+            @if (TempData["Warning"] != null)
+            {
+                <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                    @TempData["Warning"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+            @if (TempData["Info"] != null)
+            {
+                <div class="alert alert-info alert-dismissible fade show" role="alert">
+                    @TempData["Info"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+
+            @RenderBody()
+        </main>
     </div>
 
-    <!-- Help Modal -->
-    <div class="modal fade" id="helpModal" tabindex="-1">
-        <div class="modal-dialog">
+    <!-- Help Modal (Existing) -->
+    <div class="modal fade" id="helpModal" tabindex="-1" role="dialog" aria-labelledby="helpModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title"><i class="fas fa-question-circle me-2"></i>Quick Help</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <h5 class="modal-title" id="helpModalLabel">
+                        <i class="fas fa-question-circle me-2"></i>Quick Help
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <h6>Navigation Tips:</h6>
@@ -254,6 +358,7 @@
                         <li><strong>Reports:</strong> View sales, stock, and GST reports</li>
                         <li><strong>Returns:</strong> Process customer returns</li>
                     </ul>
+
                     <h6>Keyboard Shortcuts:</h6>
                     <ul>
                         <li><strong>Ctrl + N:</strong> New Sale (on sales page)</li>
@@ -265,85 +370,48 @@
         </div>
     </div>
 
-    <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Loading Overlays (Existing) -->
+    <div id="loadingOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 9999; justify-content: center; align-items: center; flex-direction: column;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <div class="mt-2">Loading...</div>
+    </div>
+
+    <div id="processingOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 9999; justify-content: center; align-items: center; flex-direction: column;">
+        <div class="spinner-border text-success" role="status">
+            <span class="visually-hidden">Processing...</span>
+        </div>
+        <div class="mt-2">Processing...</div>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
 
+    <!-- Simple Sidebar Script -->
     <script>
-        // Global JavaScript functions
-        function showLoading() {
-            $('#loadingModal').modal('show');
-        }
-
-        function hideLoading() {
-            $('#loadingModal').modal('hide');
-        }
-
-        function showHelp() {
-            $('#helpModal').modal('show');
-        }
-
-        function formatCurrency(amount) {
-            return '₹' + parseFloat(amount).toLocaleString('en-IN', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-            });
-        }
-
-        function showToast(message, type = 'success') {
-            const toast = $(`
-                <div class="toast align-items-center text-white bg-${type} border-0" role="alert">
-                    <div class="d-flex">
-                        <div class="toast-body">${message}</div>
-                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-                    </div>
-                </div>
-            `);
-
-            if (!$('.toast-container').length) {
-                $('body').append('<div class="toast-container position-fixed bottom-0 end-0 p-3"></div>');
-            }
-
-            $('.toast-container').append(toast);
-            const bsToast = new bootstrap.Toast(toast[0]);
-            bsToast.show();
-        }
-
-        // Auto-dismiss alerts after 5 seconds
-        setTimeout(function() {
-            $('.alert').fadeOut();
-        }, 5000);
-
-        // Global keyboard shortcuts
-        $(document).keydown(function(e) {
-            if (e.key === 'F1') {
-                e.preventDefault();
-                showHelp();
-            }
-
-            if (e.ctrlKey && e.key === 'f') {
-                e.preventDefault();
-                $('input[type="search"], .search-box').first().focus();
-            }
-        });
-
-        // Form validation enhancement
         $(document).ready(function() {
-            // Auto-focus first input
-            $('input:visible:first').focus();
-
-            // Confirm delete actions
-            $('button[type="submit"]:contains("Delete"), a:contains("Delete")').click(function(e) {
-                if (!confirm('Are you sure you want to delete this item?')) {
-                    e.preventDefault();
-                    return false;
-                }
+            // Toggle sidebar
+            $('#sidebarToggle').click(function() {
+                $('#sidebar').toggleClass('active');
+                $('#sidebarOverlay').toggleClass('active');
+                $('body').toggleClass('no-scroll', $('#sidebar').hasClass('active'));
             });
 
-            // Auto-save forms on change (for drafts)
-            $('form[data-auto-save]').find('input, select, textarea').change(function() {
-                localStorage.setItem('form_' + $(this).closest('form').attr('id'), JSON.stringify($(this).closest('form').serializeArray()));
+            // Close sidebar when overlay is clicked
+            $('#sidebarOverlay').click(function() {
+                $('#sidebar').toggleClass('active');
+                $('#sidebarOverlay').toggleClass('active');
+                $('body').toggleClass('no-scroll', $('#sidebar').hasClass('active'));
+            });
+
+            // Help modal shortcut
+            $(document).keydown(function(e) {
+                if (e.key === 'F1') {
+                    e.preventDefault();
+                    $('#helpModal').modal('show');
+                }
             });
         });
     </script>

@@ -230,7 +230,7 @@
                                     </td>
                                     <td>
                                         <strong>₹@item.UnitPrice.ToString("N2")</strong>
-                                        <br><small class="text-muted">per @(item.UnitOfMeasure ?? "piece")</small>
+                                        <br><small class="text-muted">per @(item.Product?.UnitOfMeasure ?? "piece")</small>
                                     </td>
                                     <td>
                                         <strong>₹@item.LineSubtotal.ToString("N2")</strong>

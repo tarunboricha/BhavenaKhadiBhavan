@@ -216,6 +216,50 @@
                                            class="btn btn-sm btn-outline-primary" title="Process Return" target="_blank">
                                             <i class="fas fa-undo me-2"></i>
                                         </a>
+                                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                            @switch (sale.Status)
+                                            {
+                                                case "Completed":
+                                                    <span class="badge bg-success">✓ @sale.Status</span>
+                                                    break;
+                                                case "Pending":
+                                                    <span class="badge bg-warning">⏳ @sale.Status</span>
+                                                    break;
+                                                case "Cancelled":
+                                                    <span class="badge bg-danger">✗ @sale.Status</span>
+                                                    break;
+                                                default:
+                                                    <span class="badge bg-secondary">@sale.Status</span>
+                                                    break;
+                                            }
+                                            <span class="visually-hidden">Toggle Status</span>
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            @if (sale.Status != "Pending")
+                                            {
+                                                <li>
+                                                    <a class="dropdown-item" href="#" onclick="updateSaleStatus(@sale.Id, 'Pending')">
+                                                        <i class="fas fa-clock text-warning me-2"></i>Mark as Pending
+                                                    </a>
+                                                </li>
+                                            }
+                                            @if (sale.Status != "Completed")
+                                            {
+                                                <li>
+                                                    <a class="dropdown-item" href="#" onclick="updateSaleStatus(@sale.Id, 'Completed')">
+                                                        <i class="fas fa-check text-success me-2"></i>Mark as Completed
+                                                    </a>
+                                                </li>
+                                            }
+                                            @if (sale.Status != "Cancelled")
+                                            {
+                                                <li>
+                                                    <a class="dropdown-item" href="#" onclick="updateSaleStatus(@sale.Id, 'Cancelled')">
+                                                        <i class="fas fa-times text-danger me-2"></i>Mark as Cancelled
+                                                    </a>
+                                                </li>
+                                            }
+                                        </ul>
                                     </div>
                                 </td>
                             </tr>
@@ -353,6 +397,48 @@ else
             // Placeholder for pagination
             showToast('All sales are already loaded', 'info');
         }
+
+                function updateSaleStatus(saleId, newStatus) {
+            if (confirm(`Are you sure you want to change the status to ${newStatus}?`)) {
+                $.post('@Url.Action("UpdateStatus")', {
+                    id: saleId,
+                    status: newStatus,
+                    __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
+                })
+                .done(function(response) {
+                    if (response.success) {
+                        // Show success message
+                        showAlert('success', response.message);
+
+                        // Reload page to reflect changes
+                        location.reload();
+                    } else {
+                        showAlert('error', response.message);
+                    }
+                })
+                .fail(function() {
+                    showAlert('error', 'Error updating sale status.');
+                });
+            }
+        }
+
+        function showAlert(type, message) {
+            const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+            const alertHtml = `
+                <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+
+            // Add to top of container
+            $('.container-fluid').prepend(alertHtml);
+
+            // Auto-remove after 5 seconds
+            setTimeout(function() {
+                $('.alert').fadeOut();
+            }, 5000);
+        }
     </script>
 }
 
@@ -386,7 +472,6 @@ else
 
         tbody tr:hover {
             background-color: rgba(139, 69, 19, 0.05);
-            transform: translateX(2px);
         }
 
     .sortable-header {

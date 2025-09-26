@@ -628,6 +628,39 @@ namespace BhavenaKhadiBhavan.Controllers
             }
         }
 
+        [HttpPost]
+        public async Task<IActionResult> UpdateStatus(int id, string status)
+        {
+            try
+            {
+                var validStatuses = new[] { "Pending", "Completed", "Cancelled" };
+                if (!validStatuses.Contains(status))
+                {
+                    return Json(new { success = false, message = "Invalid status." });
+                }
+
+                var result = await _salesService.UpdateSaleStatusAsync(id, status);
+                if (result)
+                {
+                    return Json(new
+                    {
+                        success = true,
+                        message = $"Sale status updated to {status}.",
+                        newStatus = status
+                    });
+                }
+                else
+                {
+                    return Json(new { success = false, message = "Sale not found or update failed." });
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Error updating status: " + ex.Message });
+            }
+        }
+
+
         /// <summary>
         /// Print invoice
         /// </summary>

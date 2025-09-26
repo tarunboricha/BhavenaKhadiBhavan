@@ -51,10 +51,18 @@
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label asp-for="SKU" class="form-label">SKU (Stock Keeping Unit)</label>
-                                <input asp-for="SKU" class="form-control" placeholder="e.g., KHD-CK-W-001">
-                                <span asp-validation-for="SKU" class="text-danger"></span>
-                                <div class="form-text">Unique identifier for inventory tracking</div>
+                                <label asp-for="UnitOfMeasure" class="form-label">Unit of Measure *</label>
+                                <select asp-for="UnitOfMeasure" class="form-select" onchange="updateUnitDisplays()" required>
+                                    <option value="">Select Unit</option>
+                                    <option value="Piece">Piece (pcs)</option>
+                                    <option value="Meter">Meter (m)</option>
+                                    <option value="Kilogram">Kilogram (kg)</option>
+                                    <option value="Gram">Gram (g)</option>
+                                    <option value="Yard">Yard (yd)</option>
+                                    <option value="Box">Box</option>
+                                    <option value="Set">Set</option>
+                                </select>
+                                <span asp-validation-for="UnitOfMeasure" class="text-danger"></span>
                             </div>
                         </div>
                         <div class="col-md-6">

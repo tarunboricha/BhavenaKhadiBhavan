@@ -26,5 +26,6 @@ namespace BhavenaKhadiBhavan.Services
 
         // NEW: Cart calculation with discounts
         CartTotals CalculateCartTotalsWithDiscounts(List<CartItemViewModel> cartItems);
+        Task<bool> UpdateSaleStatusAsync(int saleId, string status);
     }
 }

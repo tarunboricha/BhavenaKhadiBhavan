@@ -230,12 +230,12 @@
                                 {
                                     <br />
                                     <small class="text-muted">
-                                        @(string.IsNullOrEmpty(item.Product.Color) ? "" : $"Color: {item.Product.Color}")
-                                        @(string.IsNullOrEmpty(item.Product.Size) ? "" : $" | Size: {item.Product.Size}")
+                                        @(string.IsNullOrEmpty(item.Product.Color) || item.Product.Color == "NA" ? "" : $"Color: {item.Product.Color} | ")
+                                        @(string.IsNullOrEmpty(item.Product.Size) ? "" : $"Size: {item.Product.Size}")
                                     </small>
                                 }
                             </td>
-                            <td class="text-center">@item.Quantity.ToString("0.###") @(item.UnitOfMeasure ?? "Pcs")</td>
+                            <td class="text-center">@item.Quantity.ToString("0.###") @(item.Product?.UnitOfMeasure ?? "Pcs")</td>
                             <td class="text-center">₹@item.UnitPrice.ToString("N2")</td>
                             <td class="text-center">@item.GSTRate%</td>
                             <td class="text-center">

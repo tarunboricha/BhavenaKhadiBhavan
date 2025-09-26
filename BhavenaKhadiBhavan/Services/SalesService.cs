@@ -294,6 +294,32 @@ namespace BhavenaKhadiBhavan.Services
             }
         }
 
+        public async Task<bool> UpdateSaleStatusAsync(int saleId, string status)
+        {
+            try
+            {
+                var validStatuses = new[] { "Pending", "Completed", "Cancelled" };
+                if (!validStatuses.Contains(status))
+                {
+                    return false;
+                }
+
+                var sale = await _context.Sales.FindAsync(saleId);
+                if (sale == null)
+                {
+                    return false;
+                }
+
+                sale.Status = status;
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         /// <summary>
         /// Apply discount to specific item
         /// </summary>

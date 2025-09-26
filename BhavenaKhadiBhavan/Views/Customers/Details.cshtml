@@ -1,0 +1,520 @@
+﻿@model Customer
+@{
+    ViewData["Title"] = "Customer Details";
+    var purchaseHistory = ViewBag.PurchaseHistory as List<Sale> ?? new List<Sale>();
+    var totalSales = ViewBag.TotalSales as int? ?? 0;
+    var totalValue = ViewBag.TotalValue as decimal? ?? 0;
+    var lastPurchase = ViewBag.LastPurchase as DateTime?;
+}
+
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <h2>
+                <i class="fas fa-user me-2 text-primary"></i>
+                Customer Details
+            </h2>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a href="@Url.Action("Index")">
+                            <i class="fas fa-users me-1"></i>Customers
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item active">@Model.Name</li>
+                </ol>
+            </nav>
+            <hr>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Left Column: Customer Information -->
+        <div class="col-lg-8">
+            <!-- Basic Information -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-id-card me-2"></i>Customer Information
+                    </h5>
+                    <a href="@Url.Action("Edit", new { id = Model.Id })" class="btn btn-light btn-sm">
+                        <i class="fas fa-edit me-1"></i>Edit Customer
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <th width="30%">Full Name:</th>
+                                    <td><strong>@Model.Name</strong></td>
+                                </tr>
+                                <tr>
+                                    <th>Phone Number:</th>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(Model.Phone))
+                                        {
+                                            <a href="tel:@Model.Phone" class="text-decoration-none">
+                                                <i class="fas fa-phone me-1"></i>@Model.Phone
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">Not Provided</span>
+                                        }
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Email Address:</th>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(Model.Email))
+                                        {
+                                            <a href="mailto:@Model.Email" class="text-decoration-none">
+                                                <i class="fas fa-envelope me-1"></i>@Model.Email
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">Not Provided</span>
+                                        }
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Customer Since:</th>
+                                    <td>@Model.CreatedAt.ToString("dd MMMM yyyy")</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <th width="30%">Customer Type:</th>
+                                    <td>
+                                        @{
+                                            var badgeClass = Model.CustomerType switch
+                                            {
+                                                "New" => "bg-info",
+                                                "Second-time" => "bg-warning text-dark",
+                                                "Regular" => "bg-success",
+                                                "Loyal" => "bg-primary",
+                                                _ => "bg-secondary"
+                                            };
+                                        }
+                                        <span class="badge @badgeClass">@Model.CustomerType</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Total Orders:</th>
+                                    <td><strong class="text-primary">@Model.TotalOrders</strong></td>
+                                </tr>
+                                <tr>
+                                    <th>Total Spent:</th>
+                                    <td><strong class="text-success">₹@Model.TotalPurchases.ToString("N2")</strong></td>
+                                </tr>
+                                <tr>
+                                    <th>Last Purchase:</th>
+                                    <td>
+                                        @if (Model.LastPurchaseDate.HasValue)
+                                        {
+                                            <span>@Model.LastPurchaseDate.Value.ToString("dd MMM yyyy")</span>
+                                            <small class="text-muted d-block">(@Model.DaysSinceLastPurchase days ago)</small>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">No purchases yet</span>
+                                        }
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(Model.Address))
+                    {
+                        <hr>
+                        <h6><i class="fas fa-map-marker-alt me-2"></i>Address:</h6>
+                        <p class="text-muted">@Model.Address</p>
+                    }
+                </div>
+            </div>
+
+            <!-- Purchase History -->
+            <div class="card shadow">
+                <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-shopping-cart me-2"></i>
+                        Purchase History (@totalSales orders)
+                    </h5>
+                    @if (purchaseHistory.Any())
+                    {
+                        <a href="@Url.Action("Create", "Sales")?customerId=@Model.Id" class="btn btn-light btn-sm">
+                            <i class="fas fa-plus me-1"></i>New Sale
+                        </a>
+                    }
+                </div>
+                <div class="card-body">
+                    @if (purchaseHistory.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Invoice</th>
+                                        <th>Date</th>
+                                        <th>Items</th>
+                                        <th>Amount</th>
+                                        <th>Payment</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var sale in purchaseHistory.OrderByDescending(s => s.SaleDate))
+                                    {
+                                        <tr>
+                                            <td>
+                                                <strong>@sale.InvoiceNumber</strong>
+                                            </td>
+                                            <td>@sale.SaleDate.ToString("dd/MM/yyyy")</td>
+                                            <td>
+                                                <span class="badge bg-info">@sale.ItemCount items</span>
+                                            </td>
+                                            <td>
+                                                <strong class="text-success">₹@sale.TotalAmount.ToString("N2")</strong>
+                                                @if (sale.TotalItemDiscounts > 0)
+                                                {
+                                                    <br><small class="text-muted">Discount: ₹@sale.TotalItemDiscounts.ToString("N2")</small>
+                                                }
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-secondary">@sale.PaymentMethod</span>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <a href="@Url.Action("Details", "Sales", new { id = sale.Id })" 
+                                                       class="btn btn-outline-info" title="View Details">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                    <a href="@Url.Action("PrintInvoice", "Sales", new { id = sale.Id })" 
+                                                       class="btn btn-outline-secondary" title="Print Invoice" target="_blank">
+                                                        <i class="fas fa-print"></i>
+                                                    </a>
+                                                    @if (sale.Status == "Completed")
+                                                    {
+                                                        <a href="@Url.Action("Create", "Returns", new { saleId = sale.Id })" 
+                                                           class="btn btn-outline-warning" title="Process Return">
+                                                            <i class="fas fa-undo"></i>
+                                                        </a>
+                                                    }
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-5">
+                            <i class="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No Purchase History</h5>
+                            <p class="text-muted">This customer hasn't made any purchases yet.</p>
+                            <a href="@Url.Action("Create", "Sales")" class="btn btn-success">
+                                <i class="fas fa-plus me-2"></i>Create First Sale
+                            </a>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Analytics & Actions -->
+        <div class="col-lg-4">
+            <!-- Customer Analytics -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>Customer Analytics
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="border-end">
+                                <h4 class="text-primary">@Model.TotalOrders</h4>
+                                <small>Total Orders</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <h4 class="text-success">₹@Model.AverageOrderValue.ToString("N0")</h4>
+                            <small>Avg Order Value</small>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="mb-3">
+                        <label class="form-label small">Customer Loyalty Score</label>
+                        @{
+                            var loyaltyScore = Math.Min((Model.TotalOrders * 10) + (Model.TotalPurchases > 1000 ? 20 : 0), 100);
+                        }
+                        <div class="progress">
+                            <div class="progress-bar @(loyaltyScore >= 75 ? "bg-success" : loyaltyScore >= 50 ? "bg-warning" : "bg-danger")" 
+                                 role="progressbar" style="width: @loyaltyScore%" aria-valuenow="@loyaltyScore" aria-valuemin="0" aria-valuemax="100">
+                                @loyaltyScore%
+                            </div>
+                        </div>
+                        <small class="text-muted">
+                            @if (loyaltyScore >= 75)
+                            {
+                                <i class="fas fa-star text-warning"></i> <span>Highly Loyal Customer</span>
+                            }
+                            else if (loyaltyScore >= 50)
+                            {
+                                <i class="fas fa-thumbs-up text-success"></i> <span>Regular Customer</span>
+                            }
+                            else if (loyaltyScore >= 25)
+                            {
+                                <i class="fas fa-user text-info"></i> <span>New Customer</span>
+                            }
+                            else
+                            {
+                                <i class="fas fa-user-plus text-muted"></i> <span>Potential Customer</span>
+                            }
+                        </small>
+                    </div>
+
+                    @if (Model.TotalOrders > 0)
+                    {
+                        <div class="row">
+                            <div class="col-12 text-center">
+                                <small class="text-muted">Last Purchase</small>
+                                <div class="@(Model.DaysSinceLastPurchase <= 30 ? "text-success" : Model.DaysSinceLastPurchase <= 90 ? "text-warning" : "text-danger")">
+                                    @if (Model.DaysSinceLastPurchase <= 7)
+                                    {
+                                        <i class="fas fa-clock"></i> <span>Recent</span>
+                                    }
+                                    else if (Model.DaysSinceLastPurchase <= 30)
+                                    {
+                                        <i class="fas fa-calendar-check"></i> <span>This Month</span>
+                                    }
+                                    else if (Model.DaysSinceLastPurchase <= 90)
+                                    {
+                                        <i class="fas fa-calendar-alt"></i> <span>@Model.DaysSinceLastPurchase days ago</span>
+                                    }
+                                    else
+                                    {
+                                        <i class="fas fa-calendar-times"></i> <span>Inactive (@Model.DaysSinceLastPurchase days)</span>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-tools me-2"></i>Quick Actions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="@Url.Action("Create", "Sales")?customerId=@Model.Id" class="btn btn-success">
+                            <i class="fas fa-shopping-cart me-2"></i>Create New Sale
+                        </a>
+
+                        <a href="@Url.Action("Edit", new { id = Model.Id })" class="btn btn-primary">
+                            <i class="fas fa-edit me-2"></i>Edit Customer
+                        </a>
+
+                        @if (!string.IsNullOrEmpty(Model.Phone))
+                        {
+                            <a href="tel:@Model.Phone" class="btn btn-outline-info">
+                                <i class="fas fa-phone me-2"></i>Call Customer
+                            </a>
+                        }
+
+                        @if (!string.IsNullOrEmpty(Model.Email))
+                        {
+                            <a href="mailto:@Model.Email" class="btn btn-outline-secondary">
+                                <i class="fas fa-envelope me-2"></i>Send Email
+                            </a>
+                        }
+
+                        <hr>
+
+                        <a href="@Url.Action("Index")" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Back to Customers
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Customer Insights -->
+            @if (purchaseHistory.Any())
+            {
+                <div class="card shadow">
+                    <div class="card-header bg-secondary text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-lightbulb me-2"></i>Customer Insights
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        @{
+                            var monthlySpending = purchaseHistory
+                                .Where(s => s.SaleDate >= DateTime.Today.AddMonths(-12))
+                                .GroupBy(s => new { s.SaleDate.Year, s.SaleDate.Month })
+                                .Select(g => new { 
+                                    Month = $"{g.Key.Year}-{g.Key.Month:D2}", 
+                                    Amount = g.Sum(s => s.TotalAmount) 
+                                })
+                                .OrderByDescending(x => x.Month)
+                                .Take(6)
+                                .ToList();
+
+                            var favoriteCategories = purchaseHistory
+                                .SelectMany(s => s.SaleItems ?? new List<SaleItem>())
+                                .Where(si => si.Product?.Category != null)
+                                .GroupBy(si => si.Product!.Category!.Name)
+                                .Select(g => new { 
+                                    Category = g.Key, 
+                                    Count = g.Count(),
+                                    Total = g.Sum(si => si.LineTotal)
+                                })
+                                .OrderByDescending(x => x.Total)
+                                .Take(3)
+                                .ToList();
+                        }
+
+                        @if (monthlySpending.Any())
+                        {
+                            <div class="mb-3">
+                                <h6><i class="fas fa-chart-line me-2"></i>Spending Trend</h6>
+                                <small class="text-muted">Last 6 months</small>
+                                @foreach (var month in monthlySpending.Take(3))
+                                {
+                                    <div class="d-flex justify-content-between align-items-center py-1">
+                                        <small>@DateTime.ParseExact(month.Month + "-01", "yyyy-MM-dd", null).ToString("MMM yyyy")</small>
+                                        <span class="badge bg-success">₹@month.Amount.ToString("N0")</span>
+                                    </div>
+                                }
+                            </div>
+                        }
+
+                        @if (favoriteCategories.Any())
+                        {
+                            <hr>
+                            <div class="mb-3">
+                                <h6><i class="fas fa-heart me-2"></i>Favorite Categories</h6>
+                                @foreach (var category in favoriteCategories)
+                                {
+                                    <div class="d-flex justify-content-between align-items-center py-1">
+                                        <small>@category.Category</small>
+                                        <div>
+                                            <span class="badge bg-info">@category.Count items</span>
+                                            <span class="badge bg-success">₹@category.Total.ToString("N0")</span>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+
+                        @if (Model.DaysSinceLastPurchase > 90)
+                        {
+                            <hr>
+                            <div class="alert alert-warning mb-0">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>Customer at Risk!</strong>
+                                <br><small>Last purchase was @Model.DaysSinceLastPurchase days ago. Consider reaching out.</small>
+                            </div>
+                        }
+                        else if (Model.TotalOrders >= 5 && Model.TotalPurchases >= 5000)
+                        {
+                            <hr>
+                            <div class="alert alert-success mb-0">
+                                <i class="fas fa-star me-2"></i>
+                                <strong>VIP Customer!</strong>
+                                <br><small>High-value loyal customer. Consider special offers.</small>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    $(function () {
+        // Initialize tooltips
+        $('[title]').tooltip();
+    });
+</script>
+
+<style>
+    .border-end {
+        border-right: 1px solid #dee2e6 !important;
+    }
+
+    .card {
+        transition: all 0.3s ease;
+    }
+
+    .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
+    }
+
+    .progress {
+        height: 8px;
+        border-radius: 4px;
+    }
+
+    .progress-bar {
+        border-radius: 4px;
+    }
+
+    .btn-group-sm > .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    .table-hover tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+
+    .badge {
+        font-size: 0.75em;
+    }
+
+    @@media (max-width: 768px) {
+        .border-end {
+            border-right: none !important;
+            border-bottom: 1px solid #dee2e6 !important;
+            padding-bottom: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .btn-group {
+            flex-direction: column;
+        }
+
+        .btn-group > .btn {
+            margin-bottom: 0.25rem;
+        }
+
+        .card-body {
+            padding: 1rem;
+        }
+        
+        .table-responsive {
+            font-size: 0.875rem;
+        }
+    }
+</style>
+}

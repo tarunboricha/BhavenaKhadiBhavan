@@ -1,0 +1,560 @@
+﻿@model Category
+@{
+    ViewData["Title"] = "Category Details";
+    var productsByStatus = Model.Products.GroupBy(p => p.IsActive).ToDictionary(g => g.Key, g => g.ToList());
+    var activeProducts = productsByStatus.ContainsKey(true) ? productsByStatus[true] : new List<Product>();
+    var inactiveProducts = productsByStatus.ContainsKey(false) ? productsByStatus[false] : new List<Product>();
+}
+
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <h2>
+                <i class="fas fa-tag me-2 text-primary"></i>
+                Category Details
+            </h2>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a href="@Url.Action("Index")">
+                            <i class="fas fa-tags me-1"></i>Categories
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item active">@Model.Name</li>
+                </ol>
+            </nav>
+            <hr>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Left Column: Category Information -->
+        <div class="col-lg-8">
+            <!-- Basic Information -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>Category Information
+                    </h5>
+                    <div class="btn-group btn-group-sm">
+                        <a href="@Url.Action("Edit", new { id = Model.Id })" class="btn btn-light">
+                            <i class="fas fa-edit me-1"></i>Edit
+                        </a>
+                        <a href="@Url.Action("Create", "Products")?categoryId=@Model.Id" class="btn btn-success">
+                            <i class="fas fa-plus me-1"></i>Add Product
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <th width="25%">Category Name:</th>
+                                    <td><strong class="fs-5">@Model.Name</strong></td>
+                                </tr>
+                                <tr>
+                                    <th>Description:</th>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(Model.Description))
+                                        {
+                                            @Model.Description
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted font-italic">No description provided</span>
+                                        }
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Status:</th>
+                                    <td>
+                                        @if (Model.IsActive)
+                                        {
+                                            <span class="badge bg-success">Active</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-danger">Inactive</span>
+                                        }
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Created Date:</th>
+                                    <td>@Model.CreatedAt.ToString("dddd, dd MMMM yyyy 'at' HH:mm")</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <div class="card border-primary">
+                                <div class="card-body">
+                                    <i class="fas fa-cubes fa-3x text-primary mb-2"></i>
+                                    <h3 class="text-primary">@Model.Products.Count</h3>
+                                    <p class="mb-0">Total Products</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Products in Category -->
+            @if (activeProducts.Any())
+            {
+                <div class="card shadow mb-4">
+                    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-cube me-2"></i>
+                            Active Products (@activeProducts.Count)
+                        </h5>
+                        <a href="@Url.Action("Index", "Products")?categoryId=@Model.Id" class="btn btn-light btn-sm">
+                            <i class="fas fa-external-link-alt me-1"></i>View All
+                        </a>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Product Name</th>
+                                        <th>Details</th>
+                                        <th>Pricing</th>
+                                        <th>Stock</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var product in activeProducts.OrderBy(p => p.Name))
+                                    {
+                                        <tr>
+                                            <td>
+                                                <div>
+                                                    <strong>@product.Name</strong>
+                                                    @if (!string.IsNullOrEmpty(product.SKU))
+                                                    {
+                                                        <br><small class="text-muted">SKU: @product.SKU</small>
+                                                    }
+                                                </div>
+                                            </td>
+                                            <td>
+                                                @if (!string.IsNullOrEmpty(product.Color))
+                                                {
+                                                    <span class="badge bg-info me-1">@product.Color</span>
+                                                }
+                                                @if (!string.IsNullOrEmpty(product.Size))
+                                                {
+                                                    <span class="badge bg-secondary me-1">@product.Size</span>
+                                                }
+                                                @if (!string.IsNullOrEmpty(product.FabricType))
+                                                {
+                                                    <br><small class="text-muted">@product.FabricType</small>
+                                                }
+                                            </td>
+                                            <td>
+                                                <strong class="text-success">₹@product.SalePrice.ToString("N0")</strong>
+                                                <br><small class="text-muted">Cost: ₹@product.PurchasePrice.ToString("N0")</small>
+                                                <br><small class="text-info">@product.ProfitMargin.ToString("N1")% margin</small>
+                                            </td>
+                                            <td>
+                                                <span class="@(product.IsLowStock ? "text-warning" : "text-primary")">
+                                                    <strong>@product.DisplayStock</strong>
+                                                </span>
+                                                <br><small class="@(product.IsLowStock ? "text-danger" : "text-muted")">
+                                                    @product.StockStatus
+                                                </small>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <a href="@Url.Action("Details", "Products", new { id = product.Id })" 
+                                                       class="btn btn-outline-info" title="View Details">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                    <a href="@Url.Action("Edit", "Products", new { id = product.Id })" 
+                                                       class="btn btn-outline-primary" title="Edit">
+                                                        <i class="fas fa-edit"></i>
+                                                    </a>
+                                                    @if (product.IsLowStock)
+                                                    {
+                                                        <a href="@Url.Action("StockAdjustment", "Products", new { id = product.Id })" 
+                                                           class="btn btn-outline-warning" title="Adjust Stock">
+                                                            <i class="fas fa-boxes"></i>
+                                                        </a>
+                                                    }
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            @if (inactiveProducts.Any())
+            {
+                <div class="card shadow">
+                    <div class="card-header bg-secondary text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-archive me-2"></i>
+                            Inactive Products (@inactiveProducts.Count)
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            @foreach (var product in inactiveProducts.OrderBy(p => p.Name))
+                            {
+                                <div class="col-md-6 mb-3">
+                                    <div class="card border-secondary">
+                                        <div class="card-body p-3">
+                                            <h6 class="card-title text-muted">@product.Name</h6>
+                                            <p class="card-text small">
+                                                <span class="badge bg-danger me-1">Inactive</span>
+                                                @if (!string.IsNullOrEmpty(product.SKU))
+                                                {
+                                                    <span class="text-muted">SKU: @product.SKU</span>
+                                                }
+                                            </p>
+                                            <div class="btn-group btn-group-sm">
+                                                <a href="@Url.Action("Details", "Products", new { id = product.Id })" 
+                                                   class="btn btn-outline-info">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                                <a href="@Url.Action("Edit", "Products", new { id = product.Id })" 
+                                                   class="btn btn-outline-primary">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+
+            @if (!Model.Products.Any())
+            {
+                <div class="card shadow">
+                    <div class="card-body text-center py-5">
+                        <i class="fas fa-cube fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No Products in this Category</h5>
+                        <p class="text-muted">Start by adding your first product to this category.</p>
+                        <a href="@Url.Action("Create", "Products")?categoryId=@Model.Id" class="btn btn-success">
+                            <i class="fas fa-plus me-2"></i>Add First Product
+                        </a>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Right Column: Analytics & Actions -->
+        <div class="col-lg-4">
+            <!-- Category Statistics -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>Category Statistics
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="border-end">
+                                <h4 class="text-success">@activeProducts.Count</h4>
+                                <small>Active Products</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <h4 class="text-warning">@activeProducts.Count(p => p.IsLowStock)</h4>
+                            <small>Low Stock Items</small>
+                        </div>
+                    </div>
+
+                    @if (activeProducts.Any())
+                    {
+                        <hr>
+                        <div class="row text-center">
+                            <div class="col-6">
+                                <div class="border-end">
+                                    <h5 class="text-primary">₹@activeProducts.Average(p => p.SalePrice).ToString("N0")</h5>
+                                    <small>Avg Price</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <h5 class="text-success">₹@activeProducts.Sum(p => p.StockQuantity * p.SalePrice).ToString("N0")</h5>
+                                <small>Stock Value</small>
+                            </div>
+                        </div>
+
+                        <hr>
+                        <div class="mb-3">
+                            <label class="form-label small">Average Profit Margin</label>
+                            @{
+                                var avgMargin = activeProducts.Any() ? activeProducts.Average(p => p.ProfitMargin) : 0;
+                            }
+                            <div class="progress">
+                                <div class="progress-bar @(avgMargin >= 50 ? "bg-success" : avgMargin >= 25 ? "bg-warning" : "bg-danger")" 
+                                     role="progressbar" style="width: @Math.Min(avgMargin, 100)%" 
+                                     aria-valuenow="@avgMargin" aria-valuemin="0" aria-valuemax="100">
+                                    @avgMargin.ToString("F1")%
+                                </div>
+                            </div>
+                            <small class="text-muted">
+                                @if (avgMargin >= 50)
+                                {
+                                    <i class="fas fa-thumbs-up text-success"></i> <span>Excellent profitability</span>
+                                }
+                                else if (avgMargin >= 25)
+                                {
+                                    <i class="fas fa-check text-warning"></i> <span>Good profitability</span>
+                                }
+                                else
+                                {
+                                    <i class="fas fa-exclamation-triangle text-danger"></i> <span>Low profitability</span>
+                                }
+                            </small>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-tools me-2"></i>Quick Actions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="@Url.Action("Create", "Products")?categoryId=@Model.Id" class="btn btn-success">
+                            <i class="fas fa-plus me-2"></i>Add Product
+                        </a>
+
+                        <a href="@Url.Action("Edit", new { id = Model.Id })" class="btn btn-primary">
+                            <i class="fas fa-edit me-2"></i>Edit Category
+                        </a>
+
+                        @if (activeProducts.Any(p => p.IsLowStock))
+                        {
+                            <a href="@Url.Action("LowStock", "Products")?categoryId=@Model.Id" class="btn btn-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>View Low Stock Items
+                            </a>
+                        }
+
+                        <a href="@Url.Action("Index", "Products")?categoryId=@Model.Id" class="btn btn-info">
+                            <i class="fas fa-list me-2"></i>View All Products
+                        </a>
+
+                        <hr>
+
+                        @if (Model.IsActive && !Model.Products.Any())
+                        {
+                            <button type="button" class="btn btn-outline-danger" onclick="confirmDelete(@Model.Id, '@Model.Name')">
+                                <i class="fas fa-trash me-2"></i>Delete Category
+                            </button>
+                        }
+                        else if (!Model.IsActive)
+                        {
+                            <button type="button" class="btn btn-outline-success" onclick="activateCategory(@Model.Id, '@Model.Name')">
+                                <i class="fas fa-check me-2"></i>Activate Category
+                            </button>
+                        }
+                        else if (Model.Products.Any())
+                        {
+                            <div class="alert alert-warning mb-0">
+                                <i class="fas fa-info-circle me-1"></i>
+                                <small>Cannot delete category with products. Remove all products first.</small>
+                            </div>
+                        }
+
+                        <a href="@Url.Action("Index")" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Back to Categories
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Category Insights -->
+            @if (activeProducts.Any())
+            {
+                <div class="card shadow">
+                    <div class="card-header bg-secondary text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-lightbulb me-2"></i>Category Insights
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        @{
+                            var topProduct = activeProducts.OrderByDescending(p => p.SalePrice).FirstOrDefault();
+                            var lowStockProducts = activeProducts.Where(p => p.IsLowStock).ToList();
+                            var fabricTypes = activeProducts.Where(p => !string.IsNullOrEmpty(p.FabricType))
+                                                           .GroupBy(p => p.FabricType)
+                                                           .OrderByDescending(g => g.Count())
+                                                           .ToList();
+                        }
+
+                        @if (topProduct != null)
+                        {
+                            <div class="mb-3">
+                                <h6><i class="fas fa-star text-warning me-1"></i>Highest Priced Product</h6>
+                                <div class="bg-light p-2 rounded">
+                                    <strong>@topProduct.Name</strong><br>
+                                    <span class="text-success">₹@topProduct.SalePrice.ToString("N0")</span>
+                                    <span class="text-muted">(@topProduct.ProfitMargin.ToString("F1")% margin)</span>
+                                </div>
+                            </div>
+                        }
+
+                        @if (lowStockProducts.Any())
+                        {
+                            <div class="mb-3">
+                                <h6><i class="fas fa-exclamation-triangle text-warning me-1"></i>Low Stock Alert</h6>
+                                @foreach (var product in lowStockProducts.Take(3))
+                                {
+                                    <div class="d-flex justify-content-between align-items-center py-1">
+                                        <small>@product.Name</small>
+                                        <span class="badge bg-warning">@product.DisplayStock</span>
+                                    </div>
+                                }
+                                @if (lowStockProducts.Count > 3)
+                                {
+                                    <small class="text-muted">... and @(lowStockProducts.Count - 3) more items</small>
+                                }
+                            </div>
+                        }
+
+                        @if (fabricTypes.Any())
+                        {
+                            <div class="mb-3">
+                                <h6><i class="fas fa-tshirt me-1"></i>Popular Fabric Types</h6>
+                                @foreach (var fabricGroup in fabricTypes.Take(3))
+                                {
+                                    <div class="d-flex justify-content-between align-items-center py-1">
+                                        <small>@fabricGroup.Key</small>
+                                        <span class="badge bg-info">@fabricGroup.Count() products</span>
+                                    </div>
+                                }
+                            </div>
+                        }
+
+                        @{
+                            var recentProduct = activeProducts.OrderByDescending(p => p.CreatedAt).FirstOrDefault();
+                        }
+                        @if (recentProduct != null)
+                        {
+                            <div class="alert alert-success mb-0">
+                                <i class="fas fa-plus-circle me-1"></i>
+                                <strong>Latest Addition</strong><br>
+                                <small>@recentProduct.Name added on @recentProduct.CreatedAt.ToString("MMM dd")</small>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    function confirmDelete(categoryId, categoryName) {
+        if (confirm('Are you sure you want to delete the category "' + categoryName + '"?\n\nThis action cannot be undone.')) {
+            // Create and submit a form for deletion
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '@Url.Action("Delete")/' + categoryId;
+            
+            // Add anti-forgery token
+            const token = document.createElement('input');
+            token.type = 'hidden';
+            token.name = '__RequestVerificationToken';
+            token.value = $('input[name="__RequestVerificationToken"]').val();
+            form.appendChild(token);
+            
+            document.body.appendChild(form);
+            form.submit();
+        }
+    }
+
+    function activateCategory(categoryId, categoryName) {
+        if (confirm('Are you sure you want to activate the category "' + categoryName + '"?')) {
+            window.location.href = '@Url.Action("Edit")/' + categoryId + '?activate=true';
+        }
+    }
+
+    // Initialize tooltips
+    $(function () {
+        $('[title]').tooltip();
+    });
+</script>
+
+<style>
+    .border-end {
+        border-right: 1px solid #dee2e6 !important;
+    }
+
+    .card {
+        transition: all 0.3s ease;
+    }
+
+    .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
+    }
+
+    .progress {
+        height: 8px;
+        border-radius: 4px;
+    }
+
+    .progress-bar {
+        border-radius: 4px;
+    }
+
+    .btn-group-sm > .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    .table-hover tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+
+    .badge {
+        font-size: 0.75em;
+    }
+
+    .font-italic {
+        font-style: italic;
+    }
+
+    @@media (max-width: 768px) {
+        .border-end {
+            border-right: none !important;
+            border-bottom: 1px solid #dee2e6 !important;
+            padding-bottom: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .btn-group {
+            flex-direction: column;
+        }
+
+        .btn-group > .btn {
+            margin-bottom: 0.25rem;
+        }
+
+        .card-body {
+            padding: 1rem;
+        }
+        
+        .table-responsive {
+            font-size: 0.875rem;
+        }
+    }
+</style>
+}

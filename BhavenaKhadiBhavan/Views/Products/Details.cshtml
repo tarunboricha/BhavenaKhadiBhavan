@@ -1,0 +1,422 @@
+﻿@model Product
+@{
+    ViewData["Title"] = "Product Details";
+}
+
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <h2>
+                <i class="fas fa-cube me-2 text-primary"></i>
+                Product Details
+            </h2>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a href="@Url.Action("Index", "Products")">
+                            <i class="fas fa-list me-1"></i>Products
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item active">@Model.Name</li>
+                </ol>
+            </nav>
+            <hr>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Left Column: Product Information -->
+        <div class="col-lg-8">
+            <!-- Basic Information -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>Basic Information
+                    </h5>
+                    <div class="btn-group btn-group-sm">
+                        <a href="@Url.Action("Edit", new { id = Model.Id })" class="btn btn-light">
+                            <i class="fas fa-edit me-1"></i>Edit
+                        </a>
+                        <a href="@Url.Action("StockAdjustment", new { id = Model.Id })" class="btn btn-warning">
+                            <i class="fas fa-boxes me-1"></i>Adjust Stock
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <th width="30%">Product Name:</th>
+                                    <td><strong>@Model.Name</strong></td>
+                                </tr>
+                                <tr>
+                                    <th>Category:</th>
+                                    <td>@Model.Category?.Name</td>
+                                </tr>
+                                <tr>
+                                    <th>SKU:</th>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(Model.SKU))
+                                        {
+                                            <code>@Model.SKU</code>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">Not Set</span>
+                                        }
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Fabric Type:</th>
+                                    <td>@(Model.FabricType ?? "Not Specified")</td>
+                                </tr>
+                                <tr>
+                                    <th>Color:</th>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(Model.Color))
+                                        {
+                                            <span class="badge bg-info">@Model.Color</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">Not Specified</span>
+                                        }
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Size:</th>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(Model.Size))
+                                        {
+                                            <span class="badge bg-secondary">@Model.Size</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">Not Specified</span>
+                                        }
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <th width="30%">Pattern:</th>
+                                    <td>@(Model.Pattern ?? "Not Specified")</td>
+                                </tr>
+                                <tr>
+                                    <th>Unit of Measure:</th>
+                                    <td><span class="badge bg-light text-dark">@Model.UnitOfMeasure</span></td>
+                                </tr>
+                                <tr>
+                                    <th>Status:</th>
+                                    <td>
+                                        @if (Model.IsActive)
+                                        {
+                                            <span class="badge bg-success">Active</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-danger">Inactive</span>
+                                        }
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Created:</th>
+                                    <td>@Model.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                                </tr>
+                                <tr>
+                                    <th>Last Updated:</th>
+                                    <td>@Model.UpdatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(Model.Description))
+                    {
+                        <hr>
+                        <h6><i class="fas fa-align-left me-2"></i>Description:</h6>
+                        <p class="text-muted">@Model.Description</p>
+                    }
+                </div>
+            </div>
+
+            <!-- Pricing Information -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-rupee-sign me-2"></i>Pricing & Profitability
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 text-center">
+                            <div class="card border-info">
+                                <div class="card-body">
+                                    <h4 class="card-title text-info">₹@Model.PurchasePrice.ToString("N2")</h4>
+                                    <p class="card-text">Purchase Price</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <div class="card border-success">
+                                <div class="card-body">
+                                    <h4 class="card-title text-success">₹@Model.SalePrice.ToString("N2")</h4>
+                                    <p class="card-text">Sale Price</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <div class="card border-primary">
+                                <div class="card-body">
+                                    <h4 class="card-title text-primary">₹@Model.PriceWithGST.ToString("N2")</h4>
+                                    <p class="card-text">Price with GST</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-sm">
+                                <tr>
+                                    <th>GST Rate:</th>
+                                    <td><span class="badge bg-warning">@Model.GSTRate%</span></td>
+                                </tr>
+                                <tr>
+                                    <th>GST Amount:</th>
+                                    <td>₹@((Model.SalePrice * Model.GSTRate / 100).ToString("N2"))</td>
+                                </tr>
+                                <tr class="table-success">
+                                    <th>Profit Margin:</th>
+                                    <td>
+                                        <strong class="text-success">
+                                            @Model.ProfitMargin.ToString("N2")%
+                                            (₹@((Model.SalePrice - Model.PurchasePrice).ToString("N2")))
+                                        </strong>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <!-- Profit Analysis -->
+                            <div class="progress mb-2">
+                                <div class="progress-bar bg-success" role="progressbar" 
+                                     style="width: @Math.Min(Model.ProfitMargin, 100)%" 
+                                     aria-valuenow="@Model.ProfitMargin" aria-valuemin="0" aria-valuemax="100">
+                                    @Model.ProfitMargin.ToString("N1")%
+                                </div>
+                            </div>
+                            <small class="text-muted">
+                                @if (Model.ProfitMargin >= 50)
+                                {
+                                    <i class="fas fa-thumbs-up text-success"></i> <span>Excellent Margin</span>
+                                }
+                                else if (Model.ProfitMargin >= 25)
+                                {
+                                    <i class="fas fa-check text-primary"></i> <span>Good Margin</span>
+                                }
+                                else if (Model.ProfitMargin >= 10)
+                                {
+                                    <i class="fas fa-exclamation-triangle text-warning"></i> <span>Low Margin</span>
+                                }
+                                else
+                                {
+                                    <i class="fas fa-times text-danger"></i> <span>Very Low Margin</span>
+                                }
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Stock & Actions -->
+        <div class="col-lg-4">
+            <!-- Stock Information -->
+            <div class="card shadow mb-4">
+                <div class="card-header @(Model.IsLowStock ? "bg-warning" : "bg-info") text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-boxes me-2"></i>Stock Information
+                        @if (Model.IsLowStock)
+                        {
+                            <i class="fas fa-exclamation-triangle ms-2"></i>
+                        }
+                    </h5>
+                </div>
+                <div class="card-body text-center">
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="border-end">
+                                <h3 class="@(Model.IsLowStock ? "text-warning" : "text-primary")">
+                                    @Model.StockQuantity.ToString("0.###")
+                                </h3>
+                                <p class="mb-0">Current Stock</p>
+                                <small class="text-muted">@Model.UnitOfMeasure</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <h5 class="text-muted">@Model.MinimumStock.ToString("0.###")</h5>
+                            <p class="mb-0">Minimum Stock</p>
+                            <small class="text-muted">Reorder Level</small>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="alert @(Model.StockQuantity == 0 ? "alert-danger" : 
+                                      Model.IsLowStock ? "alert-warning" : "alert-success") mb-0">
+                        <strong>@Model.StockStatus</strong>
+                        @if (Model.IsLowStock && Model.StockQuantity > 0)
+                        {
+                            <br><small>Reorder recommended</small>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stock Value -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-calculator me-2"></i>Stock Value
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="border-end">
+                                <h5 class="text-muted">₹@((Model.StockQuantity * Model.PurchasePrice).ToString("N0"))</h5>
+                                <small>Cost Value</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <h5 class="text-success">₹@((Model.StockQuantity * Model.SalePrice).ToString("N0"))</h5>
+                            <small>Sale Value</small>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="text-center">
+                        <strong class="text-primary">
+                            Potential Profit: ₹@((Model.StockQuantity * (Model.SalePrice - Model.PurchasePrice)).ToString("N0"))
+                        </strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-tools me-2"></i>Quick Actions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="@Url.Action("Edit", new { id = Model.Id })" class="btn btn-primary">
+                            <i class="fas fa-edit me-2"></i>Edit Product
+                        </a>
+                        
+                        <a href="@Url.Action("StockAdjustment", new { id = Model.Id })" class="btn btn-warning">
+                            <i class="fas fa-boxes me-2"></i>Adjust Stock
+                        </a>
+
+                        @if (Model.IsActive)
+                        {
+                            <button type="button" class="btn btn-outline-danger" onclick="confirmDeactivate(@Model.Id)">
+                                <i class="fas fa-ban me-2"></i>Deactivate
+                            </button>
+                        }
+                        else
+                        {
+                            <button type="button" class="btn btn-outline-success" onclick="confirmActivate(@Model.Id)">
+                                <i class="fas fa-check me-2"></i>Activate
+                            </button>
+                        }
+
+                        <hr>
+
+                        <a href="@Url.Action("Create", "Sales")" class="btn btn-success">
+                            <i class="fas fa-shopping-cart me-2"></i>Create Sale
+                        </a>
+
+                        <a href="@Url.Action("Index")" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Back to Products
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Display Name Preview -->
+            <div class="card shadow">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">
+                        <i class="fas fa-tag me-2"></i>Display Name
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="text-center">
+                        <span class="badge bg-primary fs-6">@Model.DisplayName</span>
+                        <small class="d-block text-muted mt-2">This is how the product appears in sales</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    function confirmDeactivate(productId) {
+        if (confirm('Are you sure you want to deactivate this product? It will no longer be available for new sales.')) {
+            // You can add deactivation logic here
+            window.location.href = '@Url.Action("Edit")/' + productId + '?deactivate=true';
+        }
+    }
+
+    function confirmActivate(productId) {
+        if (confirm('Are you sure you want to activate this product?')) {
+            // You can add activation logic here
+            window.location.href = '@Url.Action("Edit")/' + productId + '?activate=true';
+        }
+    }
+
+    // Show tooltip on margin progress bar
+    $(function () {
+        $('[data-bs-toggle="tooltip"]').tooltip();
+    });
+</script>
+
+<style>
+    .card {
+        transition: all 0.3s ease;
+    }
+
+    .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
+    }
+
+    .progress-bar {
+        transition: width 0.6s ease;
+    }
+
+    .border-end {
+        border-right: 1px solid #dee2e6 !important;
+    }
+
+    @@media (max-width: 768px) {
+        .border-end {
+            border-right: none !important;
+            border-bottom: 1px solid #dee2e6 !important;
+            padding-bottom: 1rem;
+            margin-bottom: 1rem;
+        }
+    }
+</style>
+}

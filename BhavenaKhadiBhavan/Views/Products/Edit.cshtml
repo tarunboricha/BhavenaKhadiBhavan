@@ -1,0 +1,483 @@
+﻿@model Product
+@{
+    ViewData["Title"] = Model.Id > 0 ? "Edit Product" : "Add Product";
+    var isEdit = Model.Id > 0;
+}
+
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <h2>
+                <i class="fas fa-@(isEdit ? "edit" : "plus") me-2 text-primary"></i>
+                @(isEdit ? "Edit Product" : "Add New Product")
+            </h2>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a href="@Url.Action("Index")">
+                            <i class="fas fa-list me-1"></i>Products
+                        </a>
+                    </li>
+                    @if (isEdit)
+                    {
+                        <li class="breadcrumb-item">
+                            <a href="@Url.Action("Details", new { id = Model.Id })">@Model.Name</a>
+                        </li>
+                        <li class="breadcrumb-item active">Edit</li>
+                    }
+                    else
+                    {
+                        <li class="breadcrumb-item active">Add New</li>
+                    }
+                </ol>
+            </nav>
+            <hr>
+        </div>
+    </div>
+
+    <form asp-action="@(isEdit ? "Edit" : "Create")" method="post" id="productForm">
+        @Html.AntiForgeryToken()
+        @if (isEdit)
+        {
+            <input type="hidden" asp-for="Id" />
+            <input type="hidden" asp-for="CreatedAt" />
+        }
+
+        <div class="row">
+            <!-- Left Column: Basic Information -->
+            <div class="col-lg-8">
+                <!-- Basic Product Information -->
+                <div class="card shadow mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-info-circle me-2"></i>Basic Information
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Name" class="form-label">Product Name *</label>
+                                <input asp-for="Name" class="form-control" placeholder="e.g., Khadi Men Kurta" required>
+                                <span asp-validation-for="Name" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="CategoryId" class="form-label">Category *</label>
+                                <select asp-for="CategoryId" class="form-select" asp-items="ViewBag.Categories" required>
+                                    <option value="">Select Category</option>
+                                </select>
+                                <span asp-validation-for="CategoryId" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="SKU" class="form-label">SKU (Optional)</label>
+                                <input asp-for="SKU" class="form-control" placeholder="e.g., KMK-001">
+                                <span asp-validation-for="SKU" class="text-danger"></span>
+                                <small class="form-text text-muted">Stock Keeping Unit - Leave blank for auto-generation</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="FabricType" class="form-label">Fabric Type</label>
+                                <select asp-for="FabricType" class="form-select" asp-items="ViewBag.FabricTypes">
+                                </select>
+                                <span asp-validation-for="FabricType" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="Color" class="form-label">Color</label>
+                                <input asp-for="Color" class="form-control" placeholder="e.g., White, Blue" 
+                                       list="colorSuggestions">
+                                <datalist id="colorSuggestions">
+                                    <option value="White"/>
+                                    <option value="Black"/>
+                                    <option value="Blue"/>
+                                    <option value="Brown"/>
+                                </datalist>
+                                <span asp-validation-for="Color" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="Size" class="form-label">Size</label>
+                                <select asp-for="Size" class="form-select" asp-items="ViewBag.Sizes">
+                                </select>
+                                <span asp-validation-for="Size" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="Pattern" class="form-label">Pattern</label>
+                                <input asp-for="Pattern" class="form-control" placeholder="e.g., Plain, Striped"
+                                       list="patternSuggestions">
+                                <datalist id="patternSuggestions">
+                                    <option value="Plain"/>
+                                    <option value="Striped"/>
+                                    <option value="Checkered"/>
+                                    <option value="Printed"/>
+                                    <option value="Embroidered"/>
+                                    <option value="Block Print"/>
+                                    <option value="Hand-painted"/>
+                                </datalist>
+                                <span asp-validation-for="Pattern" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Description" class="form-label">Description</label>
+                            <textarea asp-for="Description" class="form-control" rows="3" 
+                                      placeholder="Detailed product description..."></textarea>
+                            <span asp-validation-for="Description" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pricing Information -->
+                <div class="card shadow mb-4">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-rupee-sign me-2"></i>Pricing & Tax
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="PurchasePrice" class="form-label">Purchase Price (₹) *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">₹</span>
+                                    <input asp-for="PurchasePrice" type="number" class="form-control" 
+                                           step="0.01" min="0.01" placeholder="0.00" required 
+                                           onchange="calculateProfit()">
+                                </div>
+                                <span asp-validation-for="PurchasePrice" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="SalePrice" class="form-label">Sale Price (₹) *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">₹</span>
+                                    <input asp-for="SalePrice" type="number" class="form-control" 
+                                           step="0.01" min="0.01" placeholder="0.00" required 
+                                           onchange="calculateProfit()">
+                                </div>
+                                <span asp-validation-for="SalePrice" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="GSTRate" class="form-label">GST Rate (%) *</label>
+                                <select asp-for="GSTRate" class="form-select" asp-items="ViewBag.GSTRates" 
+                                        onchange="calculateProfit()" required>
+                                </select>
+                                <span asp-validation-for="GSTRate" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Price with GST</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">₹</span>
+                                    <input type="text" class="form-control" id="priceWithGST" readonly 
+                                           placeholder="Calculated automatically">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Profit Margin Display -->
+                        <div class="alert alert-info">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <strong>Profit per Unit:</strong> <span id="profitAmount">₹0.00</span>
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Profit Margin:</strong> <span id="profitMargin">0.00%</span>
+                                </div>
+                            </div>
+                            <div class="progress mt-2">
+                                <div class="progress-bar" id="profitBar" role="progressbar" 
+                                     style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Stock & Settings -->
+            <div class="col-lg-4">
+                <!-- Stock Information -->
+                <div class="card shadow mb-4">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0">
+                            <i class="fas fa-boxes me-2"></i>Stock Management
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label asp-for="StockQuantity" class="form-label">Current Stock *</label>
+                            <div class="input-group">
+                                <input asp-for="StockQuantity" type="number" class="form-control" 
+                                       step="0.001" min="0" placeholder="0.000" required>
+                                <span class="input-group-text" id="unitDisplay">Piece</span>
+                            </div>
+                            <span asp-validation-for="StockQuantity" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="MinimumStock" class="form-label">Minimum Stock Level *</label>
+                            <div class="input-group">
+                                <input asp-for="MinimumStock" type="number" class="form-control" 
+                                       step="0.001" min="0" placeholder="5.000" required>
+                                <span class="input-group-text" id="minUnitDisplay">Piece</span>
+                            </div>
+                            <span asp-validation-for="MinimumStock" class="text-danger"></span>
+                            <small class="form-text text-muted">Alert level for low stock warning</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="UnitOfMeasure" class="form-label">Unit of Measure *</label>
+                            <select asp-for="UnitOfMeasure" class="form-select" onchange="updateUnitDisplays()" required>
+                                <option value="">Select Unit</option>
+                                <option value="Piece">Piece (pcs)</option>
+                                <option value="Meter">Meter (m)</option>
+                                <option value="Kilogram">Kilogram (kg)</option>
+                                <option value="Gram">Gram (g)</option>
+                                <option value="Yard">Yard (yd)</option>
+                                <option value="Box">Box</option>
+                                <option value="Set">Set</option>
+                            </select>
+                            <span asp-validation-for="UnitOfMeasure" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Product Settings -->
+                <div class="card shadow mb-4">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-cog me-2"></i>Settings
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-check form-switch">
+                            <input asp-for="IsActive" class="form-check-input" type="checkbox" checked>
+                            <label asp-for="IsActive" class="form-check-label">
+                                Product is Active
+                            </label>
+                            <small class="d-block text-muted">Inactive products won't appear in sales</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="card shadow">
+                    <div class="card-header bg-dark text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-save me-2"></i>Actions
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fas fa-save me-2"></i>
+                                @(isEdit ? "Update Product" : "Create Product")
+                            </button>
+
+                            @if (isEdit)
+                            {
+                                <a href="@Url.Action("Details", new { id = Model.Id })" class="btn btn-outline-info">
+                                    <i class="fas fa-eye me-2"></i>View Details
+                                </a>
+                            }
+
+                            <a href="@Url.Action("Index")" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Back to Products
+                            </a>
+                        </div>
+
+                        @if (isEdit)
+                        {
+                            <hr>
+                            <small class="text-muted">
+                                <i class="fas fa-clock me-1"></i>
+                                Created: @Model.CreatedAt.ToString("dd/MM/yyyy HH:mm")<br>
+                                Updated: @Model.UpdatedAt.ToString("dd/MM/yyyy HH:mm")
+                            </small>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+<script>
+    $(document).ready(function() {
+        // Initialize calculations
+        calculateProfit();
+        updateUnitDisplays();
+
+        // Form validation
+        $('#productForm').on('submit', function(e) {
+            const purchasePrice = parseFloat($('#PurchasePrice').val()) || 0;
+            const salePrice = parseFloat($('#SalePrice').val()) || 0;
+
+            if (salePrice <= purchasePrice) {
+                e.preventDefault();
+                alert('Sale price must be greater than purchase price.');
+                $('#SalePrice').focus();
+                return false;
+            }
+
+            const stockQuantity = parseFloat($('#StockQuantity').val()) || 0;
+            const minimumStock = parseFloat($('#MinimumStock').val()) || 0;
+
+            if (minimumStock >= stockQuantity && stockQuantity > 0) {
+                const confirmed = confirm('Minimum stock level is equal to or higher than current stock. This will trigger a low stock alert immediately. Continue?');
+                if (!confirmed) {
+                    e.preventDefault();
+                    return false;
+                }
+            }
+        });
+
+        // Auto-generate SKU if empty on name change
+        $('#Name').on('blur', function() {
+            const sku = $('#SKU').val();
+            if (!sku) {
+                const name = $(this).val();
+                if (name) {
+                    const autoSKU = generateSKU(name);
+                    $('#SKU').val(autoSKU);
+                }
+            }
+        });
+    });
+
+    function calculateProfit() {
+        const purchasePrice = parseFloat($('#PurchasePrice').val()) || 0;
+        const salePrice = parseFloat($('#SalePrice').val()) || 0;
+        const gstRate = parseFloat($('#GSTRate').val()) || 0;
+
+        // Calculate GST amount and price with GST
+        const gstAmount = salePrice * gstRate / 100;
+        const priceWithGST = salePrice + gstAmount;
+        $('#priceWithGST').val(priceWithGST.toFixed(2));
+
+        // Calculate profit
+        const profitAmount = salePrice - purchasePrice;
+        const profitMargin = salePrice > 0 ? (profitAmount / salePrice) * 100 : 0;
+
+        // Update displays
+        $('#profitAmount').text('₹' + profitAmount.toFixed(2));
+        $('#profitMargin').text(profitMargin.toFixed(2) + '%');
+
+        // Update progress bar
+        const progressBar = $('#profitBar');
+        const clampedMargin = Math.min(Math.max(profitMargin, 0), 100);
+        progressBar.css('width', clampedMargin + '%');
+        progressBar.attr('aria-valuenow', clampedMargin);
+
+        // Set progress bar color based on margin
+        progressBar.removeClass('bg-danger bg-warning bg-info bg-success');
+        if (profitMargin < 10) {
+            progressBar.addClass('bg-danger');
+        } else if (profitMargin < 25) {
+            progressBar.addClass('bg-warning');
+        } else if (profitMargin < 50) {
+            progressBar.addClass('bg-info');
+        } else {
+            progressBar.addClass('bg-success');
+        }
+    }
+
+    function updateUnitDisplays() {
+        const unit = $('#UnitOfMeasure').val();
+        const shortUnit = getShortUnit(unit);
+        $('#unitDisplay').text(shortUnit);
+        $('#minUnitDisplay').text(shortUnit);
+    }
+
+    function getShortUnit(unit) {
+        switch (unit) {
+            case 'Piece': return 'pcs';
+            case 'Meter': return 'm';
+            case 'Kilogram': return 'kg';
+            case 'Gram': return 'g';
+            case 'Yard': return 'yd';
+            case 'Box': return 'box';
+            case 'Set': return 'set';
+            default: return 'unit';
+        }
+    }
+
+    function generateSKU(name) {
+        // Simple SKU generation logic
+        const words = name.split(' ');
+        let sku = '';
+        words.forEach(word => {
+            if (word.length > 0) {
+                sku += word.charAt(0).toUpperCase();
+            }
+        });
+        
+        // Add random numbers
+        const randomNum = Math.floor(Math.random() * 999) + 1;
+        sku += randomNum.toString().padStart(3, '0');
+        
+        return sku;
+    }
+
+    // Auto-resize textarea
+    $('textarea').on('input', function() {
+        this.style.height = 'auto';
+        this.style.height = (this.scrollHeight) + 'px';
+    });
+</script>
+
+<style>
+    .form-label {
+        font-weight: 600;
+        color: #495057;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        border-color: #80bdff;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    }
+
+    .input-group-text {
+        background-color: #f8f9fa;
+        border-color: #ced4da;
+        font-weight: 500;
+    }
+
+    .card {
+        transition: all 0.3s ease;
+    }
+
+    .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
+    }
+
+    .progress {
+        height: 8px;
+    }
+
+    .alert-info {
+        background-color: #e7f3ff;
+        border-color: #b8daff;
+        color: #004085;
+    }
+
+    @@media (max-width: 768px) {
+        .container-fluid {
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+        
+        .card-body {
+            padding: 1rem;
+        }
+    }
+</style>
+}

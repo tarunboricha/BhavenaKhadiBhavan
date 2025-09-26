@@ -1,0 +1,549 @@
+﻿@model Category
+@{
+    ViewData["Title"] = Model.Id > 0 ? "Edit Category" : "Add Category";
+    var isEdit = Model.Id > 0;
+}
+
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <h2>
+                <i class="fas fa-@(isEdit ? "edit" : "plus") me-2 text-primary"></i>
+                @(isEdit ? "Edit Category" : "Add New Category")
+            </h2>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a href="@Url.Action("Index")">
+                            <i class="fas fa-tags me-1"></i>Categories
+                        </a>
+                    </li>
+                    @if (isEdit)
+                    {
+                        <li class="breadcrumb-item">
+                            <a href="@Url.Action("Details", new { id = Model.Id })">@Model.Name</a>
+                        </li>
+                        <li class="breadcrumb-item active">Edit</li>
+                    }
+                    else
+                    {
+                        <li class="breadcrumb-item active">Add New</li>
+                    }
+                </ol>
+            </nav>
+            <hr>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Left Column: Category Form -->
+        <div class="col-lg-8">
+            <form asp-action="@(isEdit ? "Edit" : "Create")" method="post" id="categoryForm">
+                @Html.AntiForgeryToken()
+                @if (isEdit)
+                {
+                    <input type="hidden" asp-for="Id" />
+                    <input type="hidden" asp-for="CreatedAt" />
+                }
+
+                <!-- Basic Information -->
+                <div class="card shadow mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-tag me-2"></i>Category Information
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Name" class="form-label">Category Name *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-tag"></i>
+                                    </span>
+                                    <input asp-for="Name" class="form-control" placeholder="e.g., Men's Wear, Traditional Clothing" required>
+                                </div>
+                                <span asp-validation-for="Name" class="text-danger"></span>
+                                <small class="form-text text-muted">Descriptive name for the product category</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Category Status</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-toggle-on"></i>
+                                    </span>
+                                    <div class="form-control">
+                                        <div class="form-check form-switch">
+                                            <input asp-for="IsActive" class="form-check-input" type="checkbox" id="isActiveSwitch" checked>
+                                            <label class="form-check-label" for="isActiveSwitch" id="statusLabel">
+                                                Active Category
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <small class="form-text text-muted">Inactive categories won't appear in product creation</small>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Description" class="form-label">Description</label>
+                            <div class="input-group">
+                                <span class="input-group-text align-items-start pt-2">
+                                    <i class="fas fa-align-left"></i>
+                                </span>
+                                <textarea asp-for="Description" class="form-control" rows="4"
+                                          placeholder="Detailed description of this category and what products it includes..."></textarea>
+                            </div>
+                            <span asp-validation-for="Description" class="text-danger"></span>
+                            <small class="form-text text-muted">Optional description to help organize products better</small>
+                        </div>
+
+                        @if (isEdit && Model.Products != null && Model.Products.Any())
+                        {
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>Note:</strong> This category currently has <strong>@Model.Products.Count products</strong>.
+                                Changes to the category name will be reflected in all associated products.
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Category Preview -->
+                <div class="card shadow mb-4">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-eye me-2"></i>Category Preview
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="card border-primary" id="categoryPreview">
+                            <div class="card-header bg-primary text-white">
+                                <h6 class="mb-0" id="previewName">Category Name</h6>
+                            </div>
+                            <div class="card-body">
+                                <p class="card-text" id="previewDescription">Category description will appear here...</p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted">
+                                        Status: <span id="previewStatus" class="badge bg-success">Active</span>
+                                    </small>
+                                    <small class="text-muted">
+                                        <i class="fas fa-calendar me-1"></i>
+                                        @(isEdit ? "Created " + Model.CreatedAt.ToString("MMM dd, yyyy") : "Will be created now")
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        <small class="text-muted d-block mt-2">
+                            <i class="fas fa-info-circle me-1"></i>
+                            This is how your category will appear in the categories list
+                        </small>
+                    </div>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="card shadow">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-save me-2"></i>Save Category
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap">
+                            <div class="mb-3">
+                                <small class="text-muted">
+                                    <i class="fas fa-check-circle me-1"></i>
+                                    @if (isEdit)
+                                    {
+                                        <span>Update the category information and it will be reflected across all associated products.</span>
+                                    }
+                                    else
+                                    {
+                                        <span>After creating this category, you can start adding products to it.</span>
+                                    }
+                                </small>
+                            </div>
+                            <div class="btn-group">
+                                <button type="submit" class="btn btn-success btn-lg">
+                                    <i class="fas fa-save me-2"></i>
+                                    @(isEdit ? "Update Category" : "Create Category")
+                                </button>
+
+                                @if (isEdit)
+                                {
+                                    <a href="@Url.Action("Details", new { id = Model.Id })" class="btn btn-outline-info">
+                                        <i class="fas fa-eye me-2"></i>View Details
+                                    </a>
+                                }
+
+                                <a href="@Url.Action("Index")" class="btn btn-outline-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i>Cancel
+                                </a>
+                            </div>
+                        </div>
+
+                        @if (isEdit)
+                        {
+                            <hr>
+                            <small class="text-muted">
+                                <i class="fas fa-clock me-1"></i>
+                                Category created: @Model.CreatedAt.ToString("dd MMMM yyyy 'at' HH:mm")
+                            </small>
+                        }
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Right Column: Information & Guidelines -->
+        <div class="col-lg-4">
+            @if (isEdit && Model.Products != null)
+            {
+                <!-- Current Category Stats -->
+                <div class="card shadow mb-4">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-chart-bar me-2"></i>Category Statistics
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-6">
+                                <div class="border-end">
+                                    <h4 class="text-primary">@Model.Products.Count</h4>
+                                    <small>Total Products</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <h4 class="text-success">@Model.Products.Count(p => p.IsActive)</h4>
+                                <small>Active Products</small>
+                            </div>
+                        </div>
+
+                        @if (Model.Products.Any(p => p.IsActive))
+                        {
+                            <hr>
+                            <div class="text-center">
+                                @{
+                                    var activeProducts = Model.Products.Where(p => p.IsActive).ToList();
+                                    var lowStockCount = activeProducts.Count(p => p.IsLowStock);
+                                    var avgPrice = activeProducts.Any() ? activeProducts.Average(p => p.SalePrice) : 0;
+                                }
+                                <div class="row">
+                                    <div class="col-6">
+                                        <div class="border-end">
+                                            <h5 class="text-warning">@lowStockCount</h5>
+                                            <small>Low Stock</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <h5 class="text-info">₹@avgPrice.ToString("N0")</h5>
+                                        <small>Avg Price</small>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+
+                        @if (Model.Products.Any())
+                        {
+                            <hr>
+                            <div class="mb-0">
+                                <small class="text-muted d-block mb-2">Recent Products:</small>
+                                @foreach (var product in Model.Products.Where(p => p.IsActive).OrderByDescending(p => p.CreatedAt).Take(5))
+                                {
+                                    <span class="badge bg-light text-dark me-1 mb-1">@product.Name</span>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+
+            <!-- Category Guidelines -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="fas fa-lightbulb me-2"></i>Category Guidelines
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-info-circle me-2"></i>Naming Tips</h6>
+                        <ul class="mb-0">
+                            <li><strong>Be Specific:</strong> "Men's Kurtas" vs "Clothing"</li>
+                            <li><strong>Be Consistent:</strong> Use similar naming patterns</li>
+                            <li><strong>Consider Hierarchy:</strong> Think about sub-categories</li>
+                        </ul>
+                    </div>
+
+                    <div class="alert alert-success">
+                        <h6><i class="fas fa-tags me-2"></i>Category Examples</h6>
+                        <ul class="mb-0">
+                            <li>Men's Traditional Wear</li>
+                            <li>Women's Khadi Collection</li>
+                            <li>Hand-woven Fabrics</li>
+                            <li>Accessories & Scarves</li>
+                            <li>Children's Clothing</li>
+                        </ul>
+                    </div>
+
+                    @if (!isEdit)
+                    {
+                        <div class="alert alert-warning">
+                            <h6><i class="fas fa-plus me-2"></i>After Creation</h6>
+                            <ul class="mb-0">
+                                <li>Category will appear in product forms</li>
+                                <li>You can immediately add products</li>
+                                <li>Category can be edited anytime</li>
+                            </ul>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card shadow">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-tools me-2"></i>Quick Actions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        @if (isEdit)
+                        {
+                            <a href="@Url.Action("Create", "Products")?categoryId=@Model.Id" class="btn btn-success">
+                                <i class="fas fa-plus me-2"></i>Add Product to Category
+                            </a>
+
+                            <a href="@Url.Action("Details", new { id = Model.Id })" class="btn btn-info">
+                                <i class="fas fa-eye me-2"></i>View Category Details
+                            </a>
+
+                            @if (Model.Products != null && Model.Products.Any())
+                            {
+                                <a href="@Url.Action("Index", "Products")?categoryId=@Model.Id" class="btn btn-outline-primary">
+                                    <i class="fas fa-list me-2"></i>View Category Products
+                                </a>
+                            }
+                        }
+                        else
+                        {
+                            <div class="text-muted text-center">
+                                <i class="fas fa-info-circle me-1"></i>
+                                More actions will be available after creating the category
+                            </div>
+                        }
+
+                        <hr>
+
+                        <a href="@Url.Action("Index")" class="btn btn-outline-secondary">
+                            <i class="fas fa-tags me-2"></i>View All Categories
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Update preview in real-time
+            updatePreview();
+
+            // Update preview when inputs change
+            $('#Name, #Description').on('input', updatePreview);
+            $('#IsActive').on('change', updatePreview);
+
+            // Form validation
+            $('#categoryForm').on('submit', function(e) {
+                const name = $('#Name').val().trim();
+
+                if (!name) {
+                    e.preventDefault();
+                    alert('Category name is required.');
+                    $('#Name').focus();
+                    return false;
+                }
+
+                if (name.length < 2) {
+                    e.preventDefault();
+                    alert('Category name must be at least 2 characters long.');
+                    $('#Name').focus();
+                    return false;
+                }
+
+                // Show loading state
+                $(this).find('button[type="submit"]').prop('disabled', true)
+                       .html('<i class="fas fa-spinner fa-spin me-2"></i>Saving...');
+            });
+
+            // Auto-resize textarea
+            $('textarea').on('input', function() {
+                this.style.height = 'auto';
+                this.style.height = (this.scrollHeight) + 'px';
+            });
+
+            // Name input formatting
+            $('#Name').on('blur', function() {
+                let value = $(this).val();
+                // Capitalize first letter of each word
+                value = value.replace(/\w\S*/g, function(txt) {
+                    return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
+                });
+                $(this).val(value);
+                updatePreview();
+            });
+
+            // Toggle status label
+            $('#IsActive').on('change', function() {
+                const label = $('#statusLabel');
+                if ($(this).is(':checked')) {
+                    label.text('Active Category').removeClass('text-danger').addClass('text-success');
+                } else {
+                    label.text('Inactive Category').removeClass('text-success').addClass('text-danger');
+                }
+            });
+        });
+
+        function updatePreview() {
+            const name = $('#Name').val() || 'Category Name';
+            const description = $('#Description').val() || 'Category description will appear here...';
+            const isActive = $('#IsActive').is(':checked');
+
+            $('#previewName').text(name);
+            $('#previewDescription').text(description);
+
+            const statusBadge = $('#previewStatus');
+            if (isActive) {
+                statusBadge.removeClass('bg-danger').addClass('bg-success').text('Active');
+            } else {
+                statusBadge.removeClass('bg-success').addClass('bg-danger').text('Inactive');
+            }
+        }
+
+        // Add validation classes
+        function addValidationClasses() {
+            $('#Name').on('input blur', function() {
+                const input = $(this);
+                const value = input.val().trim();
+
+                if (value && value.length >= 2) {
+                    input.removeClass('is-invalid').addClass('is-valid');
+                } else if (value) {
+                    input.removeClass('is-valid').addClass('is-invalid');
+                } else {
+                    input.removeClass('is-valid is-invalid');
+                }
+            });
+
+            $('#Description').on('input', function() {
+                const input = $(this);
+                const value = input.val().trim();
+
+                if (value && value.length >= 10) {
+                    input.removeClass('is-invalid').addClass('is-valid');
+                } else if (value && value.length < 10) {
+                    input.removeClass('is-valid').addClass('is-invalid');
+                } else {
+                    input.removeClass('is-valid is-invalid');
+                }
+            });
+        }
+
+        // Initialize validation
+        addValidationClasses();
+    </script>
+
+    <style>
+        .form-label {
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .form-control:focus,
+        .form-select:focus {
+            border-color: #80bdff;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        }
+
+        .input-group-text {
+            background-color: #f8f9fa;
+            border-color: #ced4da;
+            font-weight: 500;
+            width: 45px;
+            justify-content: center;
+        }
+
+            .input-group-text.align-items-start {
+                width: auto;
+                padding: 0.5rem 0.75rem;
+            }
+
+        .card {
+            transition: all 0.3s ease;
+        }
+
+            .card:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
+            }
+
+        .border-end {
+            border-right: 1px solid #dee2e6 !important;
+        }
+
+        .form-check-input:checked {
+            background-color: #198754;
+            border-color: #198754;
+        }
+
+        #categoryPreview {
+            transition: all 0.3s ease;
+        }
+
+        .is-valid {
+            border-color: #198754;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%23198754' d='m2.3 6.73.94-.94 2.94 2.94L9.11 5.8l.94.94L6.11 9.67z'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right calc(0.375em + 0.1875rem) center;
+            background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+        }
+
+        .is-invalid {
+            border-color: #dc3545;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath d='m5.8 4.6 1.4 1.4 1.4-1.4M8.6 5.8 7.2 7.2l1.4 1.4'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right calc(0.375em + 0.1875rem) center;
+            background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+        }
+
+        @@media (max-width: 768px) {
+            .border-end
+
+        {
+            border-right: none !important;
+            border-bottom: 1px solid #dee2e6 !important;
+            padding-bottom: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .btn-group {
+            flex-direction: column;
+            width: 100%;
+        }
+
+            .btn-group > .btn {
+                margin-bottom: 0.5rem;
+            }
+
+        .card-body {
+            padding: 1rem;
+        }
+
+        }
+    </style>
+}

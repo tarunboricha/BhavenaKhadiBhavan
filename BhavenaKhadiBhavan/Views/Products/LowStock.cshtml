@@ -1,0 +1,611 @@
+﻿@model List<Product>
+@{
+    ViewData["Title"] = "Low Stock Alert";
+    var criticalStock = Model.Where(p => p.StockQuantity == 0).ToList();
+    var lowStock = Model.Where(p => p.StockQuantity > 0 && p.StockQuantity <= p.MinimumStock).ToList();
+}
+
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <h2>
+                <i class="fas fa-exclamation-triangle me-2 text-warning"></i>
+                Low Stock Alert
+            </h2>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a href="@Url.Action("Index")">
+                            <i class="fas fa-list me-1"></i>Products
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item active">Low Stock</li>
+                </ol>
+            </nav>
+            <hr>
+        </div>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <!-- No Low Stock Items -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card shadow">
+                    <div class="card-body text-center py-5">
+                        <i class="fas fa-check-circle fa-4x text-success mb-4"></i>
+                        <h4 class="text-success">All Products Are Well Stocked!</h4>
+                        <p class="text-muted mb-4">No products are currently running low on stock.</p>
+                        <div class="btn-group">
+                            <a href="@Url.Action("Index")" class="btn btn-primary">
+                                <i class="fas fa-list me-2"></i>View All Products
+                            </a>
+                            <a href="@Url.Action("Create")" class="btn btn-success">
+                                <i class="fas fa-plus me-2"></i>Add New Product
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- Summary Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card border-danger shadow">
+                    <div class="card-body text-center">
+                        <i class="fas fa-times-circle fa-2x text-danger mb-2"></i>
+                        <h3 class="text-danger">@criticalStock.Count</h3>
+                        <p class="mb-0">Out of Stock</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-warning shadow">
+                    <div class="card-body text-center">
+                        <i class="fas fa-exclamation-triangle fa-2x text-warning mb-2"></i>
+                        <h3 class="text-warning">@lowStock.Count</h3>
+                        <p class="mb-0">Low Stock</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-info shadow">
+                    <div class="card-body text-center">
+                        <i class="fas fa-boxes fa-2x text-info mb-2"></i>
+                        <h3 class="text-info">@Model.Count</h3>
+                        <p class="mb-0">Total Affected</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-success shadow">
+                    <div class="card-body text-center">
+                        <i class="fas fa-rupee-sign fa-2x text-success mb-2"></i>
+                        <h3 class="text-success">₹@Model.Sum(p => p.StockQuantity * p.SalePrice).ToString("N0")</h3>
+                        <p class="mb-0">Stock Value</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap">
+                            <div>
+                                <h5 class="mb-0"><i class="fas fa-tools me-2"></i>Quick Actions</h5>
+                                <small class="text-muted">Take action on multiple items</small>
+                            </div>
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-warning" onclick="selectAll()">
+                                    <i class="fas fa-check-square me-1"></i>Select All
+                                </button>
+                                <button type="button" class="btn btn-info" onclick="bulkStockAdjustment()" disabled id="bulkActionBtn">
+                                    <i class="fas fa-boxes me-1"></i>Bulk Stock Update
+                                </button>
+                                <button type="button" class="btn btn-primary" onclick="exportLowStock()">
+                                    <i class="fas fa-download me-1"></i>Export CSV
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if (criticalStock.Any())
+        {
+            <!-- Out of Stock Items -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-times-circle me-2"></i>
+                        Critical: Out of Stock (@criticalStock.Count items)
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th width="40px">
+                                        <input type="checkbox" id="selectAllCritical" onchange="toggleGroupSelection('critical')">
+                                    </th>
+                                    <th>Product</th>
+                                    <th>Category</th>
+                                    <th>Details</th>
+                                    <th>Stock Value Lost</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var product in criticalStock.OrderBy(p => p.Name))
+                                {
+                                    <tr>
+                                        <td>
+                                            <input type="checkbox" class="product-checkbox critical-checkbox" value="@product.Id" onchange="updateBulkButton()">
+                                        </td>
+                                        <td>
+                                            <div>
+                                                <strong>@product.Name</strong>
+                                                @if (!string.IsNullOrEmpty(product.SKU))
+                                                {
+                                                    <br>
+                                    
+                                                    <small class="text-muted">SKU: @product.SKU</small>
+                                                }
+                                            </div>
+                                        </td>
+                                        <td>@product.Category?.Name</td>
+                                        <td>
+                                            @if (!string.IsNullOrEmpty(product.Color))
+                                            {
+                                                <span class="badge bg-info me-1">@product.Color</span>
+                                            }
+                                            @if (!string.IsNullOrEmpty(product.Size))
+                                            {
+                                                <span class="badge bg-secondary">@product.Size</span>
+                                            }
+                                            @if (!string.IsNullOrEmpty(product.FabricType))
+                                            {
+                                                <br>
+                                
+                                                <small class="text-muted">@product.FabricType</small>
+                                            }
+                                        </td>
+                                        <td>
+                                            <span class="text-danger">
+                                                <strong>₹@((product.MinimumStock * product.SalePrice).ToString("N0"))</strong>
+                                            </span>
+                                            <br><small class="text-muted">Potential lost sales</small>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <a href="@Url.Action("StockAdjustment", new { id = product.Id })"
+                                                   class="btn btn-warning" title="Update Stock">
+                                                    <i class="fas fa-boxes"></i>
+                                                </a>
+                                                <a href="@Url.Action("Details", new { id = product.Id })"
+                                                   class="btn btn-info" title="View Details">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                                <a href="@Url.Action("Edit", new { id = product.Id })"
+                                                   class="btn btn-primary" title="Edit">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (lowStock.Any())
+        {
+            <!-- Low Stock Items -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Warning: Low Stock (@lowStock.Count items)
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th width="40px">
+                                        <input type="checkbox" id="selectAllLow" onchange="toggleGroupSelection('low')">
+                                    </th>
+                                    <th>Product</th>
+                                    <th>Category</th>
+                                    <th>Details</th>
+                                    <th>Current Stock</th>
+                                    <th>Minimum Stock</th>
+                                    <th>Stock Level</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var product in lowStock.OrderBy(p => p.StockQuantity).ThenBy(p => p.Name))
+                                {
+                                    <tr>
+                                        <td>
+                                            <input type="checkbox" class="product-checkbox low-checkbox" value="@product.Id" onchange="updateBulkButton()">
+                                        </td>
+                                        <td>
+                                            <div>
+                                                <strong>@product.Name</strong>
+                                                @if (!string.IsNullOrEmpty(product.SKU))
+                                                {
+                                                    <br>
+                                    
+                                                    <small class="text-muted">SKU: @product.SKU</small>
+                                                }
+                                            </div>
+                                        </td>
+                                        <td>@product.Category?.Name</td>
+                                        <td>
+                                            @if (!string.IsNullOrEmpty(product.Color))
+                                            {
+                                                <span class="badge bg-info me-1">@product.Color</span>
+                                            }
+                                            @if (!string.IsNullOrEmpty(product.Size))
+                                            {
+                                                <span class="badge bg-secondary">@product.Size</span>
+                                            }
+                                            @if (!string.IsNullOrEmpty(product.FabricType))
+                                            {
+                                                <br>
+                                
+                                                <small class="text-muted">@product.FabricType</small>
+                                            }
+                                        </td>
+                                        <td>
+                                            <strong class="text-warning">@product.DisplayStock</strong>
+                                        </td>
+                                        <td>
+                                            <span class="text-muted">@product.MinimumStock.ToString("0.###") @product.UnitOfMeasure</span>
+                                        </td>
+                                        <td>
+                                            @{
+                                                var percentage = product.MinimumStock > 0 ?
+                                                (product.StockQuantity / product.MinimumStock) * 100 : 0;
+                                            }
+                                            <div class="progress" style="height: 20px;">
+                                                <div class="progress-bar @(percentage <= 50 ? "bg-danger" : percentage <= 75 ? "bg-warning" : "bg-success")"
+                                                     role="progressbar" style="width: @Math.Min(percentage, 100)%"
+                                                     aria-valuenow="@percentage" aria-valuemin="0" aria-valuemax="100">
+                                                    @percentage.ToString("F0")%
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <a href="@Url.Action("StockAdjustment", new { id = product.Id })"
+                                                   class="btn btn-warning" title="Update Stock">
+                                                    <i class="fas fa-boxes"></i>
+                                                </a>
+                                                <a href="@Url.Action("Details", new { id = product.Id })"
+                                                   class="btn btn-info" title="View Details">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                                <a href="@Url.Action("Edit", new { id = product.Id })"
+                                                   class="btn btn-primary" title="Edit">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Category-wise Breakdown -->
+        <div class="card shadow">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-pie me-2"></i>
+                    Category-wise Breakdown
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    @{
+                        var categoryGroups = Model.Where(p => p.Category != null).GroupBy(p => p.Category!.Name).ToList();
+                    }
+                    @foreach (var group in categoryGroups.OrderByDescending(g => g.Count()))
+                    {
+                        var categoryProducts = group.ToList();
+                        var outOfStock = categoryProducts.Count(p => p.StockQuantity == 0);
+                        var lowStockOnly = categoryProducts.Count(p => p.StockQuantity > 0 && p.StockQuantity <= p.MinimumStock);
+
+                        <div class="col-md-4 mb-3">
+                            <div class="card border-left-warning">
+                                <div class="card-body">
+                                    <div class="row no-gutters align-items-center">
+                                        <div class="col mr-2">
+                                            <div class="h6 font-weight-bold text-warning text-uppercase mb-1">
+                                                @group.Key
+                                            </div>
+                                            <div class="h6 mb-0 font-weight-bold text-gray-800">
+                                                @categoryProducts.Count total
+                                            </div>
+                                            <small class="text-muted">
+                                                @outOfStock out of stock, @lowStockOnly low stock
+                                            </small>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-boxes fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Bulk Stock Adjustment Modal -->
+<div class="modal fade" id="bulkStockModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Bulk Stock Adjustment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    This will update stock for <span id="selectedCount">0</span> selected products.
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Adjustment Type</label>
+                    <select id="adjustmentType" class="form-select">
+                        <option value="set">Set Stock To</option>
+                        <option value="add">Add to Current Stock</option>
+                        <option value="minimum">Set to Minimum Stock Level</option>
+                    </select>
+                </div>
+
+                <div class="mb-3" id="quantityGroup">
+                    <label class="form-label">Quantity</label>
+                    <input type="number" id="adjustmentQuantity" class="form-control" step="0.001" min="0" placeholder="0.000">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Reason (Optional)</label>
+                    <select id="adjustmentReason" class="form-select">
+                        <option value="">Select Reason</option>
+                        <option value="Stock Received">Stock Received</option>
+                        <option value="Stock Count">Physical Stock Count</option>
+                        <option value="Reorder Level">Reorder Level Adjustment</option>
+                        <option value="Damaged Stock">Damaged Stock Removal</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+
+                <div id="selectedProductsList" class="border rounded p-2 bg-light" style="max-height: 200px; overflow-y: auto;">
+                    <!-- Selected products will be listed here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="processBulkAdjustment()">
+                    <i class="fas fa-save me-1"></i>Update Stock
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Initialize tooltips
+            $('[title]').tooltip();
+
+            // Hide quantity input when "Set to Minimum" is selected
+            $('#adjustmentType').change(function() {
+                const quantityGroup = $('#quantityGroup');
+                if ($(this).val() === 'minimum') {
+                    quantityGroup.hide();
+                } else {
+                    quantityGroup.show();
+                }
+            });
+        });
+
+        function selectAll() {
+            $('.product-checkbox').prop('checked', true);
+            $('#selectAllCritical').prop('checked', true);
+            $('#selectAllLow').prop('checked', true);
+            updateBulkButton();
+        }
+
+        function toggleGroupSelection(group) {
+            const checkbox = $('#selectAll' + (group === 'critical' ? 'Critical' : 'Low'));
+            const isChecked = checkbox.prop('checked');
+            $('.' + group + '-checkbox').prop('checked', isChecked);
+            updateBulkButton();
+        }
+
+        function updateBulkButton() {
+            const selectedCount = $('.product-checkbox:checked').length;
+            const bulkBtn = $('#bulkActionBtn');
+
+            if (selectedCount > 0) {
+                bulkBtn.prop('disabled', false);
+                bulkBtn.html('<i class="fas fa-boxes me-1"></i>Bulk Update (' + selectedCount + ')');
+            } else {
+                bulkBtn.prop('disabled', true);
+                bulkBtn.html('<i class="fas fa-boxes me-1"></i>Bulk Stock Update');
+            }
+        }
+
+        function bulkStockAdjustment() {
+            const selectedProducts = [];
+            $('.product-checkbox:checked').each(function() {
+                const row = $(this).closest('tr');
+                const productName = row.find('td:nth-child(2) strong').text();
+                selectedProducts.push({
+                    id: $(this).val(),
+                    name: productName
+                });
+            });
+
+            if (selectedProducts.length === 0) {
+                alert('Please select at least one product.');
+                return;
+            }
+
+            // Update modal
+            $('#selectedCount').text(selectedProducts.length);
+
+            let productsList = '<small class="text-muted">Selected products:</small><ul class="list-unstyled mb-0">';
+            selectedProducts.forEach(product => {
+                productsList += '<li><i class="fas fa-cube me-1"></i>' + product.name + '</li>';
+            });
+            productsList += '</ul>';
+
+            $('#selectedProductsList').html(productsList);
+
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('bulkStockModal'));
+            modal.show();
+        }
+
+        function processBulkAdjustment() {
+            const selectedIds = $('.product-checkbox:checked').map(function() {
+                return $(this).val();
+            }).get();
+
+            const adjustmentType = $('#adjustmentType').val();
+            const quantity = parseFloat($('#adjustmentQuantity').val()) || 0;
+            const reason = $('#adjustmentReason').val();
+
+            if (adjustmentType !== 'minimum' && quantity <= 0) {
+                alert('Please enter a valid quantity.');
+                return;
+            }
+
+            if (!reason) {
+                const confirmed = confirm('No reason specified. Continue with bulk adjustment?');
+                if (!confirmed) return;
+            }
+
+            // Here you would typically send AJAX request to server
+            // For now, we'll show a success message and refresh
+
+            alert('Stock adjustment initiated for ' + selectedIds.length + ' products. Processing...');
+
+            // Simulate processing delay
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+        }
+
+        function exportLowStock() {
+            // Generate CSV export
+            let csv = 'Product Name,Category,SKU,Color,Size,Current Stock,Minimum Stock,Unit,Status\n';
+
+            @foreach (var product in Model)
+            {
+                    <text>
+                    csv += '"@Html.Raw(product.Name.Replace("\"", "\"\""))","@(product.Category?.Name ?? "")",' +
+                           '"@(product.SKU ?? "")","@(product.Color ?? "")","@(product.Size ?? "")",' +
+                           '@product.StockQuantity,@product.MinimumStock,"@product.UnitOfMeasure",' +
+                           '"@(product.StockQuantity == 0 ? "Out of Stock" : "Low Stock")"\n';
+                    </text>
+            }
+
+            // Download CSV
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'low_stock_report_' + new Date().toISOString().slice(0,10) + '.csv');
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+
+    <style>
+        .border-left-warning {
+            border-left: 4px solid #ffc107 !important;
+        }
+
+        .table-hover tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .progress {
+            border-radius: 10px;
+        }
+
+        .progress-bar {
+            border-radius: 10px;
+        }
+
+        .btn-group-sm > .btn {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .card {
+            transition: all 0.3s ease;
+        }
+
+            .card:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
+            }
+
+        .badge {
+            font-size: 0.75em;
+        }
+
+        @@media (max-width: 768px) {
+            .btn-group
+
+        {
+            flex-direction: column;
+            width: 100%;
+        }
+
+        .btn-group > .btn {
+            margin-bottom: 0.5rem;
+        }
+
+        .card-body {
+            padding: 1rem;
+        }
+
+        .table-responsive {
+            font-size: 0.875rem;
+        }
+
+        }
+    </style>
+}

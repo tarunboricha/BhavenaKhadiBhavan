@@ -315,10 +315,25 @@
                         </div>
                     }
 
+                    @if (totalTaxableAmount + totalGSTAmount != Model.TotalAmount)
+                    {
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Round off:</span>
+                            @if (totalTaxableAmount + totalGSTAmount - Model.TotalAmount > 0)
+                            {
+                                <span>@("-₹" + Math.Abs(totalTaxableAmount + totalGSTAmount - Model.TotalAmount).ToString("N2"))</span>
+                            }
+                            else
+                            {
+                                <span>@("+₹" + Math.Abs(totalTaxableAmount + totalGSTAmount - Model.TotalAmount).ToString("N2"))</span>
+                            }
+                        </div>
+                    }
+
                     <hr>
 
                     <div class="d-flex justify-content-between mb-3">
-                        <strong style="font-size: 1.1rem;">Grand Total:</strong>
+                        <strong style="font-size: 1.1rem;">Net Payable:</strong>
                         <strong style="font-size: 1.2rem; color: #28a745;">₹@Model.TotalAmount.ToString("N2")</strong>
                     </div>
 

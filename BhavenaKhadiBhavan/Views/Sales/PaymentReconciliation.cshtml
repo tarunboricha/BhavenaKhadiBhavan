@@ -1,0 +1,311 @@
+﻿@model PaymentReconciliationReport
+
+@{
+    ViewData["Title"] = "Payment Reconciliation Report";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="text-primary">
+        <i class="fas fa-balance-scale me-3"></i>Payment Reconciliation Report
+    </h2>
+    <div>
+        <a href="@Url.Action("Index")" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Sales
+        </a>
+    </div>
+</div>
+
+<!-- Date Range Filter -->
+<div class="card shadow mb-4">
+    <div class="card-header bg-info text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-calendar me-2"></i>Report Period
+        </h5>
+    </div>
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">From Date</label>
+                <input type="date" name="fromDate" class="form-control" value="@ViewBag.FromDate" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">To Date</label>
+                <input type="date" name="toDate" class="form-control" value="@ViewBag.ToDate" />
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-search me-2"></i>Generate Report
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-primary shadow">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Sales</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.TotalSales</div>
+                        <div class="text-xs text-muted">@Model.FromDate.ToString("MMM dd") - @Model.ToDate.ToString("MMM dd")</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-shopping-cart fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-success shadow">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Expected Amount</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">₹@Model.TotalCalculatedAmount.ToString("N2")</div>
+                        <div class="text-xs text-success">As per system calculation</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-calculator fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-info shadow">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Actual Received</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">₹@Model.TotalReceivedAmount.ToString("N2")</div>
+                        <div class="text-xs text-info">Cash in hand</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-money-bill-wave fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-@(Model.NetCashVariance >= 0 ? "success" : "warning") shadow">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-@(Model.NetCashVariance >= 0 ? "success" : "warning") text-uppercase mb-1">
+                            Cash Variance
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                            @if (Model.NetCashVariance >= 0)
+                            {
+                                <span class="text-success">+₹@Model.NetCashVariance.ToString("N2")</span>
+                            }
+                            else
+                            {
+                                <span class="text-warning">-₹@Math.Abs(Model.NetCashVariance).ToString("N2")</span>
+                            }
+                        </div>
+                        <div class="text-xs text-muted">@Model.CashVarianceStatus</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-@(Model.NetCashVariance >= 0 ? "plus" : "minus")-circle fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Adjustment Analysis -->
+<div class="row mb-4">
+    <!-- Adjustment Statistics -->
+    <div class="col-lg-6 mb-4">
+        <div class="card shadow">
+            <div class="card-header bg-warning text-white">
+                <h6 class="m-0 font-weight-bold">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Payment Adjustments
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-4">
+                        <div class="border-right">
+                            <h4 class="text-warning">@Model.SalesWithAdjustments</h4>
+                            <small class="text-muted">Sales with Adjustments</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="border-right">
+                            <h4 class="text-danger">@Model.ShortPayments</h4>
+                            <small class="text-muted">Short Payments</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <h4 class="text-success">@Model.OverPayments</h4>
+                        <small class="text-muted">Over Payments</small>
+                    </div>
+                </div>
+
+                @if (Model.PendingApprovals > 0)
+                {
+                    <div class="alert alert-warning mt-3 mb-0">
+                        <i class="fas fa-clock me-2"></i>
+                        <strong>@Model.PendingApprovals sales</strong> pending manager approval
+                        <a href="@Url.Action("PendingApprovals")" class="btn btn-sm btn-warning ms-2">Review</a>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Adjustment Types -->
+    <div class="col-lg-6 mb-4">
+        <div class="card shadow">
+            <div class="card-header bg-secondary text-white">
+                <h6 class="m-0 font-weight-bold">
+                    <i class="fas fa-chart-pie me-2"></i>Adjustment Types
+                </h6>
+            </div>
+            <div class="card-body">
+                @if (Model.AdjustmentsByType.Any())
+                {
+                    @foreach (var adjustment in Model.AdjustmentsByType)
+                    {
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                <strong>@adjustment.TypeDescription</strong>
+                                <div class="small text-muted">@adjustment.Count transactions</div>
+                            </div>
+                            <div class="text-end">
+                                <div class="fw-bold">₹@adjustment.TotalAmount.ToString("N2")</div>
+                                <div class="small text-muted">Avg: ₹@adjustment.AverageAmount.ToString("N2")</div>
+                            </div>
+                        </div>
+                        <div class="progress mb-3" style="height: 6px;">
+                            <div class="progress-bar bg-info" style="width: @((adjustment.TotalAmount / Model.AdjustmentsByType.Sum(a => a.TotalAmount)) * 100)%"></div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="text-center text-muted">
+                        <i class="fas fa-check-circle fa-3x mb-3"></i>
+                        <div>No payment adjustments in this period</div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Daily Breakdown Table -->
+<div class="card shadow mb-4">
+    <div class="card-header bg-primary text-white">
+        <h6 class="m-0 font-weight-bold">
+            <i class="fas fa-calendar-alt me-2"></i>Daily Reconciliation Breakdown
+        </h6>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Date</th>
+                        <th class="text-center">Sales</th>
+                        <th class="text-end">Expected (₹)</th>
+                        <th class="text-end">Received (₹)</th>
+                        <th class="text-end">Variance (₹)</th>
+                        <th class="text-center">Variance %</th>
+                        <th class="text-center">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var day in Model.DailyBreakdown.OrderBy(d => d.Date))
+                    {
+                        <tr>
+                            <td>
+                                <strong>@day.Date.ToString("MMM dd, yyyy")</strong>
+                                <div class="small text-muted">@day.Date.DayOfWeek</div>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-secondary">@day.SalesCount</span>
+                                @if (day.SalesWithAdjustments > 0)
+                                {
+                                    <div class="small text-warning">
+                                        @day.SalesWithAdjustments with adjustments
+                                    </div>
+                                }
+                            </td>
+                            <td class="text-end">₹@day.CalculatedAmount.ToString("N2")</td>
+                            <td class="text-end">₹@day.ReceivedAmount.ToString("N2")</td>
+                            <td class="text-end">
+                                @if (day.AdjustmentAmount >= 0)
+                                {
+                                    <span class="text-success">+₹@day.AdjustmentAmount.ToString("N2")</span>
+                                }
+                                else
+                                {
+                                    <span class="text-warning">-₹@Math.Abs(day.AdjustmentAmount).ToString("N2")</span>
+                                }
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-@(day.AdjustmentPercentage <= 1 ? "success" : day.AdjustmentPercentage <= 3 ? "warning" : "danger")">
+                                    @day.AdjustmentPercentage.ToString("N2")%
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-@(day.DayStatus == "Good" ? "success" : day.DayStatus == "Fair" ? "warning" : "danger")">
+                                    @day.DayStatus
+                                </span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot class="table-light">
+                    <tr class="fw-bold">
+                        <td>TOTAL</td>
+                        <td class="text-center">@Model.TotalSales</td>
+                        <td class="text-end">₹@Model.TotalCalculatedAmount.ToString("N2")</td>
+                        <td class="text-end">₹@Model.TotalReceivedAmount.ToString("N2")</td>
+                        <td class="text-end">
+                            @if (Model.TotalAdjustment >= 0)
+                            {
+                                <span class="text-success">+₹@Model.TotalAdjustment.ToString("N2")</span>
+                            }
+                            else
+                            {
+                                <span class="text-warning">-₹@Math.Abs(Model.TotalAdjustment).ToString("N2")</span>
+                            }
+                        </td>
+                        <td class="text-center">
+                            <span class="badge bg-@(Model.AdjustmentPercentage <= 1 ? "success" : Model.AdjustmentPercentage <= 3 ? "warning" : "danger")">
+                                @Model.AdjustmentPercentage.ToString("N2")%
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge bg-@(Model.CashVarianceStatus == "Balanced" ? "success" : "warning")">
+                                @Model.CashVarianceStatus
+                            </span>
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Export report functionality can be added here
+        function exportReport() {
+            window.print();
+        }
+    </script>
+}

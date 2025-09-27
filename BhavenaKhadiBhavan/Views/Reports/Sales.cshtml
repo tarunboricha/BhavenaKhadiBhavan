@@ -163,12 +163,22 @@
                                 </tr>
                                 <tr>
                                     <td><strong>Net Sales (After Discounts)</strong></td>
-                                    <td class="text-end">₹@(Model.TotalSubtotal - Model.TotalItemDiscounts).ToString("N2")</td>
+                                    <td class="text-end">@("₹" + (Model.TotalSubtotal - Model.TotalItemDiscounts).ToString("N2"))</td>
                                 </tr>
-                                <tr>
-                                    <td>Plus: GST Collected</td>
-                                    <td class="text-end">₹@Model.TotalGST.ToString("N2")</td>
-                                </tr>
+                                @if (Model.TotalSubtotal - Model.TotalItemDiscounts -  Model.TotalSales > 0)
+                                {
+                                    <tr>
+                                        <td>Less: Round off</td>
+                                        <td class="text-end">@("-₹" + Math.Abs(Model.TotalSubtotal - Model.TotalItemDiscounts - Model.TotalSales).ToString("N2"))</td>
+                                    </tr>
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td>Plus: Round off</td>
+                                        <td class="text-end">@("₹" + Math.Abs(Model.TotalSubtotal - Model.TotalItemDiscounts - Model.TotalSales).ToString("N2"))</td>
+                                    </tr>
+                                }
                                 <tr class="table-primary">
                                     <td><strong>Total Revenue</strong></td>
                                     <td class="text-end"><strong>₹@Model.TotalSales.ToString("N2")</strong></td>

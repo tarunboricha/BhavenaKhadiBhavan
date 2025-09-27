@@ -16,17 +16,20 @@ namespace BhavenaKhadiBhavan.Controllers
         private readonly IProductService _productService;
         private readonly ICustomerService _customerService;
         private readonly ApplicationDbContext _context;
+        private readonly IPaymentService _paymentService;
 
         public SalesController(
             ISalesService salesService,
             IProductService productService,
             ICustomerService customerService,
-            ApplicationDbContext context)
+            ApplicationDbContext context,
+            IPaymentService paymentService)
         {
             _salesService = salesService;
             _productService = productService;
             _customerService = customerService;
             _context = context;
+            _paymentService = paymentService;
         }
 
         /// <summary>
@@ -767,6 +770,273 @@ namespace BhavenaKhadiBhavan.Controllers
                 new() { Value = "UPI", Text = "UPI" },
                 new() { Value = "Bank Transfer", Text = "Bank Transfer" }
             };
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateWithPayment(SalesViewModel model)
+        {
+            try
+            {
+                // Get cart from session
+                var cartItems = GetCartFromSession();
+
+                // Validate cart has items
+                if (!cartItems.Any())
+                {
+                    TempData["Error"] = "Please add items to cart before creating sale.";
+                    await LoadSalesViewModelAsync(model);
+                    return View("Create", model);
+                }
+
+                // Calculate expected total
+                var cartTotals = _salesService.CalculateCartTotalsWithDiscounts(cartItems);
+                var calculatedTotal = cartTotals.Total;
+
+                // Validate amount received
+                if (model.AmountReceived <= 0)
+                {
+                    TempData["Error"] = "Please enter the amount received from customer.";
+                    await LoadSalesViewModelAsync(model);
+                    return View("Create", model);
+                }
+
+                // Check for significant underpayment (more than 10% short)
+                var paymentAdjustment = model.AmountReceived - calculatedTotal;
+                var adjustmentPercentage = calculatedTotal > 0 ? Math.Abs(paymentAdjustment) / calculatedTotal * 100 : 0;
+
+                if (paymentAdjustment < -50 || adjustmentPercentage > 10)
+                {
+                    TempData["Error"] = $"Payment amount seems incorrect. Expected: ₹{calculatedTotal:N2}, Received: ₹{model.AmountReceived:N2}. Please verify.";
+                    await LoadSalesViewModelAsync(model);
+                    return View("Create", model);
+                }
+
+                // Handle customer validation (existing code)
+                Customer? customer = null;
+                if (!string.IsNullOrWhiteSpace(model.Sale.CustomerName) || !string.IsNullOrWhiteSpace(model.Sale.CustomerPhone))
+                {
+                    // Customer handling logic (same as before)
+                    if (!string.IsNullOrWhiteSpace(model.Sale.CustomerPhone))
+                    {
+                        customer = await _customerService.GetCustomerByPhoneAsync(model.Sale.CustomerPhone);
+                    }
+
+                    if (customer == null && (!string.IsNullOrWhiteSpace(model.Sale.CustomerName) || !string.IsNullOrWhiteSpace(model.Sale.CustomerPhone)))
+                    {
+                        customer = new Customer
+                        {
+                            Name = model.Sale.CustomerName ?? "Walk-in Customer",
+                            Phone = model.Sale.CustomerPhone
+                        };
+                        customer = await _customerService.CreateCustomerAsync(customer);
+                    }
+                }
+
+                if (customer != null)
+                {
+                    model.Sale.CustomerId = customer.Id;
+                }
+
+                // Stock validation (existing code)
+                foreach (var item in cartItems)
+                {
+                    var product = await _productService.GetProductByIdAsync(item.ProductId);
+                    if (product == null || !product.IsActive)
+                    {
+                        TempData["Error"] = $"Product '{item.ProductName}' is no longer available.";
+                        await LoadSalesViewModelAsync(model);
+                        return View("Create", model);
+                    }
+                    if (product.StockQuantity < item.Quantity)
+                    {
+                        TempData["Error"] = $"Insufficient stock for '{product.Name}'. Available: {product.StockQuantity}, Required: {item.Quantity}";
+                        await LoadSalesViewModelAsync(model);
+                        return View("Create", model);
+                    }
+                }
+
+                // Create sale with original total (before payment adjustment)
+                var sale = await _salesService.CreateSaleFromCartAsync(model.Sale, cartItems);
+
+                // Process payment with adjustment if needed
+                var paymentResult = await _paymentService.ProcessPaymentAsync(
+                    sale.Id,
+                    model.AmountReceived,
+                    model.PaymentAdjustmentReason,
+                    User.Identity?.Name ?? "Staff"
+                );
+
+                if (!paymentResult.Success)
+                {
+                    TempData["Error"] = "Payment processing failed: " + paymentResult.Message;
+                    await LoadSalesViewModelAsync(model);
+                    return View("Create", model);
+                }
+
+                // Clear cart after successful sale
+                SaveCartToSession(new List<CartItemViewModel>());
+
+                // Generate appropriate success message
+                var successMessage = GenerateSuccessMessage(sale, paymentResult);
+                TempData["Success"] = successMessage;
+
+                // Redirect based on approval requirement
+                if (paymentResult.RequiresApproval)
+                {
+                    TempData["Warning"] = "Sale created but requires manager approval due to payment adjustment.";
+                    return RedirectToAction("PendingApprovals");
+                }
+
+                return RedirectToAction(nameof(Details), new { id = sale.Id });
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = "Error creating sale: " + ex.Message;
+                await LoadSalesViewModelAsync(model);
+                return View("Create", model);
+            }
+        }
+
+        /// <summary>
+        /// Show sales pending manager approval
+        /// </summary>
+        public async Task<IActionResult> PendingApprovals()
+        {
+            try
+            {
+                var pendingSales = await _paymentService.GetSalesRequiringApprovalAsync();
+                ViewBag.Title = "Sales Pending Approval";
+                return View(pendingSales);
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = "Error loading pending approvals: " + ex.Message;
+                return RedirectToAction(nameof(Index));
+            }
+        }
+
+        /// <summary>
+        /// Approve payment adjustment (manager function)
+        /// </summary>
+        [HttpPost]
+        public async Task<IActionResult> ApprovePayment(int id)
+        {
+            try
+            {
+                var result = await _paymentService.ApprovePaymentAdjustmentAsync(id, User.Identity?.Name ?? "Manager");
+
+                if (result)
+                {
+                    TempData["Success"] = "Payment adjustment approved successfully.";
+                }
+                else
+                {
+                    TempData["Error"] = "Failed to approve payment adjustment.";
+                }
+
+                return RedirectToAction(nameof(PendingApprovals));
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = "Error approving payment: " + ex.Message;
+                return RedirectToAction(nameof(PendingApprovals));
+            }
+        }
+
+        /// <summary>
+        /// Get payment reconciliation report
+        /// </summary>
+        public async Task<IActionResult> PaymentReconciliation(DateTime? fromDate, DateTime? toDate)
+        {
+            try
+            {
+                fromDate ??= DateTime.Today.AddDays(-30);
+                toDate ??= DateTime.Today;
+
+                var report = await _paymentService.GetPaymentReconciliationReportAsync(fromDate.Value, toDate.Value);
+
+                ViewBag.FromDate = fromDate.Value.ToString("yyyy-MM-dd");
+                ViewBag.ToDate = toDate.Value.ToString("yyyy-MM-dd");
+
+                return View(report);
+            }
+            catch (Exception ex)
+            {
+                TempData["Error"] = "Error generating reconciliation report: " + ex.Message;
+                return RedirectToAction(nameof(Index));
+            }
+        }
+
+        /// <summary>
+        /// AJAX endpoint to calculate payment adjustment in real-time
+        /// </summary>
+        [HttpPost]
+        public IActionResult CalculatePaymentAdjustment(decimal amountReceived)
+        {
+            try
+            {
+                var cart = GetCartFromSession();
+                var cartTotals = _salesService.CalculateCartTotalsWithDiscounts(cart);
+                var paymentAdjustment = amountReceived - cartTotals.Total;
+
+                return Json(new
+                {
+                    success = true,
+                    calculatedTotal = cartTotals.Total,
+                    amountReceived = amountReceived,
+                    paymentAdjustment = paymentAdjustment,
+                    hasAdjustment = Math.Abs(paymentAdjustment) > 0.01m,
+                    adjustmentDisplay = GetAdjustmentDisplay(paymentAdjustment),
+                    requiresApproval = Math.Abs(paymentAdjustment) > 20 || (cartTotals.Total > 0 && Math.Abs(paymentAdjustment) / cartTotals.Total * 100 > 2),
+                    adjustmentType = GetAdjustmentType(paymentAdjustment, cartTotals.Total)
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        // **PRIVATE HELPER METHODS**
+
+        private string GenerateSuccessMessage(Sale sale, PaymentResult paymentResult)
+        {
+            var message = $"Sale {sale.InvoiceNumber} created successfully!";
+
+            if (!paymentResult.Success) return message;
+
+            if (Math.Abs(paymentResult.PaymentAdjustment) <= 0.01m)
+            {
+                message += $" Exact payment received: ₹{sale.AmountReceived:N2}";
+            }
+            else if (paymentResult.PaymentAdjustment < 0)
+            {
+                message += $" Payment shortage of ₹{Math.Abs(paymentResult.PaymentAdjustment):N2} recorded.";
+            }
+            else
+            {
+                message += $" Customer overpaid by ₹{paymentResult.PaymentAdjustment:N2}.";
+            }
+
+            return message;
+        }
+
+        private string GetAdjustmentDisplay(decimal adjustment)
+        {
+            if (Math.Abs(adjustment) <= 0.01m) return "Exact payment";
+            if (adjustment < 0) return $"Short by ₹{Math.Abs(adjustment):N2}";
+            return $"Over by ₹{adjustment:N2}";
+        }
+
+        private string GetAdjustmentType(decimal adjustment, decimal total)
+        {
+            var absAdjustment = Math.Abs(adjustment);
+            var percentage = total > 0 ? absAdjustment / total * 100 : 0;
+
+            if (absAdjustment <= 5 && percentage <= 1) return "Minor (Customer convenience)";
+            if (absAdjustment <= 20 && percentage <= 2) return "Moderate (Cash shortage)";
+            return "Significant (Requires review)";
         }
     }
 }

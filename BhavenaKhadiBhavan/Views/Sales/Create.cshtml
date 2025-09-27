@@ -3,857 +3,1087 @@
     ViewData["Title"] = "New Sale";
 }
 
-<div class="container-fluid">
-    <!-- Header -->
-    <div class="row mb-3">
-        <div class="col-12">
-            <h2>
-                <i class="fas fa-shopping-cart me-2 text-primary"></i>
-                New Sale
-            </h2>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item">
-                        <a href="@Url.Action("Index", "Sales")">
-                            <i class="fas fa-list me-1"></i>View Sales
-                        </a>
-                    </li>
-                    <li class="breadcrumb-item active">New Sale</li>
-                </ol>
-            </nav>
-            <hr>
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2><i class="fas fa-cash-register me-2"></i>New Sale</h2>
+            <div>
+                <button type="button" class="btn btn-outline-secondary" onclick="clearCart()">
+                    <i class="fas fa-trash me-1"></i>Clear Cart
+                </button>
+                <a href="@Url.Action("Index", "Sales")" class="btn btn-outline-primary">
+                    <i class="fas fa-list me-1"></i>View Sales
+                </a>
+            </div>
         </div>
     </div>
+</div>
 
-    <div class="row">
-        <!-- Left Panel: Product Selection -->
-        <div class="col-lg-8">
-            <!-- Step-by-Step Product Selection -->
-            <div class="card shadow mb-4">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0">
-                        <i class="fas fa-search me-2"></i>Product Selection
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <!-- Filters -->
-                    <div class="row mb-3">
-                        <div class="col-md-4">
-                            <label for="categoryFilter" class="form-label">Category</label>
-                            <select class="form-select" id="categoryFilter">
-                                <option value="">All Categories</option>
-                                @foreach (var category in Model.Categories)
-                                {
-                                    <option value="@category.Id">@category.Name</option>
-                                }
-                            </select>
+<div class="row">
+    <!-- Product Selection Area -->
+    <div class="col-lg-8" id="productSelectionArea">
+        <!-- Search and Filters -->
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-search"></i></span>
+                            <input type="text" class="form-control search-box" id="productSearch"
+                                   placeholder="Search products by name, SKU, or color...">
                         </div>
+                    </div>
+                    <div class="col-md-4">
+                        <select class="form-select" id="categoryFilter">
+                            <option value="">All Categories</option>
+                            @foreach (var category in Model.Categories)
+                            {
+                                <option value="@category.Id">@category.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <select class="form-select" id="stockFilter">
+                            <option value="">All Stock</option>
+                            <option value="instock">In Stock</option>
+                            <option value="lowstock">Low Stock</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step-by-Step Product Selection -->
+        <div class="card mb-3">
+            <div class="card-header bg-primary text-white">
+                <h6 class="mb-0"><i class="fas fa-plus-circle me-2"></i>Add Items to Cart</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <!-- Step 1: Product Name -->
+                    <div class="col-md-4 mb-3">
+                        <label for="productNameSelect" class="form-label">
+                            <i class="fas fa-tshirt me-1"></i>1. Product Name
+                        </label>
+                        <select class="form-select" id="productNameSelect">
+                            <option value="">Select Product...</option>
+                        </select>
+                        <div class="mt-2" id="productNameInfo" style="display:none;">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                <span id="productNameDetails"></span>
+                            </small>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Color -->
+                    <div class="col-md-2 mb-3">
+                        <label for="colorSelect" class="form-label">
+                            <i class="fas fa-palette me-1"></i>2. Color
+                        </label>
+                        <select class="form-select" id="colorSelect" disabled>
+                            <option value="">Select Color...</option>
+                        </select>
+                    </div>
+
+                    <!-- Step 3: Size -->
+                    <div class="col-md-2 mb-3">
+                        <label for="sizeSelect" class="form-label">
+                            <i class="fas fa-expand-arrows-alt me-1"></i>3. Size
+                        </label>
+                        <select class="form-select" id="sizeSelect" disabled>
+                            <option value="">Select Size...</option>
+                        </select>
+                    </div>
+
+                    <!-- Step 4: Quantity -->
+                    <div class="col-md-2 mb-3">
+                        <label for="quantityInput" class="form-label">
+                            <i class="fas fa-sort-numeric-up me-1"></i>4. Quantity
+                        </label>
+                        <input type="number" class="form-control" id="quantityInput"
+                               min="0.001" step="0.001" value="1" disabled>
+                        <small class="text-muted" id="stockInfo"></small>
+                    </div>
+
+                    <!-- Step 5: Discount -->
+                    <div class="col-md-2 mb-3">
+                        <label for="discountInput" class="form-label">
+                            <i class="fas fa-percentage me-1"></i>5. Discount %
+                        </label>
+                        <input type="number" class="form-control" id="discountInput"
+                               min="0" max="100" step="0.01" value="0" disabled>
+                        <small class="text-muted">Optional</small>
+                    </div>
+                </div>
+
+                <!-- Product Details Display -->
+                <div id="selectedProductInfo" class="alert alert-info" style="display:none;">
+                    <div class="row">
                         <div class="col-md-8">
-                            <label for="productSearch" class="form-label">Search Products</label>
-                            <div class="input-group">
-                                <input type="text" class="form-control" id="productSearch" placeholder="Search product names...">
-                                <button class="btn btn-outline-secondary" type="button" id="searchBtn">
-                                    <i class="fas fa-search"></i>
+                            <h6 id="selectedProductName"></h6>
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <small class="text-muted">Price:</small><br>
+                                    <strong id="selectedProductPrice"></strong>
+                                </div>
+                                <div class="col-md-3">
+                                    <small class="text-muted">Stock:</small><br>
+                                    <span id="selectedProductStock"></span>
+                                </div>
+                                <div class="col-md-3">
+                                    <small class="text-muted">GST Rate:</small><br>
+                                    <span id="selectedProductGST"></span>
+                                </div>
+                                <div class="col-md-3">
+                                    <small class="text-muted">Unit:</small><br>
+                                    <span id="selectedProductUnit"></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <div class="mt-2">
+                                <button type="button" class="btn btn-success" id="addToCartBtn" disabled>
+                                    <i class="fas fa-cart-plus me-2"></i>Add to Cart
                                 </button>
                             </div>
                         </div>
                     </div>
-
-                    <!-- Step 1: Product Names -->
-                    <div id="step1" class="selection-step">
-                        <h6 class="text-primary mb-3">
-                            <span class="badge bg-primary me-2">1</span>
-                            Select Product
-                            <small class="text-muted ms-2" id="productCount">(Loading...)</small>
-                        </h6>
-                        <div id="productNamesGrid" class="row">
-                            <div class="col-12 text-center py-4">
-                                <div class="spinner-border text-primary" role="status"></div>
-                                <p class="mt-2 text-muted">Loading products...</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Step 2: Colors -->
-                    <div id="step2" class="selection-step d-none">
-                        <h6 class="text-success mb-3">
-                            <span class="badge bg-success me-2">2</span>
-                            Select Color for "<span id="selectedProductName"></span>"
-                        </h6>
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle me-2"></i>
-                            Choose from available colors
-                        </div>
-                        <div id="colorsGrid" class="row">
-                            <div class="col-12 text-center py-3">
-                                <div class="spinner-border" role="status"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Step 3: Sizes -->
-                    <div id="step3" class="selection-step d-none">
-                        <h6 class="text-warning mb-3">
-                            <span class="badge bg-warning text-dark me-2">3</span>
-                            Select Size for "<span id="selectedColorDisplay"></span>"
-                        </h6>
-                        <div class="alert alert-warning">
-                            <i class="fas fa-ruler me-2"></i>
-                            Available sizes with stock levels
-                        </div>
-                        <div id="sizesGrid" class="row">
-                            <div class="col-12 text-center py-3">
-                                <div class="spinner-border" role="status"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Step 4: Add to Cart -->
-                    <div id="step4" class="selection-step d-none">
-                        <h6 class="text-info mb-3">
-                            <span class="badge bg-info me-2">4</span>
-                            Add to Cart
-                        </h6>
-                        <div class="card bg-light">
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-md-8">
-                                        <h6 id="finalProductDisplay" class="text-primary"></h6>
-                                        <div class="row mb-3">
-                                            <div class="col">
-                                                <strong>Price:</strong> <span id="finalPrice">₹0.00</span>
-                                            </div>
-                                            <div class="col">
-                                                <strong>With GST:</strong> <span id="finalPriceWithGST">₹0.00</span>
-                                            </div>
-                                            <div class="col">
-                                                <strong>Stock:</strong> <span id="finalStock">0</span>
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="row">
-                                            <div class="col-md-6 mb-3">
-                                                <label class="form-label">Quantity</label>
-                                                <div class="input-group">
-                                                    <button type="button" class="btn btn-outline-secondary" id="decreaseQty">-</button>
-                                                    <input type="number" class="form-control text-center" id="addQuantity" 
-                                                           min="0.001" step="0.001" value="1">
-                                                    <span class="input-group-text" id="quantityUnit">Piece</span>
-                                                    <button type="button" class="btn btn-outline-secondary" id="increaseQty">+</button>
-                                                </div>
-                                                <small class="text-muted">Max: <span id="maxQuantity">0</span></small>
-                                            </div>
-                                            <div class="col-md-6 mb-3">
-                                                <label class="form-label">Item Discount (%)</label>
-                                                <div class="input-group">
-                                                    <input type="number" class="form-control" id="addDiscount" 
-                                                           min="0" max="100" step="0.01" value="0">
-                                                    <span class="input-group-text">%</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4 text-center">
-                                        <button type="button" class="btn btn-success btn-lg mb-2" id="addToCartBtn" disabled>
-                                            <i class="fas fa-cart-plus me-2"></i>
-                                            Add to Cart
-                                        </button>
-                                        <br>
-                                        <button type="button" class="btn btn-outline-secondary" id="startOverBtn">
-                                            <i class="fas fa-undo me-2"></i>
-                                            Start Over
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Right Panel: Cart and Checkout -->
-        <div class="col-lg-4">
-            <!-- Shopping Cart -->
-            <div class="card shadow mb-4">
-                <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">
-                        <i class="fas fa-shopping-cart me-2"></i>Shopping Cart
-                    </h5>
-                    <span class="badge bg-light text-dark" id="cartItemCount">0</span>
-                </div>
-                <div class="card-body" style="max-height: 400px; overflow-y: auto;">
-                    <div id="cartItemsContainer">
-                        <div class="text-center text-muted py-4" id="emptyCartMessage">
-                            <i class="fas fa-shopping-cart fa-3x mb-3 opacity-50"></i>
-                            <h6>Cart is empty</h6>
-                            <p class="small">Add products to start billing</p>
-                        </div>
+    <!-- Shopping Cart Area -->
+    <div class="col-lg-4" id="cartArea">
+        <!-- Cart -->
+        <div class="card sticky-top">
+            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                <h6 class="mb-0"><i class="fas fa-shopping-cart me-2"></i>Shopping Cart</h6>
+                <span class="badge bg-light text-dark" id="cartCount">0</span>
+            </div>
+            <div class="card-body">
+                <div id="cartItems">
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-shopping-cart fa-3x mb-3"></i>
+                        <div>Cart is empty</div>
+                        <small>Add products to get started</small>
                     </div>
                 </div>
-                <div class="card-footer">
-                    <!-- Cart Totals -->
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between">
-                            <span>Subtotal:</span>
-                            <span id="cartSubtotal">₹0.00</span>
-                        </div>
-                        <div class="d-flex justify-content-between text-success">
-                            <span>Discounts:</span>
-                            <span id="cartDiscounts">₹0.00</span>
-                        </div>
-                        <div class="d-flex justify-content-between">
-                            <span>GST:</span>
-                            <span id="cartGST">₹0.00</span>
-                        </div>
-                        <hr>
-                        <div class="d-flex justify-content-between">
-                            <h5><strong>Total:</strong></h5>
-                            <h5 class="text-primary"><strong id="cartTotal">₹0.00</strong></h5>
-                        </div>
-                    </div>
 
-                    <!-- Overall Discount -->
+                <!-- Cart Summary -->
+                <div id="cartSummary" style="display:none;">
+                    <hr>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Subtotal:</span>
+                        <span class="fw-bold">₹<span id="cartSubtotal">0.00</span></span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Discount:</span>
+                        <span class="text-success">-₹<span id="cartDiscount">0.00</span></span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>GST:</span>
+                        <span>₹<span id="cartGST">0.00</span></span>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between mb-3">
+                        <strong>Total:</strong>
+                        <strong class="text-primary fs-5">₹<span id="cartTotal">0.00</span></strong>
+                    </div>
+                </div>
+
+                <!-- Customer Information -->
+                <div id="customerSection" style="display:none;">
+                    <h6 class="text-primary mb-3"><i class="fas fa-user me-2"></i>Customer Information</h6>
+
                     <div class="mb-3">
-                        <label class="form-label small">Overall Discount (%):</label>
-                        <div class="input-group input-group-sm">
-                            <input type="number" class="form-control" id="overallDiscountInput" 
-                                   min="0" max="100" step="0.01" value="0">
-                            <button class="btn btn-outline-primary" type="button" id="applyOverallDiscountBtn">
-                                Apply
+                        <label class="form-label">Customer Phone</label>
+                        <input type="text" class="form-control" id="customerPhone" placeholder="Enter phone number">
+                        <div class="mt-1">
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="searchCustomer()">
+                                <i class="fas fa-search me-1"></i>Search
                             </button>
                         </div>
                     </div>
 
-                    <!-- Cart Actions -->
+                    <div class="mb-3">
+                        <label class="form-label">Customer Name</label>
+                        <input type="text" class="form-control" id="customerName" placeholder="Enter customer name">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Payment Method</label>
+                        <select class="form-select" id="paymentMethod">
+                            <option value="Cash">Cash</option>
+                            <option value="Card">Card</option>
+                            <option value="UPI">UPI</option>
+                            <option value="Bank Transfer">Bank Transfer</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Payment Reference (Optional)</label>
+                        <input type="text" class="form-control" id="paymentReference" placeholder="Transaction ID, Check No., etc.">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Notes (Optional)</label>
+                        <textarea class="form-control" id="saleNotes" rows="2" placeholder="Any additional notes..."></textarea>
+                    </div>
+
+                    <!-- Checkout Button -->
                     <div class="d-grid">
-                        <button type="button" class="btn btn-outline-danger btn-sm" id="clearCartBtn">
-                            <i class="fas fa-trash me-1"></i>Clear Cart
+                        <button type="button" class="btn btn-primary btn-lg" onclick="showPaymentSection()">
+                            <i class="fas fa-credit-card me-2"></i>Proceed to Payment
                         </button>
                     </div>
-                </div>
-            </div>
-
-            <!-- Checkout -->
-            <div class="card shadow">
-                <div class="card-header bg-info text-white">
-                    <h5 class="mb-0">
-                        <i class="fas fa-credit-card me-2"></i>Complete Sale
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <form asp-action="Create" method="post" id="saleForm">
-                        @Html.AntiForgeryToken()
-                        
-                        <!-- Customer Information -->
-                        <div class="mb-3">
-                            <h6 class="text-info mb-2">Customer Information</h6>
-                            <div class="mb-2">
-                                <label asp-for="Sale.CustomerName" class="form-label">Name</label>
-                                <input asp-for="Sale.CustomerName" class="form-control form-control-sm" 
-                                       placeholder="Customer name (optional)">
-                            </div>
-                            <div class="mb-2">
-                                <label asp-for="Sale.CustomerPhone" class="form-label">Phone</label>
-                                <input asp-for="Sale.CustomerPhone" class="form-control form-control-sm" 
-                                       placeholder="Phone number (optional)">
-                            </div>
-                        </div>
-
-                        <!-- Payment Information -->
-                        <div class="mb-3">
-                            <h6 class="text-info mb-2">Payment Details</h6>
-                            <div class="mb-2">
-                                <label asp-for="Sale.PaymentMethod" class="form-label">Method *</label>
-                                <select asp-for="Sale.PaymentMethod" class="form-select form-select-sm" 
-                                        asp-items="ViewBag.PaymentMethods" required>
-                                </select>
-                            </div>
-                            <div class="mb-2">
-                                <label asp-for="Sale.PaymentReference" class="form-label">Reference</label>
-                                <input asp-for="Sale.PaymentReference" class="form-control form-control-sm" 
-                                       placeholder="Transaction ID, etc.">
-                            </div>
-                        </div>
-
-                        <!-- Final Summary -->
-                        <div class="mb-3">
-                            <h6 class="text-info mb-2">Order Summary</h6>
-                            <div class="table-responsive">
-                                <table class="table table-sm">
-                                    <tr>
-                                        <td>Subtotal:</td>
-                                        <td class="text-end" id="finalSubtotal">₹0.00</td>
-                                    </tr>
-                                    <tr class="text-success">
-                                        <td>Discounts:</td>
-                                        <td class="text-end" id="finalDiscounts">₹0.00</td>
-                                    </tr>
-                                    <tr>
-                                        <td>GST:</td>
-                                        <td class="text-end" id="finalGST">₹0.00</td>
-                                    </tr>
-                                    <tr class="table-primary">
-                                        <td><strong>Total:</strong></td>
-                                        <td class="text-end"><strong id="finalTotal">₹0.00</strong></td>
-                                    </tr>
-                                </table>
-                            </div>
-                        </div>
-
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-success" id="completeSaleBtn" disabled>
-                                <i class="fas fa-check me-2"></i>Complete Sale
-                            </button>
-                        </div>
-                    </form>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-@section Scripts {
-<script>
-    // Global variables
-    let currentStep = 1;
-    let selectedProduct = null;
-    let selectedColor = null;
-    let selectedSize = null;
-    let cartItems = [];
-
-    $(document).ready(function() {
-        // Initialize
-        loadProductNames();
-        loadCart();
-        setupEventHandlers();
-    });
-
-    function setupEventHandlers() {
-        // Search and filters
-        $('#categoryFilter').change(() => loadProductNames());
-        $('#productSearch').on('input', debounce(() => loadProductNames(), 300));
-        $('#searchBtn').click(() => loadProductNames());
-
-        // Quantity controls
-        $('#decreaseQty').click(function() {
-            let qty = parseFloat($('#addQuantity').val()) || 1;
-            let step = parseFloat($('#addQuantity').attr('step')) || 1;
-            if (qty > step) {
-                $('#addQuantity').val((qty - step).toFixed(3));
-            }
-        });
-
-        $('#increaseQty').click(function() {
-            let qty = parseFloat($('#addQuantity').val()) || 0;
-            let step = parseFloat($('#addQuantity').attr('step')) || 1;
-            let max = parseFloat($('#maxQuantity').text()) || 0;
-            if (qty + step <= max) {
-                $('#addQuantity').val((qty + step).toFixed(3));
-            }
-        });
-
-        // Cart actions
-        $('#addToCartBtn').click(() => addToCart());
-        $('#startOverBtn').click(() => resetSelection());
-        $('#applyOverallDiscountBtn').click(() => applyOverallDiscount());
-        $('#clearCartBtn').click(() => {
-            if (confirm('Clear entire cart?')) clearCart();
-        });
-
-        // Form validation
-        $('#saleForm').submit(function(e) {
-            if (cartItems.length === 0) {
-                e.preventDefault();
-                showAlert('Please add items to cart before completing sale.', 'warning');
-            }
-        });
-    }
-
-    // STEP 1: Load product names
-    function loadProductNames() {
-        const categoryId = $('#categoryFilter').val();
-        const searchTerm = $('#productSearch').val();
-
-        $('#productNamesGrid').html(`
-            <div class="col-12 text-center py-4">
-                <div class="spinner-border text-primary" role="status"></div>
-                <p class="mt-2 text-muted">Loading products...</p>
+<!-- ENHANCED PAYMENT PROCESSING SECTION -->
+<div class="row mt-4" id="paymentSection" style="display: none;">
+    <div class="col-12">
+        <div class="card shadow-lg border-success">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-cash-register me-2"></i>Payment Processing
+                </h5>
             </div>
-        `);
+            <div class="card-body">
+                <form asp-action="CreateWithPayment" method="post" id="paymentForm">
+                    @Html.AntiForgeryToken()
 
-        $.get('@Url.Action("GetProductNames")', {
-            categoryId: categoryId || null,
-            searchTerm: searchTerm || null
-        })
-        .done(function(response) {
-            if (response.success) {
-                renderProductNames(response.productNames);
-            } else {
-                showAlert('Error: ' + response.message, 'danger');
-                $('#productNamesGrid').html('<div class="col-12"><p class="text-danger">Error loading products</p></div>');
-            }
-        })
-        .fail(function() {
-            showAlert('Failed to load products. Please try again.', 'danger');
-            $('#productNamesGrid').html('<div class="col-12"><p class="text-danger">Failed to load products</p></div>');
-        });
-    }
+                    <!-- Hidden fields for sale data -->
+                    <div id="hiddenFormFields"></div>
 
-    function renderProductNames(productNames) {
-        const grid = $('#productNamesGrid');
-        $('#productCount').text(`(${productNames.length} products)`);
+                    <div class="row">
+                        <!-- Bill Summary -->
+                        <div class="col-md-6">
+                            <h6 class="text-primary mb-3">
+                                <i class="fas fa-calculator me-2"></i>Bill Summary
+                            </h6>
 
-        if (productNames.length === 0) {
-            grid.html('<div class="col-12"><p class="text-muted">No products found</p></div>');
-            return;
-        }
-
-        let html = '';
-        productNames.forEach(product => {
-            const priceDisplay = product.minPrice === product.maxPrice ? 
-                `₹${product.minPrice.toFixed(2)}` : 
-                `₹${product.minPrice.toFixed(2)} - ₹${product.maxPrice.toFixed(2)}`;
-
-        html += `
-                <div class="col-md-6 col-xl-4 mb-3">
-                    <div class="card product-card h-100"
-                         onclick="selectProductName(&quot;${product.name.replace(/"/g, '&quot;')}&quot;)">
-                        <div class="card-body p-3">
-                            <h6 class="card-title">${product.name}</h6>
-                            <p class="card-text small text-muted mb-2">${product.categoryName}</p>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <strong>${priceDisplay}</strong><br>
-                                    <small class="text-muted">+${product.gstRate}% GST</small>
+                            <div class="payment-summary bg-light p-3 rounded">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Subtotal:</span>
+                                    <span class="fw-bold">₹<span id="paymentSubtotal">0.00</span></span>
                                 </div>
-                                <div class="text-end">
-                                    <span class="badge bg-success">${Math.round(product.totalStock)}</span><br>
-                                    <small class="text-muted">${product.totalVariants} variants</small>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Discount:</span>
+                                    <span class="text-success">-₹<span id="paymentDiscount">0.00</span></span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>GST:</span>
+                                    <span>₹<span id="paymentGST">0.00</span></span>
+                                </div>
+                                <hr>
+                                <div class="d-flex justify-content-between mb-0">
+                                    <strong>Total Amount:</strong>
+                                    <strong class="text-primary fs-4">₹<span id="calculatedTotal">0.00</span></strong>
+                                </div>
+                                <small class="text-muted">Amount customer should pay</small>
+                            </div>
+                        </div>
+
+                        <!-- Payment Input -->
+                        <div class="col-md-6">
+                            <h6 class="text-success mb-3">
+                                <i class="fas fa-money-bill-wave me-2"></i>Payment Collection
+                            </h6>
+
+                            <!-- Amount Received Input -->
+                            <div class="mb-3">
+                                <label for="amountReceived" class="form-label">
+                                    <i class="fas fa-rupee-sign me-1"></i>Amount Received from Customer *
+                                </label>
+                                <div class="input-group input-group-lg">
+                                    <span class="input-group-text bg-success text-white">₹</span>
+                                    <input type="number" name="AmountReceived" id="amountReceived" class="form-control"
+                                           placeholder="0.00" step="0.01" min="0"
+                                           onkeyup="calculatePaymentAdjustment()"
+                                           onchange="calculatePaymentAdjustment()"
+                                           style="font-size: 1.5rem; font-weight: bold;" />
+                                </div>
+                                <div class="mt-2">
+                                    <button type="button" class="btn btn-sm btn-outline-primary me-1" onclick="suggestRoundedAmount('exact')">
+                                        Exact
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary me-1" onclick="suggestRoundedAmount('round5')">
+                                        Round ₹5
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="suggestRoundedAmount('round10')">
+                                        Round ₹10
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Payment Adjustment Display -->
+                            <div id="adjustmentAlert" class="alert" style="display: none;">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    <div>
+                                        <strong>Payment Adjustment:</strong>
+                                        <div id="adjustmentDisplay" class="mt-1"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Manager Approval Required -->
+                            <div id="approvalAlert" class="alert alert-warning" style="display: none;">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    <div>
+                                        <strong>Manager Approval Required</strong>
+                                        <div class="small mt-1">This adjustment requires manager approval before completion.</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Overpayment Alert -->
+                            <div id="overpaymentAlert" class="alert alert-info" style="display: none;">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-plus-circle me-2"></i>
+                                    <div>
+                                        <strong>Customer Overpayment</strong>
+                                        <div class="small mt-1">Customer paid more than required. No change given.</div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>`;
 
-        });
-
-        grid.html(html);
-    }
-
-    // STEP 2: Select product and load colors
-    function selectProductName(productName) {
-        selectedProduct = productName;
-        $('#selectedProductName').text(productName);
-        
-        showStep(2);
-        loadColors(productName);
-    }
-
-    function loadColors(productName) {
-        $('#colorsGrid').html('<div class="col-12 text-center py-3"><div class="spinner-border"></div><p>Loading colors...</p></div>');
-
-        $.get('@Url.Action("GetProductColors")', { productName: productName })
-        .done(function(response) {
-            if (response.success) {
-                renderColors(response.colors);
-            } else {
-                showAlert('Error: ' + response.message, 'danger');
-                $('#colorsGrid').html('<div class="col-12"><p class="text-danger">Error loading colors</p></div>');
-            }
-        })
-        .fail(function() {
-            showAlert('Failed to load colors', 'danger');
-            $('#colorsGrid').html('<div class="col-12"><p class="text-danger">Failed to load colors</p></div>');
-        });
-    }
-
-    function renderColors(colors) {
-        const grid = $('#colorsGrid');
-
-        if (colors.length === 0) {
-            grid.html('<div class="col-12"><p class="text-muted">No colors available</p></div>');
-            return;
-        }
-
-        let html = '';
-        colors.forEach(color => {
-            const priceDisplay = color.minPrice === color.maxPrice ? 
-                `₹${color.minPrice.toFixed(2)}` : 
-                `₹${color.minPrice.toFixed(2)} - ₹${color.maxPrice.toFixed(2)}`;
-
-            html += `
-                <div class="col-md-4 col-sm-6 mb-3">
-                    <div class="card color-card h-100" onclick="selectColor('${color.color}')">
-                        <div class="card-body p-3 text-center">
-                            <h6 class="card-title">${color.color}</h6>
-                            <p class="mb-1"><strong>${priceDisplay}</strong></p>
-                            <p class="mb-0">
-                                <span class="badge bg-info">${Math.round(color.totalStock)} units</span><br>
-                                <small class="text-muted">${color.variantCount} sizes</small>
-                            </p>
+                    <!-- Adjustment Reason -->
+                    <div class="row mt-3" id="adjustmentReasonRow" style="display: none;">
+                        <div class="col-12">
+                            <label for="paymentAdjustmentReason" class="form-label">
+                                <i class="fas fa-comment me-1"></i>Reason for Payment Adjustment
+                            </label>
+                            <select name="PaymentAdjustmentReason" id="paymentAdjustmentReason" class="form-select">
+                                <option value="">Select reason...</option>
+                                <option value="Customer didn't have exact change">Customer didn't have exact change</option>
+                                <option value="Customer short on cash">Customer short on cash</option>
+                                <option value="Customer paid extra as tip">Customer paid extra as tip</option>
+                                <option value="Promotional discount applied">Promotional discount applied</option>
+                                <option value="Price adjustment">Price adjustment</option>
+                                <option value="Goodwill adjustment">Goodwill adjustment</option>
+                                <option value="Other">Other reason</option>
+                            </select>
                         </div>
                     </div>
-                </div>
-            `;
-        });
 
-        grid.html(html);
-    }
+                    <!-- Action Buttons -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="d-flex justify-content-between">
+                                <button type="button" class="btn btn-secondary btn-lg" onclick="hidePaymentSection()">
+                                    <i class="fas fa-arrow-left me-2"></i>Back to Cart
+                                </button>
 
-    // STEP 3: Select color and load sizes
-    function selectColor(color) {
-        selectedColor = color;
-        $('#selectedColorDisplay').text(`${selectedProduct} - ${color}`);
-        
-        showStep(3);
-        loadSizes(selectedProduct, color);
-    }
-
-    function loadSizes(productName, color) {
-        $('#sizesGrid').html('<div class="col-12 text-center py-3"><div class="spinner-border"></div><p>Loading sizes...</p></div>');
-
-        $.get('@Url.Action("GetProductSizes")', { 
-            productName: productName, 
-            color: color 
-        })
-        .done(function(response) {
-            if (response.success) {
-                renderSizes(response.sizes);
-            } else {
-                showAlert('Error: ' + response.message, 'danger');
-                $('#sizesGrid').html('<div class="col-12"><p class="text-danger">Error loading sizes</p></div>');
-            }
-        })
-        .fail(function() {
-            showAlert('Failed to load sizes', 'danger');
-            $('#sizesGrid').html('<div class="col-12"><p class="text-danger">Failed to load sizes</p></div>');
-        });
-    }
-
-    function renderSizes(sizes) {
-        const grid = $('#sizesGrid');
-
-        if (sizes.length === 0) {
-            grid.html('<div class="col-12"><p class="text-muted">No sizes available</p></div>');
-            return;
-        }
-
-        let html = '';
-        sizes.forEach(size => {
-            const stockBadge = size.isLowStock ? 'bg-warning' : 'bg-success';
-
-            html += `
-                <div class="col-md-4 col-sm-6 mb-3">
-                    <div class="card size-card h-100" onclick="selectSize(${JSON.stringify(size).replace(/"/g, '&quot;')})">
-                        <div class="card-body p-3 text-center">
-                            <h6 class="card-title">${size.size}</h6>
-                            <p class="mb-1"><strong>₹${size.salePrice.toFixed(2)}</strong></p>
-                            <p class="mb-1"><small>₹${size.priceWithGST.toFixed(2)} with GST</small></p>
-                            <span class="badge ${stockBadge}">${size.displayStock}</span><br>
-                            <small class="text-muted">${size.stockStatus}</small>
+                                <div>
+                                    <button type="button" class="btn btn-outline-warning btn-lg me-2" onclick="printEstimate()">
+                                        <i class="fas fa-print me-2"></i>Print Estimate
+                                    </button>
+                                    <button type="submit" class="btn btn-success btn-lg" id="completeSaleBtn">
+                                        <i class="fas fa-check me-2"></i>Complete Sale
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let cart = [];
+        let calculatedTotal = 0;
+        let currentProductId = null;
+
+        $(document).ready(function() {
+            loadProductNames();
+            updateCartDisplay();
+
+            // Product search functionality
+            $('#productSearch').on('keyup', function() {
+                const searchTerm = $(this).val();
+                loadProductNames(searchTerm);
+            });
+
+            // Category filter
+            $('#categoryFilter').on('change', function() {
+                const categoryId = $(this).val();
+                const searchTerm = $('#productSearch').val();
+                loadProductNames(searchTerm, categoryId);
+            });
+
+            // Step-by-step product selection
+            $('#productNameSelect').on('change', function() {
+                loadProductColors();
+            });
+
+            $('#colorSelect').on('change', function() {
+                loadProductSizes();
+            });
+
+            $('#sizeSelect').on('change', function() {
+                showSelectedProduct();
+            });
+
+            $('#addToCartBtn').on('click', function() {
+                addToCart();
+            });
+        });
+
+        // Load product names
+        function loadProductNames(searchTerm = '', categoryId = '') {
+            $.get('@Url.Action("GetProductNames")', {
+                searchTerm: searchTerm,
+                categoryId: categoryId
+            })
+            .done(function(response) {
+                if (response.success) {
+                    updateProductNamesDropdown(response.productNames);
+                }
+            })
+            .fail(function() {
+                showToast('Error loading products', 'error');
+            });
+        }
+
+        // Update product names dropdown
+        function updateProductNamesDropdown(productNames) {
+            const select = $('#productNameSelect');
+            select.html('<option value="">Select Product...</option>');
+
+            productNames.forEach(function(product) {
+                select.append(`
+                    <option value="${product.name}"
+                            data-category="${product.categoryName}"
+                            data-min-price="${product.minPrice}"
+                            data-max-price="${product.maxPrice}"
+                            data-variants="${product.totalVariants}"
+                            data-stock="${product.totalStock}"
+                            data-gst="${product.gstRate}">
+                        ${product.name} - ${product.categoryName} (${product.totalVariants} variants)
+                    </option>
+                `);
+            });
+        }
+
+        // Load product colors
+        function loadProductColors() {
+            const productName = $('#productNameSelect').val();
+            if (!productName) {
+                $('#colorSelect').html('<option value="">Select Color...</option>').prop('disabled', true);
+                $('#sizeSelect').html('<option value="">Select Size...</option>').prop('disabled', true);
+                return;
+            }
+
+            // Show product name info
+            const selectedOption = $('#productNameSelect option:selected');
+            $('#productNameDetails').text(`${selectedOption.data('variants')} variants, Total stock: ${selectedOption.data('stock')}`);
+            $('#productNameInfo').show();
+
+            $.get('@Url.Action("GetProductColors")', {
+                productName: productName
+            })
+            .done(function(response) {
+                if (response.success) {
+                    updateColorsDropdown(response.colors);
+                    $('#colorSelect').prop('disabled', false);
+                }
+            });
+        }
+
+        // Update colors dropdown
+        function updateColorsDropdown(colors) {
+            const select = $('#colorSelect');
+            select.html('<option value="">Select Color...</option>');
+
+            colors.forEach(function(color) {
+                select.append(`
+                    <option value="${color.color}"
+                            data-variants="${color.variantCount}"
+                            data-stock="${color.totalStock}"
+                            data-min-price="${color.minPrice}"
+                            data-max-price="${color.maxPrice}">
+                        ${color.color} (Stock: ${color.totalStock})
+                    </option>
+                `);
+            });
+        }
+
+        // Load product sizes
+        function loadProductSizes() {
+            const productName = $('#productNameSelect').val();
+            const color = $('#colorSelect').val();
+
+            if (!productName || !color) {
+                $('#sizeSelect').html('<option value="">Select Size...</option>').prop('disabled', true);
+                return;
+            }
+
+            $.get('@Url.Action("GetProductSizes")', {
+                productName: productName,
+                color: color
+            })
+            .done(function(response) {
+                if (response.success) {
+                    updateSizesDropdown(response.sizes);
+                    $('#sizeSelect').prop('disabled', false);
+                }
+            });
+        }
+
+        // Update sizes dropdown
+        function updateSizesDropdown(sizes) {
+            const select = $('#sizeSelect');
+            select.html('<option value="">Select Size...</option>');
+
+            sizes.forEach(function(size) {
+                select.append(`
+                    <option value="${size.productId}"
+                            data-size="${size.size}"
+                            data-price="${size.salePrice}"
+                            data-stock="${size.stockQuantity}"
+                            data-gst="${size.gstRate}"
+                            data-unit="${size.unitOfMeasure}"
+                            data-low-stock="${size.isLowStock}">
+                        ${size.size} - ₹${size.salePrice} (Stock: ${size.displayStock})
+                    </option>
+                `);
+            });
+        }
+
+        // Show selected product details
+        function showSelectedProduct() {
+            const selectedOption = $('#sizeSelect option:selected');
+            const productId = selectedOption.val();
+
+            if (!productId) {
+                $('#selectedProductInfo').hide();
+                $('#quantityInput, #discountInput, #addToCartBtn').prop('disabled', true);
+                return;
+            }
+
+            currentProductId = productId;
+            const productName = $('#productNameSelect').val();
+            const color = $('#colorSelect').val();
+            const size = selectedOption.data('size');
+            const price = selectedOption.data('price');
+            const stock = selectedOption.data('stock');
+            const gstRate = selectedOption.data('gst');
+            const unit = selectedOption.data('unit');
+            const isLowStock = selectedOption.data('low-stock');
+
+            // Update product info display
+            $('#selectedProductName').text(`${productName} - ${color} (${size})`);
+            $('#selectedProductPrice').text(`₹${price}`);
+            $('#selectedProductStock').html(`${stock} ${unit} ${isLowStock ? '<span class="badge bg-warning">Low Stock</span>' : ''}`);
+            $('#selectedProductGST').text(`${gstRate}%`);
+            $('#selectedProductUnit').text(unit);
+
+            // Update stock info for quantity input
+            $('#stockInfo').text(`Available: ${stock} ${unit}`);
+            $('#quantityInput').attr('max', stock);
+
+            // Enable controls
+            $('#quantityInput, #discountInput, #addToCartBtn').prop('disabled', false);
+            $('#selectedProductInfo').show();
+        }
+
+        // Add to cart
+        function addToCart() {
+            const productId = currentProductId;
+            const quantity = parseFloat($('#quantityInput').val()) || 1;
+            const discount = parseFloat($('#discountInput').val()) || 0;
+
+            if (!productId) {
+                showToast('Please select a product first', 'error');
+                return;
+            }
+
+            if (quantity <= 0) {
+                showToast('Please enter a valid quantity', 'error');
+                return;
+            }
+
+            // Show loading
+            $('#addToCartBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Adding...');
+
+            $.post('@Url.Action("AddToCart")', {
+                productId: productId,
+                quantity: quantity,
+                discountPercentage: discount,
+                __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
+            })
+            .done(function(response) {
+                if (response.success) {
+                    showToast(response.message, 'success');
+                    refreshCart();
+                    resetProductSelection();
+                } else {
+                    showToast(response.message, 'error');
+                }
+            })
+            .fail(function() {
+                showToast('Error adding item to cart', 'error');
+            })
+            .always(function() {
+                $('#addToCartBtn').prop('disabled', false).html('<i class="fas fa-cart-plus me-2"></i>Add to Cart');
+            });
+        }
+
+        // Reset product selection
+        function resetProductSelection() {
+            $('#productNameSelect, #colorSelect, #sizeSelect').val('');
+            $('#colorSelect, #sizeSelect, #quantityInput, #discountInput, #addToCartBtn').prop('disabled', true);
+            $('#selectedProductInfo, #productNameInfo').hide();
+            $('#quantityInput').val('1');
+            $('#discountInput').val('0');
+            currentProductId = null;
+        }
+
+        // Refresh cart
+        function refreshCart() {
+            $.get('@Url.Action("GetCart")')
+            .done(function(response) {
+                if (response.success) {
+                    updateCartFromResponse(response);
+                }
+            });
+        }
+
+        // Update cart display from response
+        function updateCartFromResponse(response) {
+            cart = response.items;
+            updateCartDisplay();
+            updateCartSummary(response.summary);
+        }
+
+        // Update cart display
+        function updateCartDisplay() {
+            const cartItemsContainer = $('#cartItems');
+            const cartCount = $('#cartCount');
+
+            if (cart.length === 0) {
+                cartItemsContainer.html(`
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-shopping-cart fa-3x mb-3"></i>
+                        <div>Cart is empty</div>
+                        <small>Add products to get started</small>
+                    </div>
+                `);
+                cartCount.text('0');
+                $('#cartSummary, #customerSection').hide();
+                return;
+            }
+
+            let cartHtml = '';
+            cart.forEach(function(item, index) {
+                cartHtml += `
+                    <div class="cart-item border-bottom pb-2 mb-2">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1">${item.productName}</h6>
+                                <div class="row">
+                                    <div class="col-6">
+                                        <small class="text-muted">Qty:</small>
+                                        <input type="number" class="form-control form-control-sm"
+                                               value="${item.quantity}" min="0.001" step="0.001"
+                                               onchange="updateCartItemQuantity(${item.productId}, this.value)">
+                                    </div>
+                                    <div class="col-6">
+                                        <small class="text-muted">Disc %:</small>
+                                        <input type="number" class="form-control form-control-sm"
+                                               value="${item.itemDiscountPercentage}" min="0" max="100" step="0.01"
+                                               onchange="updateCartItemDiscount(${item.productId}, this.value)">
+                                    </div>
+                                </div>
+                                <div class="mt-1">
+                                    <small class="text-muted">
+                                        ₹${item.unitPrice} × ${item.quantity} ${item.unitOfMeasure}
+                                        ${item.hasDiscount ? `<span class="text-success">(-₹${item.itemDiscountAmount.toFixed(2)})</span>` : ''}
+                                    </small>
+                                </div>
+                            </div>
+                            <div class="text-end ms-2">
+                                <div class="fw-bold">₹${item.lineTotal.toFixed(2)}</div>
+                                <button class="btn btn-sm btn-outline-danger mt-1"
+                                        onclick="removeFromCart(${item.productId})">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            cartItemsContainer.html(cartHtml);
+            cartCount.text(cart.length);
+            $('#cartSummary, #customerSection').show();
+        }
+
+        // Update cart summary
+        function updateCartSummary(summary) {
+            $('#cartSubtotal').text(summary.subtotal.toFixed(2));
+            $('#cartDiscount').text(summary.discountAmount.toFixed(2));
+            $('#cartGST').text(summary.gstAmount.toFixed(2));
+            $('#cartTotal').text(summary.total.toFixed(2));
+        }
+
+        // Update cart item quantity
+        function updateCartItemQuantity(productId, quantity) {
+            if (quantity <= 0) {
+                removeFromCart(productId);
+                return;
+            }
+
+            $.post('@Url.Action("UpdateCartQuantity")', {
+                productId: productId,
+                quantity: quantity,
+                __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
+            })
+            .done(function(response) {
+                if (response.success) {
+                    refreshCart();
+                } else {
+                    showToast(response.message, 'error');
+                    refreshCart(); // Revert changes
+                }
+            });
+        }
+
+        // Update cart item discount
+        function updateCartItemDiscount(productId, discountPercentage) {
+            $.post('@Url.Action("ApplyItemDiscount")', {
+                productId: productId,
+                discountPercentage: discountPercentage,
+                __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
+            })
+            .done(function(response) {
+                if (response.success) {
+                    refreshCart();
+                } else {
+                    showToast(response.message, 'error');
+                    refreshCart(); // Revert changes
+                }
+            });
+        }
+
+        // Remove from cart
+        function removeFromCart(productId) {
+            $.post('@Url.Action("RemoveFromCart")', {
+                productId: productId,
+                __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
+            })
+            .done(function(response) {
+                if (response.success) {
+                    showToast(response.message, 'success');
+                    refreshCart();
+                } else {
+                    showToast(response.message, 'error');
+                }
+            });
+        }
+
+        // Clear cart
+        function clearCart() {
+            if (cart.length === 0) {
+                showToast('Cart is already empty', 'info');
+                return;
+            }
+
+            if (confirm('Are you sure you want to clear the cart?')) {
+                $.post('@Url.Action("ClearCart")', {
+                    __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
+                })
+                .done(function(response) {
+                    if (response.success) {
+                        showToast(response.message, 'success');
+                        cart = [];
+                        updateCartDisplay();
+                        hidePaymentSection();
+                    }
+                });
+            }
+        }
+
+        // Search customer
+        function searchCustomer() {
+            const phone = $('#customerPhone').val();
+            if (!phone) {
+                showToast('Please enter phone number', 'warning');
+                return;
+            }
+
+            // This would typically make an AJAX call to search for existing customer
+            // For now, we'll just enable the name field
+            $('#customerName').focus();
+        }
+
+        // Show payment section
+        function showPaymentSection() {
+            if (cart.length === 0) {
+                showToast('Please add items to cart first', 'error');
+                return;
+            }
+
+            // Update payment summary
+            updatePaymentSummary();
+
+            // Create hidden form fields
+            createHiddenFormFields();
+
+            // Show payment section and hide other sections
+            $('#productSelectionArea, #cartArea').hide();
+            $('#paymentSection').show();
+
+            // Focus on amount received input
+            $('#amountReceived').focus();
+
+            // Scroll to payment section
+            $('html, body').animate({
+                scrollTop: $('#paymentSection').offset().top - 100
+            }, 500);
+        }
+
+        // Hide payment section
+        function hidePaymentSection() {
+            $('#paymentSection').hide();
+            $('#productSelectionArea, #cartArea').show();
+
+            // Reset payment form
+            $('#amountReceived').val('');
+            hidePaymentAdjustmentDisplay();
+        }
+
+        // Update payment summary
+        function updatePaymentSummary() {
+            const summary = getCartSummary();
+            $('#paymentSubtotal').text(summary.subtotal.toFixed(2));
+            $('#paymentDiscount').text(summary.discountAmount.toFixed(2));
+            $('#paymentGST').text(summary.gstAmount.toFixed(2));
+            $('#calculatedTotal').text(summary.total.toFixed(2));
+            calculatedTotal = summary.total;
+
+            // Suggest exact amount by default
+            $('#amountReceived').val(summary.total.toFixed(2));
+            calculatePaymentAdjustment();
+        }
+
+        // Get cart summary
+        function getCartSummary() {
+            let subtotal = 0, discountAmount = 0, gstAmount = 0;
+
+            cart.forEach(function(item) {
+                subtotal += item.lineSubtotal;
+                discountAmount += item.itemDiscountAmount;
+                gstAmount += item.lineGST;
+            });
+
+            return {
+                subtotal: subtotal,
+                discountAmount: discountAmount,
+                gstAmount: gstAmount,
+                total: subtotal - discountAmount + gstAmount,
+                itemCount: cart.reduce((sum, item) => sum + item.quantity, 0)
+            };
+        }
+
+        // Create hidden form fields
+        function createHiddenFormFields() {
+            let hiddenHtml = '';
+
+            // Customer information
+            hiddenHtml += `
+                <input type="hidden" name="Sale.CustomerName" value="${$('#customerName').val() || ''}">
+                <input type="hidden" name="Sale.CustomerPhone" value="${$('#customerPhone').val() || ''}">
+                <input type="hidden" name="Sale.PaymentMethod" value="${$('#paymentMethod').val()}">
+                <input type="hidden" name="Sale.PaymentReference" value="${$('#paymentReference').val() || ''}">
+                <input type="hidden" name="Sale.Notes" value="${$('#saleNotes').val() || ''}">
             `;
-        });
 
-        grid.html(html);
-    }
+            // Cart items (this will be populated by the backend from session)
 
-    // STEP 4: Select size and prepare to add to cart
-    function selectSize(sizeData) {
-        selectedSize = sizeData;
-        
-        $('#finalProductDisplay').text(`${selectedProduct} - ${selectedColor} (${sizeData.size})`);
-        $('#finalPrice').text(`₹${sizeData.salePrice.toFixed(2)}`);
-        $('#finalPriceWithGST').text(`₹${sizeData.priceWithGST.toFixed(2)}`);
-        $('#finalStock').text(sizeData.displayStock);
-        $('#maxQuantity').text(sizeData.stockQuantity);
-        $('#quantityUnit').text(sizeData.unitOfMeasure);
-        
-        $('#addQuantity').attr('max', sizeData.stockQuantity);
-        $('#addQuantity').val('1');
-        $('#addDiscount').val('0');
-        
-        $('#addToCartBtn').prop('disabled', false);
-        
-        showStep(4);
-    }
-
-    // Add to cart
-    function addToCart() {
-        if (!selectedSize) return;
-
-        const quantity = parseFloat($('#addQuantity').val()) || 0;
-        const discount = parseFloat($('#addDiscount').val()) || 0;
-
-        if (quantity <= 0) {
-            showAlert('Please enter a valid quantity', 'warning');
-            return;
+            $('#hiddenFormFields').html(hiddenHtml);
         }
 
-        if (quantity > selectedSize.stockQuantity) {
-            showAlert(`Quantity exceeds available stock (${selectedSize.stockQuantity})`, 'warning');
-            return;
+        // Calculate payment adjustment in real-time
+        function calculatePaymentAdjustment() {
+            const amountReceived = parseFloat($('#amountReceived').val()) || 0;
+
+            if (amountReceived <= 0) {
+                hidePaymentAdjustmentDisplay();
+                return;
+            }
+
+            // AJAX call to server for precise calculation
+            $.post('@Url.Action("CalculatePaymentAdjustment")', {
+                amountReceived: amountReceived,
+                __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
+            })
+            .done(function(response) {
+                if (response.success) {
+                    displayPaymentAdjustment(response);
+                }
+            })
+            .fail(function() {
+                // Fallback to client-side calculation
+                const adjustment = amountReceived - calculatedTotal;
+                displayPaymentAdjustmentFallback(adjustment);
+            });
         }
 
-        $('#addToCartBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Adding...');
+        // Display payment adjustment information
+        function displayPaymentAdjustment(data) {
+            if (!data.hasAdjustment) {
+                hidePaymentAdjustmentDisplay();
+                return;
+            }
 
-        $.post('@Url.Action("AddToCart")', {
-            productId: selectedSize.productId,
-            quantity: quantity,
-            discountPercentage: discount
-        })
-        .done(function(response) {
-            if (response.success) {
-                showAlert(response.message, 'success');
-                loadCart();
-                resetSelection();
+            // Show adjustment alert with appropriate styling
+            const alertClass = data.paymentAdjustment < 0 ? 'alert-warning' : 'alert-info';
+            $('#adjustmentAlert').removeClass('alert-warning alert-info alert-success').addClass(alertClass).show();
+
+            $('#adjustmentDisplay').html(`
+                <div class="fw-bold ${data.paymentAdjustment < 0 ? 'text-warning' : 'text-info'}">
+                    ${data.adjustmentDisplay}
+                </div>
+                <small class="text-muted">${data.adjustmentType}</small>
+            `);
+
+            // Show/hide specific alerts
+            if (data.requiresApproval) {
+                $('#approvalAlert').show();
+                $('#overpaymentAlert').hide();
+                $('#completeSaleBtn').removeClass('btn-success').addClass('btn-warning')
+                    .html('<i class="fas fa-clock me-2"></i>Complete Sale (Pending Approval)');
+            } else if (data.paymentAdjustment > 0) {
+                $('#approvalAlert').hide();
+                $('#overpaymentAlert').show();
+                $('#completeSaleBtn').removeClass('btn-warning').addClass('btn-success')
+                    .html('<i class="fas fa-check me-2"></i>Complete Sale');
             } else {
-                showAlert(response.message, 'danger');
+                $('#approvalAlert, #overpaymentAlert').hide();
+                $('#completeSaleBtn').removeClass('btn-warning').addClass('btn-success')
+                    .html('<i class="fas fa-check me-2"></i>Complete Sale');
             }
-        })
-        .fail(function() {
-            showAlert('Failed to add to cart', 'danger');
-        })
-        .always(function() {
-            $('#addToCartBtn').prop('disabled', false).html('<i class="fas fa-cart-plus me-2"></i>Add to Cart');
-        });
-    }
 
-    // Cart management
-    function loadCart() {
-        $.get('@Url.Action("GetCart")')
-        .done(function(response) {
-            if (response.success) {
-                cartItems = response.items;
-                renderCart();
-                updateTotals(response.summary);
+            // Show adjustment reason row
+            $('#adjustmentReasonRow').show();
+        }
+
+        // Fallback adjustment display
+        function displayPaymentAdjustmentFallback(adjustment) {
+            const hasAdjustment = Math.abs(adjustment) > 0.01;
+
+            if (!hasAdjustment) {
+                hidePaymentAdjustmentDisplay();
+                return;
             }
-        });
-    }
 
-    function renderCart() {
-        const container = $('#cartItemsContainer');
-        $('#cartItemCount').text(cartItems.length);
+            const alertClass = adjustment < 0 ? 'alert-warning' : 'alert-info';
+            $('#adjustmentAlert').removeClass('alert-warning alert-info').addClass(alertClass).show();
 
-        if (cartItems.length === 0) {
-            container.html(`
-                <div class="text-center text-muted py-4" id="emptyCartMessage">
-                    <i class="fas fa-shopping-cart fa-3x mb-3 opacity-50"></i>
-                    <h6>Cart is empty</h6>
-                    <p class="small">Add products to start billing</p>
+            $('#adjustmentDisplay').html(`
+                <div class="fw-bold ${adjustment < 0 ? 'text-warning' : 'text-info'}">
+                    ${adjustment < 0 ? `Short by ₹${Math.abs(adjustment).toFixed(2)}` : `Over by ₹${adjustment.toFixed(2)}`}
                 </div>
             `);
-            $('#completeSaleBtn').prop('disabled', true);
-            return;
+
+            $('#adjustmentReasonRow').show();
         }
 
-        let html = '';
-        cartItems.forEach(item => {
-            html += `
-                <div class="card mb-2">
-                    <div class="card-body p-2">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <h6 class="mb-0 small">${item.productName}</h6>
-                            <button class="btn btn-outline-danger btn-sm" onclick="removeFromCart(${item.productId})">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                        <div class="row g-2">
-                            <div class="col-4">
-                                <label class="form-label small">Qty:</label>
-                                <input type="number" class="form-control form-control-sm" 
-                                       value="${item.quantity}" min="0.001" step="0.001"
-                                       onchange="updateQuantity(${item.productId}, this.value)">
-                            </div>
-                            <div class="col-4">
-                                <label class="form-label small">Disc%:</label>
-                                <input type="number" class="form-control form-control-sm" 
-                                       value="${item.itemDiscountPercentage}" min="0" max="100" step="0.01"
-                                       onchange="updateDiscount(${item.productId}, this.value)">
-                            </div>
-                            <div class="col-4 text-end">
-                                <small class="text-muted">₹${item.unitPrice.toFixed(2)}</small><br>
-                                <strong>₹${item.lineTotal.toFixed(2)}</strong>
-                                ${item.hasDiscount ? `<br><small class="text-success">-₹${item.itemDiscountAmount.toFixed(2)}</small>` : ''}
-                            </div>
-                        </div>
-                    </div>
+        // Hide payment adjustment display
+        function hidePaymentAdjustmentDisplay() {
+            $('#adjustmentAlert, #approvalAlert, #overpaymentAlert, #adjustmentReasonRow').hide();
+            $('#completeSaleBtn').removeClass('btn-warning').addClass('btn-success')
+                .html('<i class="fas fa-check me-2"></i>Complete Sale');
+        }
+
+        // Suggest rounded amounts
+        function suggestRoundedAmount(type) {
+            let suggestedAmount = calculatedTotal;
+
+            switch(type) {
+                case 'round5':
+                    suggestedAmount = Math.ceil(calculatedTotal / 5) * 5;
+                    break;
+                case 'round10':
+                    suggestedAmount = Math.ceil(calculatedTotal / 10) * 10;
+                    break;
+                case 'exact':
+                    suggestedAmount = calculatedTotal;
+                    break;
+            }
+
+            $('#amountReceived').val(suggestedAmount.toFixed(2));
+            calculatePaymentAdjustment();
+        }
+
+        // Print estimate
+        function printEstimate() {
+            if (cart.length === 0) {
+                showToast('No items in cart to print', 'error');
+                return;
+            }
+
+            // This would open a print dialog with estimate/quotation
+            showToast('Estimate printing feature coming soon', 'info');
+        }
+
+        // Form validation before submission
+        $('#paymentForm').on('submit', function(e) {
+            const amountReceived = parseFloat($('#amountReceived').val()) || 0;
+
+            if (amountReceived <= 0) {
+                e.preventDefault();
+                showToast('Please enter the amount received from customer', 'error');
+                return;
+            }
+
+            const adjustment = amountReceived - calculatedTotal;
+
+            // Confirm significant underpayment
+            if (adjustment < -50 || (calculatedTotal > 0 && Math.abs(adjustment) / calculatedTotal * 100 > 10)) {
+                if (!confirm(`Payment amount seems significantly different from calculated total. Are you sure you want to continue?`)) {
+                    e.preventDefault();
+                    return;
+                }
+            }
+
+            // Show loading state
+            $('#completeSaleBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Processing...');
+        });
+
+        // Utility functions
+        function showToast(message, type = 'info') {
+            const alertClass = `alert-${type === 'error' ? 'danger' : type}`;
+            const icon = type === 'success' ? 'check' : type === 'error' ? 'exclamation-triangle' : 'info-circle';
+
+            const toast = $(`
+                <div class="alert ${alertClass} alert-dismissible fade show position-fixed"
+                     style="top: 20px; right: 20px; z-index: 9999; min-width: 300px;" role="alert">
+                    <i class="fas fa-${icon} me-2"></i>
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
-            `;
-        });
+            `);
 
-        container.html(html);
-        $('#completeSaleBtn').prop('disabled', false);
-    }
+            $('body').append(toast);
 
-    function updateTotals(totals) {
-        $('#cartSubtotal, #finalSubtotal').text(`₹${totals.subtotal.toFixed(2)}`);
-        $('#cartDiscounts, #finalDiscounts').text(`₹${totals.discountAmount.toFixed(2)}`);
-        $('#cartGST, #finalGST').text(`₹${totals.gstAmount.toFixed(2)}`);
-        $('#cartTotal, #finalTotal').text(`₹${totals.total.toFixed(2)}`);
-    }
-
-    // Cart operations
-    function updateQuantity(productId, quantity) {
-        $.post('@Url.Action("UpdateCartQuantity")', { 
-            productId: productId, 
-            quantity: parseFloat(quantity) || 0 
-        })
-        .done(function(response) {
-            if (response.success) {
-                loadCart();
-            } else {
-                showAlert(response.message, 'warning');
-                loadCart();
-            }
-        });
-    }
-
-    function updateDiscount(productId, discountPercentage) {
-        $.post('@Url.Action("ApplyItemDiscount")', { 
-            productId: productId, 
-            discountPercentage: parseFloat(discountPercentage) || 0 
-        })
-        .done(function(response) {
-            if (response.success) {
-                loadCart();
-            } else {
-                showAlert(response.message, 'warning');
-            }
-        });
-    }
-
-    function removeFromCart(productId) {
-        $.post('@Url.Action("RemoveFromCart")', { productId: productId })
-        .done(function(response) {
-            if (response.success) {
-                showAlert(response.message, 'info');
-                loadCart();
-            }
-        });
-    }
-
-    function applyOverallDiscount() {
-        const discount = parseFloat($('#overallDiscountInput').val()) || 0;
-        
-        if (discount < 0 || discount > 100) {
-            showAlert('Discount must be between 0 and 100%', 'warning');
-            return;
+            // Auto-remove after 5 seconds
+            setTimeout(function() {
+                toast.fadeOut(function() { $(this).remove(); });
+            }, 5000);
         }
-
-        $.post('@Url.Action("ApplyOverallDiscount")', { discountPercentage: discount })
-        .done(function(response) {
-            if (response.success) {
-                showAlert(response.message, 'success');
-                loadCart();
-            } else {
-                showAlert(response.message, 'danger');
-            }
-        });
-    }
-
-    function clearCart() {
-        $.post('@Url.Action("ClearCart")')
-        .done(function(response) {
-            if (response.success) {
-                showAlert(response.message, 'info');
-                loadCart();
-            }
-        });
-    }
-
-    // UI helpers
-    function showStep(stepNumber) {
-        $('.selection-step').addClass('d-none');
-        $(`#step${stepNumber}`).removeClass('d-none');
-        currentStep = stepNumber;
-    }
-
-    function resetSelection() {
-        selectedProduct = null;
-        selectedColor = null;
-        selectedSize = null;
-        showStep(1);
-        loadProductNames();
-    }
-
-    function debounce(func, wait) {
-        let timeout;
-        return function executedFunction(...args) {
-            const later = () => {
-                clearTimeout(timeout);
-                func(...args);
-            };
-            clearTimeout(timeout);
-            timeout = setTimeout(later, wait);
-        };
-    }
-
-    function showAlert(message, type) {
-        // Simple alert for now - you can enhance this
-        const alertClass = type === 'danger' ? 'alert-danger' : 
-                          type === 'success' ? 'alert-success' : 
-                          type === 'warning' ? 'alert-warning' : 'alert-info';
-
-        const alertHtml = `
-            <div class="alert ${alertClass} alert-dismissible fade show position-fixed" 
-                 style="top: 20px; right: 20px; z-index: 9999; min-width: 300px;">
-                ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        `;
-
-        $('body').append(alertHtml);
-
-        // Auto-remove after 5 seconds
-        setTimeout(() => {
-            $('.alert').fadeOut();
-        }, 5000);
-    }
-</script>
-
-<style>
-    .product-card:hover,
-    .color-card:hover,
-    .size-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-        cursor: pointer;
-        transition: all 0.3s ease;
-    }
-
-    .selection-step {
-        margin-bottom: 2rem;
-        padding: 1rem;
-        border: 1px solid #dee2e6;
-        border-radius: 0.375rem;
-        background-color: #f8f9fa;
-    }
-
-    .card {
-        border: 1px solid #dee2e6;
-    }
-
-    .badge {
-        font-size: 0.75em;
-    }
-
-    .spinner-border {
-        width: 1rem;
-        height: 1rem;
-    }
-
-    @@media (max-width: 768px) {
-        .card-body {
-            padding: 0.75rem;
-        }
-        
-        .selection-step {
-            padding: 0.5rem;
-        }
-    }
-</style>
+    </script>
 }

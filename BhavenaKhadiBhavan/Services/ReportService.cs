@@ -76,6 +76,7 @@ namespace BhavenaKhadiBhavan.Services
             var totalItemDiscounts = sales.Sum(s => s.TotalItemDiscounts);
             var totalGST = sales.Sum(s => s.GSTAmount);
             var totalCostOfGoodsSold = saleItems.Sum(si => si.Product != null ? si.Product.PurchasePrice * si.Quantity : 0);
+            var totalSaleAmount = sales.Sum(s => s.TotalAmount);
 
             var report = new SalesReportViewModel
             {
@@ -94,8 +95,8 @@ namespace BhavenaKhadiBhavan.Services
                 TotalItemDiscounts = totalItemDiscounts,
                 TotalGST = totalGST,
                 TotalCostOfGoodsSold = totalCostOfGoodsSold,
-                TotalGrossProfit = (totalSubtotal - totalItemDiscounts) - totalCostOfGoodsSold,
-                GrossProfitMargin = totalSubtotal > 0 ? (((totalSubtotal - totalItemDiscounts) - totalCostOfGoodsSold) / (totalSubtotal - totalItemDiscounts)) * 100 : 0,
+                TotalGrossProfit = (totalSaleAmount) - totalCostOfGoodsSold,
+                GrossProfitMargin = totalSubtotal > 0 ? (((totalSaleAmount) - totalCostOfGoodsSold) / (totalSaleAmount)) * 100 : 0,
 
                 // Discount Analysis
                 EffectiveDiscountPercentage = totalSubtotal > 0 ? (totalItemDiscounts / totalSubtotal) * 100 : 0,

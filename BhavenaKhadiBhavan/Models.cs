@@ -411,6 +411,136 @@ namespace BhavenaKhadiBhavan.Models
             DiscountPercentage = 0;
             RecalculateTotals();
         }
+
+        /// <summary>
+        /// Original calculated total before any payment adjustments
+        /// </summary>
+        [Column(TypeName = "decimal(18,2)")]
+        [Display(Name = "Calculated Total (₹)")]
+        public decimal CalculatedTotal { get; set; }
+
+        /// <summary>
+        /// Actual amount received from customer
+        /// </summary>
+        [Column(TypeName = "decimal(18,2)")]
+        [Display(Name = "Amount Received (₹)")]
+        public decimal AmountReceived { get; set; }
+
+        /// <summary>
+        /// Payment adjustment (difference between calculated and received)
+        /// Positive = Customer paid extra, Negative = Customer paid less
+        /// </summary>
+        [Column(TypeName = "decimal(18,2)")]
+        [Display(Name = "Payment Adjustment (₹)")]
+        public decimal PaymentAdjustment { get; set; }
+
+        /// <summary>
+        /// Reason for payment adjustment
+        /// </summary>
+        [StringLength(200)]
+        [Display(Name = "Adjustment Reason")]
+        public string? AdjustmentReason { get; set; }
+
+        /// <summary>
+        /// Type of adjustment: "Customer_Convenience", "Cash_Shortage", "System_Error", etc.
+        /// </summary>
+        [StringLength(50)]
+        [Display(Name = "Adjustment Type")]
+        public string? AdjustmentType { get; set; }
+
+        /// <summary>
+        /// Staff member who processed this payment
+        /// </summary>
+        [StringLength(100)]
+        [Display(Name = "Processed By")]
+        public string? ProcessedBy { get; set; }
+
+        /// <summary>
+        /// Whether this sale requires manager approval for adjustment
+        /// </summary>
+        public bool RequiresApproval { get; set; } = false;
+
+        /// <summary>
+        /// Manager who approved the adjustment
+        /// </summary>
+        [StringLength(100)]
+        [Display(Name = "Approved By")]
+        public string? ApprovedBy { get; set; }
+
+        /// <summary>
+        /// When the adjustment was approved
+        /// </summary>
+        public DateTime? ApprovedAt { get; set; }
+
+        // **COMPUTED PROPERTIES FOR PAYMENT ANALYSIS**
+
+        /// <summary>
+        /// Check if payment has any adjustment
+        /// </summary>
+        [NotMapped]
+        public bool HasPaymentAdjustment => Math.Abs(PaymentAdjustment) > 0.01m;
+
+        /// <summary>
+        /// Check if customer paid less than calculated amount
+        /// </summary>
+        [NotMapped]
+        public bool IsShortPayment => PaymentAdjustment < -0.01m;
+
+        /// <summary>
+        /// Check if customer paid more than calculated amount
+        /// </summary>
+        [NotMapped]
+        public bool IsOverPayment => PaymentAdjustment > 0.01m;
+
+        /// <summary>
+        /// Percentage of adjustment relative to calculated total
+        /// </summary>
+        [NotMapped]
+        public decimal AdjustmentPercentage =>
+            CalculatedTotal > 0 ? Math.Abs(PaymentAdjustment) / CalculatedTotal * 100 : 0;
+
+        /// <summary>
+        /// Display-friendly adjustment description
+        /// </summary>
+        [NotMapped]
+        public string AdjustmentDisplay
+        {
+            get
+            {
+                if (!HasPaymentAdjustment) return "Exact Payment";
+                if (IsShortPayment) return $"Short by ₹{Math.Abs(PaymentAdjustment):N2}";
+                if (IsOverPayment) return $"Over by ₹{PaymentAdjustment:N2}";
+                return "No Adjustment";
+            }
+        }
+
+        /// <summary>
+        /// Payment status for reporting
+        /// </summary>
+        [NotMapped]
+        public string PaymentStatus
+        {
+            get
+            {
+                if (!HasPaymentAdjustment) return "Exact";
+                if (Math.Abs(PaymentAdjustment) <= 5) return "Minor Adjustment";
+                if (Math.Abs(PaymentAdjustment) <= 20) return "Moderate Adjustment";
+                return "Significant Adjustment";
+            }
+        }
+
+        /// <summary>
+        /// Whether adjustment needs approval based on amount
+        /// </summary>
+        [NotMapped]
+        public bool ShouldRequireApproval
+        {
+            get
+            {
+                // Require approval for adjustments > ₹20 or > 2% of total
+                return Math.Abs(PaymentAdjustment) > 20 || AdjustmentPercentage > 2;
+            }
+        }
     }
 
     /// <summary>
@@ -479,6 +609,132 @@ namespace BhavenaKhadiBhavan.Models
         public int ItemsWithDiscountCount => CartItems.Count(i => i.HasDiscount);
         public decimal EffectiveDiscountPercentage =>
             CartSubtotal > 0 ? (CartDiscountAmount / CartSubtotal) * 100 : 0;
+
+        // Payment Processing Fields
+        [Display(Name = "Amount Received from Customer (₹)")]
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal AmountReceived { get; set; }
+
+        [Display(Name = "Reason for Payment Adjustment")]
+        public string? PaymentAdjustmentReason { get; set; }
+
+        // Computed Properties
+        public decimal PaymentAdjustment => AmountReceived - CartTotal;
+        public bool HasPaymentAdjustment => Math.Abs(PaymentAdjustment) > 0.01m;
+        public bool RequiresManagerApproval => Math.Abs(PaymentAdjustment) > 20 ||
+            (CartTotal > 0 && Math.Abs(PaymentAdjustment) / CartTotal * 100 > 2);
+
+        public string PaymentAdjustmentDisplay
+        {
+            get
+            {
+                if (!HasPaymentAdjustment) return "Exact payment";
+                if (PaymentAdjustment < 0) return $"Short by ₹{Math.Abs(PaymentAdjustment):N2}";
+                return $"Over by ₹{PaymentAdjustment:N2}";
+            }
+        }
+    }
+
+
+    /// <summary>
+    /// Result of payment processing operation
+    /// </summary>
+    public class PaymentResult
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public decimal PaymentAdjustment { get; set; }
+        public bool RequiresApproval { get; set; }
+        public string? AdjustmentType { get; set; }
+    }
+
+    /// <summary>
+    /// Comprehensive payment reconciliation report
+    /// </summary>
+    public class PaymentReconciliationReport
+    {
+        public DateTime FromDate { get; set; }
+        public DateTime ToDate { get; set; }
+
+        // Overall Statistics
+        public int TotalSales { get; set; }
+        public decimal TotalCalculatedAmount { get; set; }
+        public decimal TotalReceivedAmount { get; set; }
+        public decimal TotalAdjustment { get; set; }
+
+        // Adjustment Statistics
+        public int SalesWithAdjustments { get; set; }
+        public int ShortPayments { get; set; }
+        public int OverPayments { get; set; }
+        public decimal TotalShortAmount { get; set; }
+        public decimal TotalOverAmount { get; set; }
+        public int PendingApprovals { get; set; }
+
+        // Computed Properties
+        public decimal AdjustmentPercentage => TotalCalculatedAmount > 0 ?
+            Math.Abs(TotalAdjustment) / TotalCalculatedAmount * 100 : 0;
+
+        public decimal NetCashVariance => TotalAdjustment; // Positive = more cash, Negative = less cash
+
+        public string CashVarianceStatus =>
+            Math.Abs(NetCashVariance) <= 10 ? "Balanced" :
+            NetCashVariance > 10 ? "Cash Surplus" : "Cash Shortage";
+
+        // Detailed Breakdowns
+        public List<AdjustmentTypeSummary> AdjustmentsByType { get; set; } = new();
+        public List<DailyPaymentSummary> DailyBreakdown { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Summary of adjustments by type
+    /// </summary>
+    public class AdjustmentTypeSummary
+    {
+        public string Type { get; set; } = string.Empty;
+        public int Count { get; set; }
+        public decimal TotalAmount { get; set; }
+        public decimal AverageAmount { get; set; }
+
+        public string TypeDescription => Type switch
+        {
+            "Customer_Convenience" => "Customer didn't have exact change",
+            "Cash_Shortage" => "Customer short on cash",
+            "System_Error" => "Potential system or pricing error",
+            "Manager_Discretion" => "Manager approved adjustment",
+            _ => "Other adjustment"
+        };
+    }
+
+    /// <summary>
+    /// Daily payment summary for reconciliation
+    /// </summary>
+    public class DailyPaymentSummary
+    {
+        public DateTime Date { get; set; }
+        public int SalesCount { get; set; }
+        public decimal CalculatedAmount { get; set; }
+        public decimal ReceivedAmount { get; set; }
+        public decimal AdjustmentAmount { get; set; }
+        public int SalesWithAdjustments { get; set; }
+
+        public decimal AdjustmentPercentage => CalculatedAmount > 0 ?
+            Math.Abs(AdjustmentAmount) / CalculatedAmount * 100 : 0;
+
+        public string DayStatus =>
+            Math.Abs(AdjustmentAmount) <= 20 ? "Good" :
+            Math.Abs(AdjustmentAmount) <= 50 ? "Fair" : "Needs Review";
+    }
+
+    /// <summary>
+    /// Adjustment reason analysis
+    /// </summary>
+    public class AdjustmentReasonSummary
+    {
+        public string Reason { get; set; } = string.Empty;
+        public int Count { get; set; }
+        public decimal TotalAmount { get; set; }
+        public decimal AverageAmount { get; set; }
+        public decimal Percentage { get; set; } // Percentage of total adjustments
     }
 
     /// <summary>

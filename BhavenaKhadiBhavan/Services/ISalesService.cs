@@ -11,7 +11,6 @@ namespace BhavenaKhadiBhavan.Services
         Task<Sale?> GetSaleByIdAsync(int id);
         Task<Sale?> GetSaleByInvoiceNumberAsync(string invoiceNumber);
         Task<List<Sale>> GetSalesByDateAsync(DateTime date);
-        Task<List<Sale>> GetSalesAsync(DateTime? fromDate = null, DateTime? toDate = null);
 
         Task<string> GenerateInvoiceNumberAsync();
         Task<decimal> CalculateGSTAmountAsync(List<SaleItem> items);
@@ -27,5 +26,10 @@ namespace BhavenaKhadiBhavan.Services
         // NEW: Cart calculation with discounts
         CartTotals CalculateCartTotalsWithDiscounts(List<CartItemViewModel> cartItems);
         Task<bool> UpdateSaleStatusAsync(int saleId, string status);
+
+        Task<List<Sale>> GetSalesAsync(DateTime? fromDate = null, DateTime? toDate = null, string? status = null);
+        Task<List<Sale>> GetAllSalesAsync(DateTime? fromDate = null, DateTime? toDate = null);
+        Task<List<Sale>> GetSalesByStatusAsync(string status, DateTime? fromDate = null, DateTime? toDate = null);
+        Task<object> GetSalesStatusSummaryAsync(DateTime? fromDate = null, DateTime? toDate = null);
     }
 }

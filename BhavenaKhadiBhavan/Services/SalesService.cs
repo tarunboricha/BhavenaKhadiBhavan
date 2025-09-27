@@ -168,7 +168,7 @@ namespace BhavenaKhadiBhavan.Services
                 .ToListAsync();
         }
 
-        public async Task<List<Sale>> GetSalesAsync(DateTime? fromDate = null, DateTime? toDate = null)
+        public async Task<List<Sale>> GetAllSalesAsync(DateTime? fromDate = null, DateTime? toDate = null)
         {
             var query = _context.Sales
                 .Include(s => s.Customer)
@@ -184,6 +184,91 @@ namespace BhavenaKhadiBhavan.Services
             if (toDate.HasValue)
             {
                 query = query.Where(s => s.SaleDate.Date <= toDate.Value.Date);
+            }
+
+            return await query
+                .OrderByDescending(s => s.SaleDate)
+                .ToListAsync();
+        }
+
+        public async Task<List<Sale>> GetSalesByStatusAsync(string status, DateTime? fromDate = null, DateTime? toDate = null)
+        {
+            var query = _context.Sales
+                .Include(s => s.Customer)
+                .Include(s => s.SaleItems)
+                .ThenInclude(si => si.Product)
+                .Where(s => s.Status == status)
+                .AsQueryable();
+
+            if (fromDate.HasValue)
+            {
+                query = query.Where(s => s.SaleDate.Date >= fromDate.Value.Date);
+            }
+
+            if (toDate.HasValue)
+            {
+                query = query.Where(s => s.SaleDate.Date <= toDate.Value.Date);
+            }
+
+            return await query
+                .OrderByDescending(s => s.SaleDate)
+                .ToListAsync();
+        }
+
+        public async Task<object> GetSalesStatusSummaryAsync(DateTime? fromDate = null, DateTime? toDate = null)
+        {
+            var query = _context.Sales.AsQueryable();
+
+            if (fromDate.HasValue)
+            {
+                query = query.Where(s => s.SaleDate.Date >= fromDate.Value.Date);
+            }
+
+            if (toDate.HasValue)
+            {
+                query = query.Where(s => s.SaleDate.Date <= toDate.Value.Date);
+            }
+
+            return new
+            {
+                TotalSales = await query.CountAsync(),
+                CompletedSales = await query.CountAsync(s => s.Status == "Completed"),
+                PendingSales = await query.CountAsync(s => s.Status == "Pending"),
+                CancelledSales = await query.CountAsync(s => s.Status == "Cancelled"),
+                CompletedRevenue = await query.Where(s => s.Status == "Completed").SumAsync(s => s.TotalAmount),
+                PendingRevenue = await query.Where(s => s.Status == "Pending").SumAsync(s => s.TotalAmount),
+                CancelledRevenue = await query.Where(s => s.Status == "Cancelled").SumAsync(s => s.TotalAmount)
+            };
+        }
+
+        public async Task<List<Sale>> GetSalesAsync(DateTime? fromDate = null, DateTime? toDate = null, string? status = null)
+        {
+            var query = _context.Sales
+                .Include(s => s.Customer)
+                .Include(s => s.SaleItems)
+                .ThenInclude(si => si.Product)
+                .AsQueryable();
+
+            // Apply date filters
+            if (fromDate.HasValue)
+            {
+                query = query.Where(s => s.SaleDate.Date >= fromDate.Value.Date);
+            }
+
+            if (toDate.HasValue)
+            {
+                query = query.Where(s => s.SaleDate.Date <= toDate.Value.Date);
+            }
+
+            // **CRITICAL: Apply status filter (default to completed for reports)**
+            if (status != null)
+            {
+                query = query.Where(s => s.Status == status);
+            }
+            else
+            {
+                // **DEFAULT: Only include completed sales in general queries**
+                query = query.Where(s => s.Status == "Completed");
             }
 
             return await query

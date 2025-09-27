@@ -43,7 +43,7 @@ namespace BhavenaKhadiBhavan.Controllers
                 fromDate ??= DateTime.Today.AddDays(-30);
                 toDate ??= DateTime.Today;
 
-                var sales = await _salesService.GetSalesAsync(fromDate, toDate);
+                var sales = await _salesService.GetAllSalesAsync(fromDate, toDate);
 
                 // Apply search filter
                 if (!string.IsNullOrWhiteSpace(search))

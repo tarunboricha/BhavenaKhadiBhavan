@@ -5,7 +5,8 @@ using Microsoft.EntityFrameworkCore;
 namespace BhavenaKhadiBhavan.Services
 {
     /// <summary>
-    /// ENHANCED: Report Service Implementation with Item-Level Discount Support and Comprehensive Analytics
+    /// ENHANCED: Report Service with Sale Status Filtering
+    /// CRITICAL: Excludes cancelled sales from all financial reports
     /// </summary>
     public class ReportService : IReportService
     {
@@ -16,42 +17,53 @@ namespace BhavenaKhadiBhavan.Services
             _context = context;
         }
 
+        // **PRIVATE HELPER: Get base query with status filtering**
+        private IQueryable<Sale> GetValidSalesQuery()
+        {
+            // CRITICAL: Only include Completed sales in financial reports
+            // Pending sales might be included based on business requirements
+            return _context.Sales
+                .Where(s => s.Status == "Completed");
+        }
+
+        private IQueryable<Sale> GetValidSalesQuery(DateTime fromDate, DateTime toDate)
+        {
+            return GetValidSalesQuery()
+                .Where(s => s.SaleDate.Date >= fromDate.Date && s.SaleDate.Date <= toDate.Date);
+        }
+
         public async Task<DashboardViewModel> GetDashboardDataAsync()
         {
             var today = DateTime.Today;
             var startOfMonth = new DateTime(today.Year, today.Month, 1);
 
+            // **FIXED: Only include completed sales in dashboard**
+            var validSalesQuery = GetValidSalesQuery();
+
             return new DashboardViewModel
             {
-                TodaySales = await _context.Sales
+                TodaySales = await validSalesQuery
                     .Where(s => s.SaleDate.Date == today)
                     .SumAsync(s => s.TotalAmount),
-
-                TodayOrders = await _context.Sales
+                TodayOrders = await validSalesQuery
                     .CountAsync(s => s.SaleDate.Date == today),
-
-                MonthSales = await _context.Sales
+                MonthSales = await validSalesQuery
                     .Where(s => s.SaleDate >= startOfMonth)
                     .SumAsync(s => s.TotalAmount),
-
                 TotalCustomers = await _context.Customers.CountAsync(),
-
                 LowStockCount = await _context.Products
                     .CountAsync(p => p.IsActive && p.StockQuantity <= p.MinimumStock),
-
                 LowStockProducts = await _context.Products
                     .Include(p => p.Category)
                     .Where(p => p.IsActive && p.StockQuantity <= p.MinimumStock)
                     .OrderBy(p => p.StockQuantity)
                     .Take(10)
                     .ToListAsync(),
-
-                RecentSales = await _context.Sales
+                RecentSales = await validSalesQuery
                     .Include(s => s.Customer)
                     .OrderByDescending(s => s.SaleDate)
                     .Take(5)
                     .ToListAsync(),
-
                 RecentCustomers = await _context.Customers
                     .OrderByDescending(c => c.CreatedAt)
                     .Take(5)
@@ -60,16 +72,26 @@ namespace BhavenaKhadiBhavan.Services
         }
 
         /// <summary>
-        /// ENHANCED: Detailed Sales Report with Item-Level Discount Analysis
+        /// ENHANCED: Detailed Sales Report with Status Filtering
         /// </summary>
         public async Task<SalesReportViewModel> GetDetailedSalesReportAsync(DateTime fromDate, DateTime toDate)
         {
-            var sales = await GetSalesReportAsync(fromDate, toDate);
+            // **FIXED: Only get completed sales**
+            var sales = await GetValidSalesQuery(fromDate, toDate)
+                .Include(s => s.Customer)
+                .Include(s => s.SaleItems)
+                .ThenInclude(si => si.Product)
+                .OrderByDescending(s => s.SaleDate)
+                .ToListAsync();
+
+            // **FIXED: Only get sale items from completed sales**
             var saleItems = await _context.SaleItems
                 .Include(si => si.Product)
                 .ThenInclude(p => p.Category)
                 .Include(si => si.Sale)
-                .Where(si => si.Sale.SaleDate.Date >= fromDate.Date && si.Sale.SaleDate.Date <= toDate.Date)
+                .Where(si => si.Sale.Status == "Completed" &&
+                            si.Sale.SaleDate.Date >= fromDate.Date &&
+                            si.Sale.SaleDate.Date <= toDate.Date)
                 .ToListAsync();
 
             var totalSubtotal = sales.Sum(s => s.SubTotal);
@@ -83,13 +105,11 @@ namespace BhavenaKhadiBhavan.Services
                 FromDate = fromDate,
                 ToDate = toDate,
                 Sales = sales,
-
-                // Basic Sales Summary
+                // Basic Sales Summary (ONLY COMPLETED)
                 TotalSales = sales.Sum(s => s.TotalAmount),
                 TotalOrders = sales.Count,
                 AverageOrderValue = sales.Any() ? sales.Average(s => s.TotalAmount) : 0,
                 TotalItemsSold = sales.Sum(s => s.ItemCount),
-
                 // Financial Breakdown with Item-Level Discounts
                 TotalSubtotal = totalSubtotal,
                 TotalItemDiscounts = totalItemDiscounts,
@@ -97,14 +117,12 @@ namespace BhavenaKhadiBhavan.Services
                 TotalCostOfGoodsSold = totalCostOfGoodsSold,
                 TotalGrossProfit = (totalSaleAmount) - totalCostOfGoodsSold,
                 GrossProfitMargin = totalSubtotal > 0 ? (((totalSaleAmount) - totalCostOfGoodsSold) / (totalSaleAmount)) * 100 : 0,
-
                 // Discount Analysis
                 EffectiveDiscountPercentage = totalSubtotal > 0 ? (totalItemDiscounts / totalSubtotal) * 100 : 0,
                 SalesWithDiscounts = sales.Count(s => s.HasItemLevelDiscounts),
                 AverageDiscountPerSale = sales.Any() ? totalItemDiscounts / sales.Count : 0,
                 DiscountPenetration = sales.Any() ? ((decimal)sales.Count(s => s.HasItemLevelDiscounts) / sales.Count) * 100 : 0,
-
-                // Payment Method Breakdown
+                // Payment Method Breakdown (ONLY COMPLETED)
                 PaymentMethodBreakdown = sales
                     .GroupBy(s => s.PaymentMethod)
                     .Select(g => new PaymentMethodSummary
@@ -116,8 +134,7 @@ namespace BhavenaKhadiBhavan.Services
                     })
                     .OrderByDescending(p => p.Amount)
                     .ToList(),
-
-                // Daily Breakdown
+                // Daily Breakdown (ONLY COMPLETED)
                 DailyBreakdown = sales
                     .GroupBy(s => s.SaleDate.Date)
                     .Select(g => new DailySalesSummary
@@ -130,8 +147,7 @@ namespace BhavenaKhadiBhavan.Services
                     })
                     .OrderBy(d => d.Date)
                     .ToList(),
-
-                // Top Products
+                // Top Products (ONLY COMPLETED SALES)
                 TopProducts = saleItems
                     .GroupBy(si => new { si.ProductId, si.ProductName, si.Product.Category.Name })
                     .Select(g => new TopProductSummary
@@ -155,24 +171,32 @@ namespace BhavenaKhadiBhavan.Services
         }
 
         /// <summary>
-        /// ENHANCED: Daily Sales Report with Hour-by-Hour Analysis
+        /// ENHANCED: Daily Sales Report with Status Filtering
         /// </summary>
         public async Task<DailySalesReportViewModel> GetDetailedDailySalesReportAsync(DateTime date)
         {
-            var sales = await GetDailySalesReportAsync(date);
+            // **FIXED: Only get completed sales**
+            var sales = await GetValidSalesQuery()
+                .Where(s => s.SaleDate.Date == date.Date)
+                .Include(s => s.Customer)
+                .Include(s => s.SaleItems)
+                .ThenInclude(si => si.Product)
+                .OrderByDescending(s => s.SaleDate)
+                .ToListAsync();
+
+            // **FIXED: Only get sale items from completed sales**
             var saleItems = await _context.SaleItems
                 .Include(si => si.Product)
                 .ThenInclude(p => p.Category)
                 .Include(si => si.Sale)
-                .Where(si => si.Sale.SaleDate.Date == date.Date)
+                .Where(si => si.Sale.Status == "Completed" && si.Sale.SaleDate.Date == date.Date)
                 .ToListAsync();
 
             var report = new DailySalesReportViewModel
             {
                 Date = date,
                 Sales = sales,
-
-                // Daily Summary
+                // Daily Summary (ONLY COMPLETED)
                 TotalSales = sales.Sum(s => s.TotalAmount),
                 TotalOrders = sales.Count,
                 AverageOrderValue = sales.Any() ? sales.Average(s => s.TotalAmount) : 0,
@@ -180,8 +204,7 @@ namespace BhavenaKhadiBhavan.Services
                 TotalGrossProfit = sales.Sum(s => CalculateGrossProfitForSale(s)),
                 GrossProfitMargin = sales.Sum(s => s.TotalAmount) > 0 ?
                     (sales.Sum(s => CalculateGrossProfitForSale(s)) / sales.Sum(s => s.TotalAmount)) * 100 : 0,
-
-                // Hourly Breakdown
+                // Hourly Breakdown (ONLY COMPLETED)
                 HourlyBreakdown = sales
                     .GroupBy(s => s.SaleDate.Hour)
                     .Select(g => new HourlySalesSummary
@@ -193,8 +216,7 @@ namespace BhavenaKhadiBhavan.Services
                     })
                     .OrderBy(h => h.Hour)
                     .ToList(),
-
-                // Payment Methods
+                // Payment Methods (ONLY COMPLETED)
                 PaymentMethodBreakdown = sales
                     .GroupBy(s => s.PaymentMethod)
                     .Select(g => new PaymentMethodSummary
@@ -205,8 +227,7 @@ namespace BhavenaKhadiBhavan.Services
                         Percentage = sales.Any() ? ((decimal)g.Count() / sales.Count) * 100 : 0
                     })
                     .ToList(),
-
-                // Top Products of the Day
+                // Top Products of the Day (ONLY COMPLETED SALES)
                 TopProducts = saleItems
                     .GroupBy(si => new { si.ProductId, si.ProductName, si.Product.Category.Name })
                     .Select(g => new TopProductSummary
@@ -222,8 +243,7 @@ namespace BhavenaKhadiBhavan.Services
                     .OrderByDescending(p => p.Revenue)
                     .Take(10)
                     .ToList(),
-
-                // Customer Analysis
+                // Customer Analysis (ONLY COMPLETED SALES)
                 UniqueCustomers = sales.Where(s => s.CustomerId.HasValue).Select(s => s.CustomerId).Distinct().Count(),
                 NewCustomers = await _context.Customers.CountAsync(c => c.CreatedAt.Date == date.Date),
                 ReturningCustomers = sales.Count(s => s.Customer != null && s.Customer.TotalOrders > 1)
@@ -233,64 +253,25 @@ namespace BhavenaKhadiBhavan.Services
         }
 
         /// <summary>
-        /// ENHANCED: Comprehensive Stock Report
-        /// </summary>
-        public async Task<StockReportViewModel> GetDetailedStockReportAsync()
-        {
-            var products = await GetStockReportAsync();
-
-            var report = new StockReportViewModel
-            {
-                Products = products,
-
-                // Stock Summary
-                TotalProducts = products.Count,
-                ActiveProducts = products.Count(p => p.IsActive),
-                LowStockProducts = products.Count(p => p.IsLowStock),
-                OutOfStockProducts = products.Count(p => p.StockQuantity == 0),
-                TotalStockValue = products.Sum(p => p.StockQuantity * p.PurchasePrice),
-                TotalSaleValue = products.Sum(p => p.StockQuantity * p.SalePrice),
-                PotentialProfit = products.Sum(p => p.StockQuantity * (p.SalePrice - p.PurchasePrice)),
-
-                // Category Wise Stock
-                CategoryWiseStock = products
-                    .Where(p => p.Category != null)
-                    .GroupBy(p => p.Category!.Name)
-                    .Select(g => new CategoryStockSummary
-                    {
-                        Category = g.Key,
-                        ProductCount = g.Count(),
-                        TotalStock = g.Sum(p => p.StockQuantity),
-                        StockValue = g.Sum(p => p.StockQuantity * p.PurchasePrice),
-                        SaleValue = g.Sum(p => p.StockQuantity * p.SalePrice),
-                        PotentialProfit = g.Sum(p => p.StockQuantity * (p.SalePrice - p.PurchasePrice))
-                    })
-                    .OrderByDescending(c => c.StockValue)
-                    .ToList(),
-
-                // Fast/Slow Moving Analysis (based on last 30 days sales)
-                FastMovingProducts = await GetFastMovingProducts(30),
-                SlowMovingProducts = await GetSlowMovingProducts(30),
-
-                // Stock Age Analysis
-                AverageStockAge = CalculateAverageStockAge(products),
-                StockAging = GetStockAgingAnalysis(products)
-            };
-
-            return report;
-        }
-
-        /// <summary>
-        /// ENHANCED: Profit Margin Report with Item-Level Discount Impact
+        /// ENHANCED: Profit Margin Report with Status Filtering
         /// </summary>
         public async Task<ProfitMarginReportViewModel> GetProfitMarginReportAsync(DateTime fromDate, DateTime toDate)
         {
-            var sales = await GetSalesReportAsync(fromDate, toDate);
+            // **FIXED: Only get completed sales**
+            var sales = await GetValidSalesQuery(fromDate, toDate)
+                .Include(s => s.Customer)
+                .Include(s => s.SaleItems)
+                .ThenInclude(si => si.Product)
+                .ToListAsync();
+
+            // **FIXED: Only get sale items from completed sales**
             var saleItems = await _context.SaleItems
                 .Include(si => si.Product)
                 .ThenInclude(p => p.Category)
                 .Include(si => si.Sale)
-                .Where(si => si.Sale.SaleDate.Date >= fromDate.Date && si.Sale.SaleDate.Date <= toDate.Date)
+                .Where(si => si.Sale.Status == "Completed" &&
+                            si.Sale.SaleDate.Date >= fromDate.Date &&
+                            si.Sale.SaleDate.Date <= toDate.Date)
                 .ToListAsync();
 
             var totalRevenue = sales.Sum(s => s.TotalAmount);
@@ -301,19 +282,16 @@ namespace BhavenaKhadiBhavan.Services
             {
                 FromDate = fromDate,
                 ToDate = toDate,
-
-                // Overall Profit Analysis
+                // Overall Profit Analysis (ONLY COMPLETED)
                 TotalRevenue = totalRevenue,
                 TotalCostOfGoodsSold = totalCOGS,
                 TotalGrossProfit = totalRevenue - totalCOGS,
                 GrossProfitMargin = totalRevenue > 0 ? ((totalRevenue - totalCOGS) / totalRevenue) * 100 : 0,
-
                 // Impact of Discounts on Profit
                 ProfitWithoutDiscounts = (sales.Sum(s => s.SubTotal) - totalCOGS),
                 ProfitWithDiscounts = totalRevenue - totalCOGS,
                 DiscountImpactOnProfit = totalDiscounts,
-
-                // Category-wise Profit
+                // Category-wise Profit (ONLY COMPLETED SALES)
                 CategoryProfits = saleItems
                     .Where(si => si.Product?.Category != null)
                     .GroupBy(si => si.Product.Category.Name)
@@ -330,8 +308,7 @@ namespace BhavenaKhadiBhavan.Services
                     })
                     .OrderByDescending(c => c.GrossProfit)
                     .ToList(),
-
-                // Product-wise Profit Analysis
+                // Product-wise Profit Analysis (ONLY COMPLETED SALES)
                 ProductProfits = saleItems
                     .Where(si => si.Product != null)
                     .GroupBy(si => new { si.ProductId, si.ProductName, si.Product.Category.Name })
@@ -351,8 +328,7 @@ namespace BhavenaKhadiBhavan.Services
                     })
                     .OrderByDescending(p => p.GrossProfit)
                     .ToList(),
-
-                // Daily Profit Trends
+                // Daily Profit Trends (ONLY COMPLETED SALES)
                 DailyProfitTrends = sales
                     .GroupBy(s => s.SaleDate.Date)
                     .Select(g => new DailyProfitSummary
@@ -372,61 +348,23 @@ namespace BhavenaKhadiBhavan.Services
         }
 
         /// <summary>
-        /// ENHANCED: Product Profitability Analysis
-        /// </summary>
-        public async Task<ProductProfitabilityReportViewModel> GetProductProfitabilityReportAsync(DateTime fromDate, DateTime toDate)
-        {
-            var profitReport = await GetProfitMarginReportAsync(fromDate, toDate);
-            var productProfits = profitReport.ProductProfits;
-
-            return new ProductProfitabilityReportViewModel
-            {
-                FromDate = fromDate,
-                ToDate = toDate,
-
-                MostProfitableProducts = productProfits
-                    .OrderByDescending(p => p.GrossProfit)
-                    .Take(20)
-                    .ToList(),
-
-                LeastProfitableProducts = productProfits
-                    .OrderBy(p => p.GrossProfit)
-                    .Take(20)
-                    .ToList(),
-
-                HighMarginProducts = productProfits
-                    .Where(p => p.GrossProfitMargin > 50)
-                    .OrderByDescending(p => p.GrossProfitMargin)
-                    .ToList(),
-
-                MediumMarginProducts = productProfits
-                    .Where(p => p.GrossProfitMargin >= 20 && p.GrossProfitMargin <= 50)
-                    .OrderByDescending(p => p.GrossProfitMargin)
-                    .ToList(),
-
-                LowMarginProducts = productProfits
-                    .Where(p => p.GrossProfitMargin >= 0 && p.GrossProfitMargin < 20)
-                    .OrderByDescending(p => p.GrossProfitMargin)
-                    .ToList(),
-
-                LossProducts = productProfits
-                    .Where(p => p.GrossProfitMargin < 0)
-                    .OrderBy(p => p.GrossProfitMargin)
-                    .ToList()
-            };
-        }
-
-        /// <summary>
-        /// ENHANCED: Discount Analysis Report
+        /// ENHANCED: Discount Analysis Report with Status Filtering
         /// </summary>
         public async Task<DiscountAnalysisReportViewModel> GetDiscountAnalysisReportAsync(DateTime fromDate, DateTime toDate)
         {
-            var sales = await GetSalesReportAsync(fromDate, toDate);
+            // **FIXED: Only get completed sales**
+            var sales = await GetValidSalesQuery(fromDate, toDate)
+                .Include(s => s.SaleItems)
+                .ToListAsync();
+
+            // **FIXED: Only get sale items from completed sales**
             var saleItems = await _context.SaleItems
                 .Include(si => si.Product)
                 .ThenInclude(p => p.Category)
                 .Include(si => si.Sale)
-                .Where(si => si.Sale.SaleDate.Date >= fromDate.Date && si.Sale.SaleDate.Date <= toDate.Date)
+                .Where(si => si.Sale.Status == "Completed" &&
+                            si.Sale.SaleDate.Date >= fromDate.Date &&
+                            si.Sale.SaleDate.Date <= toDate.Date)
                 .ToListAsync();
 
             var totalDiscounts = sales.Sum(s => s.TotalItemDiscounts);
@@ -436,15 +374,13 @@ namespace BhavenaKhadiBhavan.Services
             {
                 FromDate = fromDate,
                 ToDate = toDate,
-
-                // Discount Summary
+                // Discount Summary (ONLY COMPLETED SALES)
                 TotalDiscountsGiven = totalDiscounts,
                 AverageDiscountPercentage = salesWithDiscounts > 0 ?
                     sales.Where(s => s.HasItemLevelDiscounts).Average(s => s.EffectiveDiscountPercentage) : 0,
                 SalesWithDiscounts = salesWithDiscounts,
                 DiscountPenetration = sales.Any() ? ((decimal)salesWithDiscounts / sales.Count) * 100 : 0,
-
-                // Item-Level Discount Analysis
+                // Item-Level Discount Analysis (ONLY COMPLETED SALES)
                 ProductDiscountAnalysis = saleItems
                     .Where(si => si.HasItemDiscount)
                     .GroupBy(si => new { si.ProductId, si.ProductName, si.Product.Category.Name })
@@ -461,13 +397,11 @@ namespace BhavenaKhadiBhavan.Services
                     })
                     .OrderByDescending(p => p.TotalDiscountAmount)
                     .ToList(),
-
                 // Discount Impact Analysis
                 RevenueImpact = totalDiscounts,
                 ProfitImpact = totalDiscounts, // Discounts directly reduce profit
                 GSTImpact = saleItems.Sum(si => si.ItemDiscountAmount * si.GSTRate / 100),
-
-                // Daily Discount Trends
+                // Daily Discount Trends (ONLY COMPLETED SALES)
                 DailyDiscountTrends = sales
                     .GroupBy(s => s.SaleDate.Date)
                     .Select(g => new DailyDiscountSummary
@@ -481,8 +415,7 @@ namespace BhavenaKhadiBhavan.Services
                     })
                     .OrderBy(d => d.Date)
                     .ToList(),
-
-                // Most Discounted Products
+                // Most Discounted Products (ONLY COMPLETED SALES)
                 MostDiscountedProducts = saleItems
                     .Where(si => si.HasItemDiscount)
                     .GroupBy(si => new { si.ProductId, si.ProductName, si.Product.Category.Name })
@@ -503,46 +436,36 @@ namespace BhavenaKhadiBhavan.Services
             };
         }
 
-        // Standard interface implementations
+        // **FIXED: Standard interface implementations with status filtering**
         public async Task<List<Sale>> GetSalesReportAsync(DateTime fromDate, DateTime toDate)
         {
-            return await _context.Sales
+            return await GetValidSalesQuery(fromDate, toDate)
                 .Include(s => s.Customer)
                 .Include(s => s.SaleItems)
                 .ThenInclude(si => si.Product)
-                .Where(s => s.SaleDate.Date >= fromDate.Date && s.SaleDate.Date <= toDate.Date)
                 .OrderByDescending(s => s.SaleDate)
                 .ToListAsync();
         }
 
         public async Task<List<Sale>> GetDailySalesReportAsync(DateTime date)
         {
-            return await _context.Sales
+            return await GetValidSalesQuery()
+                .Where(s => s.SaleDate.Date == date.Date)
                 .Include(s => s.Customer)
                 .Include(s => s.SaleItems)
                 .ThenInclude(si => si.Product)
-                .Where(s => s.SaleDate.Date == date.Date)
                 .OrderByDescending(s => s.SaleDate)
-                .ToListAsync();
-        }
-
-        public async Task<List<Product>> GetStockReportAsync()
-        {
-            return await _context.Products
-                .Include(p => p.Category)
-                .Where(p => p.IsActive)
-                .OrderBy(p => p.Category.Name)
-                .ThenBy(p => p.Name)
                 .ToListAsync();
         }
 
         public async Task<Dictionary<decimal, decimal>> GetGSTReportAsync(DateTime fromDate, DateTime toDate)
         {
+            // **FIXED: Only include completed sales in GST calculations**
             var saleItems = await _context.SaleItems
                 .Include(si => si.Sale)
                 .Where(si => si.Sale.SaleDate.Date >= fromDate.Date &&
-                             si.Sale.SaleDate.Date <= toDate.Date &&
-                             si.Sale.Status == "Completed")
+                            si.Sale.SaleDate.Date <= toDate.Date &&
+                            si.Sale.Status == "Completed")
                 .ToListAsync();
 
             return saleItems
@@ -552,9 +475,8 @@ namespace BhavenaKhadiBhavan.Services
 
         public async Task<Dictionary<string, decimal>> GetSalesAnalyticsAsync(DateTime fromDate, DateTime toDate)
         {
-            var sales = await _context.Sales
-                .Where(s => s.SaleDate.Date >= fromDate.Date && s.SaleDate.Date <= toDate.Date)
-                .ToListAsync();
+            // **FIXED: Only include completed sales in analytics**
+            var sales = await GetValidSalesQuery(fromDate, toDate).ToListAsync();
 
             return new Dictionary<string, decimal>
             {
@@ -567,8 +489,93 @@ namespace BhavenaKhadiBhavan.Services
             };
         }
 
-        // TODO: Implement remaining enhanced report methods
-        // These would follow similar patterns for Customer, Category Performance, Return Analysis, etc.
+        // **UNCHANGED: Stock-related methods don't need status filtering**
+        public async Task<List<Product>> GetStockReportAsync()
+        {
+            return await _context.Products
+                .Include(p => p.Category)
+                .Where(p => p.IsActive)
+                .OrderBy(p => p.Category.Name)
+                .ThenBy(p => p.Name)
+                .ToListAsync();
+        }
+
+        public async Task<StockReportViewModel> GetDetailedStockReportAsync()
+        {
+            var products = await GetStockReportAsync();
+
+            var report = new StockReportViewModel
+            {
+                Products = products,
+                // Stock Summary
+                TotalProducts = products.Count,
+                ActiveProducts = products.Count(p => p.IsActive),
+                LowStockProducts = products.Count(p => p.IsLowStock),
+                OutOfStockProducts = products.Count(p => p.StockQuantity == 0),
+                TotalStockValue = products.Sum(p => p.StockQuantity * p.PurchasePrice),
+                TotalSaleValue = products.Sum(p => p.StockQuantity * p.SalePrice),
+                PotentialProfit = products.Sum(p => p.StockQuantity * (p.SalePrice - p.PurchasePrice)),
+                // Category Wise Stock
+                CategoryWiseStock = products
+                    .Where(p => p.Category != null)
+                    .GroupBy(p => p.Category!.Name)
+                    .Select(g => new CategoryStockSummary
+                    {
+                        Category = g.Key,
+                        ProductCount = g.Count(),
+                        TotalStock = g.Sum(p => p.StockQuantity),
+                        StockValue = g.Sum(p => p.StockQuantity * p.PurchasePrice),
+                        SaleValue = g.Sum(p => p.StockQuantity * p.SalePrice),
+                        PotentialProfit = g.Sum(p => p.StockQuantity * (p.SalePrice - p.PurchasePrice))
+                    })
+                    .OrderByDescending(c => c.StockValue)
+                    .ToList(),
+                // **FIXED: Fast/Slow moving analysis with completed sales only**
+                FastMovingProducts = await GetFastMovingProducts(30),
+                SlowMovingProducts = await GetSlowMovingProducts(30),
+                // Stock Age Analysis
+                AverageStockAge = CalculateAverageStockAge(products),
+                StockAging = GetStockAgingAnalysis(products)
+            };
+
+            return report;
+        }
+
+        public async Task<ProductProfitabilityReportViewModel> GetProductProfitabilityReportAsync(DateTime fromDate, DateTime toDate)
+        {
+            var profitReport = await GetProfitMarginReportAsync(fromDate, toDate);
+            var productProfits = profitReport.ProductProfits;
+
+            return new ProductProfitabilityReportViewModel
+            {
+                FromDate = fromDate,
+                ToDate = toDate,
+                MostProfitableProducts = productProfits
+                    .OrderByDescending(p => p.GrossProfit)
+                    .Take(20)
+                    .ToList(),
+                LeastProfitableProducts = productProfits
+                    .OrderBy(p => p.GrossProfit)
+                    .Take(20)
+                    .ToList(),
+                HighMarginProducts = productProfits
+                    .Where(p => p.GrossProfitMargin > 50)
+                    .OrderByDescending(p => p.GrossProfitMargin)
+                    .ToList(),
+                MediumMarginProducts = productProfits
+                    .Where(p => p.GrossProfitMargin >= 20 && p.GrossProfitMargin <= 50)
+                    .OrderByDescending(p => p.GrossProfitMargin)
+                    .ToList(),
+                LowMarginProducts = productProfits
+                    .Where(p => p.GrossProfitMargin >= 0 && p.GrossProfitMargin < 20)
+                    .OrderByDescending(p => p.GrossProfitMargin)
+                    .ToList(),
+                LossProducts = productProfits
+                    .Where(p => p.GrossProfitMargin < 0)
+                    .OrderBy(p => p.GrossProfitMargin)
+                    .ToList()
+            };
+        }
 
         #region Helper Methods
 
@@ -576,7 +583,6 @@ namespace BhavenaKhadiBhavan.Services
         {
             if (sale.SaleItems == null || !sale.SaleItems.Any())
                 return 0;
-
             return sale.SaleItems.Sum(si => CalculateGrossProfitForItem(si));
         }
 
@@ -584,7 +590,6 @@ namespace BhavenaKhadiBhavan.Services
         {
             if (saleItem.Product == null)
                 return 0;
-
             var revenue = saleItem.LineTotalWithDiscount;
             var cost = saleItem.Product.PurchasePrice * saleItem.Quantity;
             return revenue - cost;
@@ -594,17 +599,18 @@ namespace BhavenaKhadiBhavan.Services
         {
             if (sale.SaleItems == null || !sale.SaleItems.Any())
                 return 0;
-
             return sale.SaleItems.Sum(si => si.Product != null ? si.Product.PurchasePrice * si.Quantity : 0);
         }
 
         private async Task<List<Product>> GetFastMovingProducts(int days)
         {
             var fromDate = DateTime.Today.AddDays(-days);
+
+            // **FIXED: Only consider completed sales for fast-moving analysis**
             var fastMoving = await _context.SaleItems
                 .Include(si => si.Product)
                 .ThenInclude(p => p.Category)
-                .Where(si => si.Sale.SaleDate >= fromDate)
+                .Where(si => si.Sale.SaleDate >= fromDate && si.Sale.Status == "Completed")
                 .GroupBy(si => si.Product)
                 .Select(g => new { Product = g.Key, TotalSold = g.Sum(si => si.Quantity) })
                 .OrderByDescending(x => x.TotalSold)
@@ -618,8 +624,10 @@ namespace BhavenaKhadiBhavan.Services
         private async Task<List<Product>> GetSlowMovingProducts(int days)
         {
             var fromDate = DateTime.Today.AddDays(-days);
+
+            // **FIXED: Only consider completed sales for slow-moving analysis**
             var soldProductIds = await _context.SaleItems
-                .Where(si => si.Sale.SaleDate >= fromDate)
+                .Where(si => si.Sale.SaleDate >= fromDate && si.Sale.Status == "Completed")
                 .Select(si => si.ProductId)
                 .Distinct()
                 .ToListAsync();
@@ -636,7 +644,7 @@ namespace BhavenaKhadiBhavan.Services
         {
             return products.Any(p => p.StockQuantity > 0)
                 ? products.Where(p => p.StockQuantity > 0)
-                          .Average(p => (decimal)(DateTime.Now - p.UpdatedAt).Days)
+                    .Average(p => (decimal)(DateTime.Now - p.UpdatedAt).Days)
                 : 0;
         }
 

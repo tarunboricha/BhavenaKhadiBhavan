@@ -131,6 +131,27 @@ namespace BhavenaKhadiBhavan.Controllers
             }
         }
 
+        [HttpGet]
+        public async Task<IActionResult> CheckDuplicateName(string name)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(name))
+                {
+                    return Json(new { exists = false });
+                }
+
+                var exists = await _context.Categories
+                    .AnyAsync(c => c.Name.ToLower() == name.ToLower() && c.IsActive);
+
+                return Json(new { exists });
+            }
+            catch (Exception)
+            {
+                return Json(new { exists = false });
+            }
+        }
+
         /// <summary>
         /// Handle edit category form submission
         /// </summary>

@@ -20,6 +20,7 @@
             --khadi-success: #28a745;
             --khadi-warning: #ffc107;
             --khadi-danger: #dc3545;
+            --khadi-info: #17a2b8;
         }
 
         .navbar-brand {
@@ -33,11 +34,11 @@
             color: white;
         }
 
-        .btn-khadi:hover {
-            background-color: #654321;
-            border-color: #654321;
-            color: white;
-        }
+            .btn-khadi:hover {
+                background-color: #654321;
+                border-color: #654321;
+                color: white;
+            }
 
         .card-khadi {
             border-left: 4px solid var(--khadi-primary);
@@ -62,237 +63,353 @@
             color: var(--khadi-primary);
         }
 
-        .badge-low-stock {
-            background-color: var(--khadi-warning);
-            color: #000;
-        }
-
-        .badge-out-stock {
-            background-color: var(--khadi-danger);
-        }
-
-        .badge-in-stock {
-            background-color: var(--khadi-success);
-        }
-
-        .cart-sidebar {
-            background-color: #f8f9fa;
-            border-left: 1px solid #dee2e6;
-            height: calc(100vh - 56px);
-            overflow-y: auto;
-        }
-
-        .search-box {
-            border-radius: 25px;
-        }
-
-        .metric-card {
-            background: linear-gradient(45deg, var(--khadi-primary), var(--khadi-secondary));
-            color: white;
-        }
-
-        @@media (max-width: 768px) {
-            .sidebar {
-                min-height: auto;
-            }
-
-            .cart-sidebar {
-                height: auto;
-            }
-        }
-
-        .loading {
-            display: none;
-        }
-
-        .loading.show {
-            display: inline-block;
-        }
-
-        /* Simple Sidebar */
+        /* Enhanced Sidebar Styles */
         .sidebar-nav {
             position: fixed;
             top: 60px;
-            left: -250px; /* Hidden by default */
-            width: 250px;
+            left: -280px;
+            width: 280px;
             height: calc(100vh - 60px);
-            background: var(--color-surface);
-            border-right: 1px solid var(--color-border);
-            transition: left var(--duration-normal) var(--ease-standard);
-            z-index: 1000;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-right: 3px solid var(--khadi-primary);
+            transition: left 0.3s ease-in-out;
+            z-index: 1050;
             overflow-y: auto;
-            box-shadow: var(--shadow-lg);
-            font-family: var(--font-family-base);
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
         }
 
             .sidebar-nav.active {
-                left: 0; /* Visible when active */
+                left: 0;
             }
 
         .sidebar-header {
-            padding: var(--space-16);
-            border-bottom: 1px solid var(--color-border);
-            background: var(--color-secondary);
+            padding: 20px;
+            background: linear-gradient(135deg, var(--khadi-primary) 0%, #654321 100%);
+            color: white;
+            border-bottom: 2px solid var(--khadi-secondary);
         }
 
             .sidebar-header h6 {
                 margin: 0;
-                color: var(--color-text);
-                font-family: var(--font-family-base);
-                font-weight: var(--font-weight-medium);
-                font-size: var(--font-size-base);
+                font-weight: 600;
+                font-size: 1.1rem;
             }
 
         .sidebar-menu {
             list-style: none;
             padding: 0;
-            margin: 0;
+            margin: 10px 0;
         }
 
+            .sidebar-menu .menu-section {
+                padding: 15px 20px 5px;
+                color: var(--khadi-primary);
+                font-weight: 600;
+                font-size: 0.85rem;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                border-bottom: 1px solid #dee2e6;
+                margin-bottom: 5px;
+            }
+
             .sidebar-menu li {
-                border-bottom: 1px solid var(--color-border);
+                margin: 2px 10px;
+                border-radius: 8px;
+                overflow: hidden;
             }
 
             .sidebar-menu a {
-                display: block;
-                padding: var(--space-12) var(--space-16);
-                color: var(--color-text);
+                display: flex;
+                align-items: center;
+                padding: 12px 15px;
+                color: #495057;
                 text-decoration: none;
-                transition: all var(--duration-fast) var(--ease-standard);
-                font-family: var(--font-family-base);
-                font-size: var(--font-size-base);
+                transition: all 0.3s ease;
+                font-weight: 500;
+                border-radius: 8px;
             }
 
                 .sidebar-menu a:hover {
-                    background-color: var(--color-secondary-hover);
-                    color: var(--color-primary);
-                    text-decoration: none;
+                    background: linear-gradient(135deg, var(--khadi-secondary) 0%, var(--khadi-accent) 100%);
+                    color: var(--khadi-primary);
+                    transform: translateX(5px);
+                    box-shadow: 0 2px 10px rgba(139, 69, 19, 0.2);
                 }
 
-                .sidebar-menu a:focus {
-                    outline: var(--focus-outline);
-                    outline-offset: -2px;
+                .sidebar-menu a i {
+                    width: 20px;
+                    text-align: center;
+                    margin-right: 12px;
+                    font-size: 1.1rem;
                 }
 
             .sidebar-menu .badge {
-                float: right;
-                margin-top: var(--space-2);
-                background-color: var(--color-primary);
-                color: var(--color-btn-primary-text);
-                font-size: var(--font-size-xs);
-                padding: var(--space-2) var(--space-6);
-                border-radius: var(--radius-full);
+                margin-left: auto;
+                font-size: 0.7rem;
+                padding: 4px 8px;
+                border-radius: 12px;
             }
 
-            /* Sidebar Overlay */
-            .sidebar-overlay {
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(var(--color-slate-900-rgb), 0.5);
-                z-index: 999;
-                display: none;
-                transition: opacity var(--duration-normal) var(--ease-standard);
-            }
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1040;
+            display: none;
+        }
 
             .sidebar-overlay.active {
                 display: block;
             }
 
-            .no-scroll {
-                overflow: hidden;
+        /* Enhanced Header Styles */
+        .navbar {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+        }
+
+        .navbar-nav .nav-link {
+            font-weight: 500;
+            position: relative;
+            transition: all 0.3s ease;
+            margin: 0 5px;
+            border-radius: 8px;
+            padding: 8px 15px !important;
+        }
+
+            .navbar-nav .nav-link:hover {
+                background-color: var(--khadi-accent);
+                color: var(--khadi-primary) !important;
+                transform: translateY(-2px);
+            }
+
+            .navbar-nav .nav-link.active {
+                background-color: var(--khadi-primary);
+                color: white !important;
+            }
+
+        /* Toggle Button Enhancement */
+        #sidebarToggle {
+            background: linear-gradient(135deg, var(--khadi-primary) 0%, #654321 100%);
+            border: none;
+            color: white;
+            padding: 10px 12px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+            #sidebarToggle:hover {
+                transform: scale(1.05);
+                box-shadow: 0 4px 15px rgba(139, 69, 19, 0.3);
+            }
+
+        /* Alert Enhancements */
+        .alert {
+            border-radius: 10px;
+            border: none;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        /* Mobile Responsive */
+        @@media (max-width: 768px) {
+            .sidebar-nav
+
+        {
+            width: 100%;
+            left: -100%;
+        }
+
+        .navbar-brand {
+            font-size: 0.9rem;
+        }
+
+            .navbar-brand img {
+                height: 28px;
+            }
+
+        }
+
+        /* Scroll Enhancement */
+        .sidebar-nav::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .sidebar-nav::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+            .sidebar-nav::-webkit-scrollbar-thumb:hover {
+                background: #654321;
             }
     </style>
 </head>
 <body>
-    <!-- Simple Header with Logo and Sidebar Toggle -->
-    <header class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+    <!-- Enhanced Header -->
+    <header class="navbar navbar-expand-lg navbar-light mb-4">
         <div class="container-fluid">
             <!-- Sidebar Toggle Button -->
-            <button class="btn btn-outline-secondary me-2" type="button" id="sidebarToggle">
+            <button class="btn me-3" type="button" id="sidebarToggle">
                 <i class="fas fa-bars"></i>
             </button>
 
             <!-- Logo + Brand Name -->
             <a class="navbar-brand d-flex align-items-center" asp-area="" asp-controller="Home" asp-action="Index">
                 <img src="https://www.khadiindia.gov.in/images/KhadiIndiaLogopsd.png"
-                     alt="Khadi Logo" height="32" class="me-2"
+                     alt="Khadi Logo" height="35" class="me-2"
                      onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8Y2lyY2xlIGN4PSIyMCIgY3k9IjIwIiByPSIxOCIgZmlsbD0iI0ZGOTkzMyIvPgogIDx0ZXh0IHg9IjIwIiB5PSIyNSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjEyIiBmb250LXdlaWdodD0iYm9sZCIgZmlsbD0id2hpdGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPks8L3RleHQ+Cjwvc3ZnPgo=';">
-                Bhavena Khadi Bhavan
+                <span class="d-none d-sm-inline">Bhavena Khadi Bhavan</span>
+                <span class="d-sm-none">BKB</span>
             </a>
 
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                    aria-expanded="false" aria-label="Toggle navigation">
+            <!-- Mobile Toggle -->
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
 
-            <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                <ul class="navbar-nav flex-grow-1">
+            <!-- Main Navigation -->
+            <div class="navbar-collapse collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">
+                        <a class="nav-link" asp-controller="Home" asp-action="Index">
                             <i class="fas fa-home me-1"></i>Dashboard
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link text-dark" asp-area="" asp-controller="Sales" asp-action="Index">
-                            <i class="fas fa-shopping-cart me-1"></i>Sales
+                        <a class="nav-link" asp-controller="Sales" asp-action="Create">
+                            <i class="fas fa-shopping-cart me-1"></i>Create Sale
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link text-dark" asp-area="" asp-controller="Products" asp-action="Index">
-                            <i class="fas fa-cube me-1"></i>Products
+                        <a class="nav-link" asp-controller="Sales" asp-action="Index">
+                            <i class="fas fa-cube me-1"></i>Sales
                         </a>
                     </li>
+                </ul>
+
+                <!-- Right Side Navigation -->
+                <ul class="navbar-nav">
                     <li class="nav-item">
-                        <a class="nav-link text-dark" asp-area="" asp-controller="Customers" asp-action="Index">
-                            <i class="fas fa-users me-1"></i>Customers
-                        </a>
+                        <button class="nav-link btn btn-link" data-bs-toggle="modal" data-bs-target="#helpModal">
+                            <i class="fas fa-question-circle me-1"></i>Help
+                        </button>
                     </li>
                 </ul>
             </div>
         </div>
     </header>
 
-    <!-- Simple Sidebar -->
+    <!-- Enhanced Sidebar -->
     <nav class="sidebar-nav" id="sidebar">
         <div class="sidebar-header">
-            <h6><i class="fas fa-th-large me-2"></i>Quick Access</h6>
+            <h6><i class="fas fa-bolt me-2"></i>Quick Access</h6>
         </div>
+
         <ul class="sidebar-menu">
+            <!-- Sales Section -->
+            <li class="menu-section">
+                <i class="fas fa-shopping-cart me-2"></i>Sales & Orders
+            </li>
+            <li>
+                <a href="@Url.Action("Create", "Sales")">
+                    <i class="fas fa-plus"></i>
+                    New Sale
+                </a>
+            </li>
+            <li>
+                <a href="@Url.Action("Index", "Sales")">
+                    <i class="fas fa-list"></i>
+                    All Sales
+                </a>
+            </li>
             <li>
                 <a href="@Url.Action("Index", "Returns")">
-                    <i class="fas fa-undo me-2"></i>Returns
+                    <i class="fas fa-undo"></i>
+                    Returns
                     @if (ViewBag.PendingReturns > 0)
                     {
                         <span class="badge bg-warning">@ViewBag.PendingReturns</span>
                     }
                 </a>
             </li>
-            <li>
-                <a href="@Url.Action("LowStock", "Products")">
-                    <i class="fas fa-exclamation-triangle me-2"></i>Low Stock
-                </a>
-            </li>
-            <li>
-                <a href="@Url.Action("Create", "Sales")">
-                    <i class="fas fa-plus me-2"></i>New Sale
-                </a>
+
+            <!-- Inventory Section -->
+            <li class="menu-section">
+                <i class="fas fa-boxes me-2"></i>Inventory
             </li>
             <li>
                 <a href="@Url.Action("Create", "Products")">
-                    <i class="fas fa-cube me-2"></i>Add Product
+                    <i class="fas fa-plus"></i>
+                    Add Product
+                </a>
+            </li>
+            <li>
+                <a href="@Url.Action("Index", "Products")">
+                    <i class="fas fa-cube"></i>
+                    All Products
+                </a>
+            </li>
+            <li>
+                <a href="@Url.Action("LowStock", "Products")">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Low Stock Alert
+                    @if (ViewBag.LowStockCount > 0)
+                    {
+                        <span class="badge bg-danger">@ViewBag.LowStockCount</span>
+                    }
                 </a>
             </li>
             <li>
                 <a href="@Url.Action("Index", "Categories")">
-                    <i class="fas fa-tags me-2"></i>Categories
+                    <i class="fas fa-tags"></i>
+                    Categories
+                </a>
+            </li>
+
+            <!-- Customer Section -->
+            <li class="menu-section">
+                <i class="fas fa-users me-2"></i>Customers
+            </li>
+            <li>
+                <a href="@Url.Action("Index", "Customers")">
+                    <i class="fas fa-address-book"></i>
+                    All Customers
+                </a>
+            </li>
+
+            <!-- Reports Section -->
+            <li class="menu-section">
+                <i class="fas fa-chart-line me-2"></i>Reports & Analytics
+            </li>
+            <li>
+                <a href="@Url.Action("Sales", "Reports")">
+                    <i class="fas fa-chart-area"></i>
+                    Sales Report
                 </a>
             </li>
             <li>
-                <a href="@Url.Action("Index", "Reports")">
-                    <i class="fas fa-chart-bar me-2"></i>Reports
+                <a href="@Url.Action("Stock", "Reports")">
+                    <i class="fas fa-warehouse"></i>
+                    Stock Report
+                </a>
+            </li>
+            <li>
+                <a href="@Url.Action("DailySales", "Reports")">
+                    <i class="fas fa-calendar-day"></i>
+                    Daily Sales
+                </a>
+            </li>
+
+            <!-- Settings Section -->
+            <li class="menu-section">
+                <i class="fas fa-cog me-2"></i>Settings
+            </li>
+            <li>
+                <a href="@Url.Action("PaymentReconciliation", "Sales")" title="Payment Reconciliation">
+                    <i class="fas fa-balance-scale"></i>
+                    Payment Reconciliation
                 </a>
             </li>
         </ul>
@@ -307,29 +424,33 @@
             @if (TempData["Success"] != null)
             {
                 <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="fas fa-check-circle me-2"></i>
                     @TempData["Success"]
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             }
             @if (TempData["Error"] != null)
             {
                 <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="fas fa-exclamation-circle me-2"></i>
                     @TempData["Error"]
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             }
             @if (TempData["Warning"] != null)
             {
                 <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
                     @TempData["Warning"]
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             }
             @if (TempData["Info"] != null)
             {
                 <div class="alert alert-info alert-dismissible fade show" role="alert">
+                    <i class="fas fa-info-circle me-2"></i>
                     @TempData["Info"]
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             }
 
@@ -337,81 +458,169 @@
         </main>
     </div>
 
-    <!-- Help Modal (Existing) -->
-    <div class="modal fade" id="helpModal" tabindex="-1" role="dialog" aria-labelledby="helpModalLabel" aria-hidden="true">
-        <div class="modal-dialog" role="document">
+    <!-- Enhanced Help Modal -->
+    <div class="modal fade" id="helpModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="helpModalLabel">
-                        <i class="fas fa-question-circle me-2"></i>Quick Help
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-question-circle me-2"></i>Khadi Store Management - Help Guide
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <h6>Navigation Tips:</h6>
-                    <ul>
-                        <li><strong>Dashboard:</strong> View today's sales and low stock alerts</li>
-                        <li><strong>Sales:</strong> Create new sales with easy product selection</li>
-                        <li><strong>Products:</strong> Manage inventory and product information</li>
-                        <li><strong>Customers:</strong> Manage customer database</li>
-                        <li><strong>Reports:</strong> View sales, stock, and GST reports</li>
-                        <li><strong>Returns:</strong> Process customer returns</li>
-                    </ul>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-primary"><i class="fas fa-mouse me-2"></i>Navigation Tips:</h6>
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-home text-muted me-2"></i><strong>Dashboard:</strong> View daily metrics and alerts</li>
+                                <li><i class="fas fa-shopping-cart text-muted me-2"></i><strong>Sales:</strong> Create and manage sales transactions</li>
+                                <li><i class="fas fa-cube text-muted me-2"></i><strong>Products:</strong> Manage inventory and product catalog</li>
+                                <li><i class="fas fa-users text-muted me-2"></i><strong>Customers:</strong> Customer relationship management</li>
+                                <li><i class="fas fa-chart-bar text-muted me-2"></i><strong>Reports:</strong> Business analytics and reporting</li>
+                                <li><i class="fas fa-undo text-muted me-2"></i><strong>Returns:</strong> Process customer returns and refunds</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-success"><i class="fas fa-keyboard me-2"></i>Keyboard Shortcuts:</h6>
+                            <ul class="list-unstyled">
+                                <li><kbd>Ctrl + N</kbd> - New Sale (from sales page)</li>
+                                <li><kbd>Ctrl + F</kbd> - Focus on search box</li>
+                                <li><kbd>Ctrl + S</kbd> - Save current form</li>
+                                <li><kbd>F1</kbd> - Show this help dialog</li>
+                                <li><kbd>Esc</kbd> - Close modals/dialogs</li>
+                            </ul>
 
-                    <h6>Keyboard Shortcuts:</h6>
-                    <ul>
-                        <li><strong>Ctrl + N:</strong> New Sale (on sales page)</li>
-                        <li><strong>Ctrl + F:</strong> Focus search box</li>
-                        <li><strong>F1:</strong> Show this help</li>
-                    </ul>
+                            <h6 class="text-info"><i class="fas fa-lightbulb me-2"></i>Quick Tips:</h6>
+                            <ul class="list-unstyled small">
+                                <li>• Use the sidebar for quick access to common actions</li>
+                                <li>• Check badges for pending items (returns, approvals)</li>
+                                <li>• All financial reports exclude cancelled sales</li>
+                                <li>• Payment adjustments require manager approval (>₹20)</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Loading Overlays (Existing) -->
-    <div id="loadingOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 9999; justify-content: center; align-items: center; flex-direction: column;">
-        <div class="spinner-border text-primary" role="status">
+    <!-- Loading Overlays -->
+    <div id="loadingOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); z-index: 9999; justify-content: center; align-items: center; flex-direction: column;">
+        <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
             <span class="visually-hidden">Loading...</span>
         </div>
-        <div class="mt-2">Loading...</div>
+        <div class="mt-3 text-primary fw-bold">Loading...</div>
     </div>
 
-    <div id="processingOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 9999; justify-content: center; align-items: center; flex-direction: column;">
-        <div class="spinner-border text-success" role="status">
+    <div id="processingOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); z-index: 9999; justify-content: center; align-items: center; flex-direction: column;">
+        <div class="spinner-border text-success" style="width: 3rem; height: 3rem;" role="status">
             <span class="visually-hidden">Processing...</span>
         </div>
-        <div class="mt-2">Processing...</div>
+        <div class="mt-3 text-success fw-bold">Processing...</div>
     </div>
 
+    <!-- Scripts -->
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
 
-    <!-- Simple Sidebar Script -->
+    <!-- Enhanced Sidebar and Navigation Script -->
     <script>
         $(document).ready(function() {
             // Toggle sidebar
             $('#sidebarToggle').click(function() {
                 $('#sidebar').toggleClass('active');
                 $('#sidebarOverlay').toggleClass('active');
-                $('body').toggleClass('no-scroll', $('#sidebar').hasClass('active'));
+                $('body').toggleClass('overflow-hidden');
             });
 
             // Close sidebar when overlay is clicked
             $('#sidebarOverlay').click(function() {
-                $('#sidebar').toggleClass('active');
-                $('#sidebarOverlay').toggleClass('active');
-                $('body').toggleClass('no-scroll', $('#sidebar').hasClass('active'));
+                $('#sidebar').removeClass('active');
+                $('#sidebarOverlay').removeClass('active');
+                $('body').removeClass('overflow-hidden');
             });
 
-            // Help modal shortcut
+            // Highlight active navigation
+            var currentPath = window.location.pathname.toLowerCase();
+            $('.navbar-nav .nav-link, .sidebar-menu a').each(function() {
+                var linkPath = $(this).attr('href');
+                if (linkPath && currentPath.includes(linkPath.toLowerCase()) && linkPath !== '/') {
+                    $(this).addClass('active');
+                }
+            });
+
+            // Keyboard shortcuts
             $(document).keydown(function(e) {
+                // F1 for help
                 if (e.key === 'F1') {
                     e.preventDefault();
                     $('#helpModal').modal('show');
                 }
+
+                // Ctrl+N for new sale (only on sales pages)
+                if (e.ctrlKey && e.key === 'n' && currentPath.includes('/sales')) {
+                    e.preventDefault();
+                    window.location.href = '@Url.Action("Create", "Sales")';
+                }
+
+                // Escape to close modals
+                if (e.key === 'Escape') {
+                    $('.modal').modal('hide');
+                    $('#sidebar').removeClass('active');
+                    $('#sidebarOverlay').removeClass('active');
+                    $('body').removeClass('overflow-hidden');
+                }
             });
+
+            // Auto-hide alerts after 5 seconds
+            setTimeout(function() {
+                $('.alert').fadeOut('slow');
+            }, 5000);
+
+            // Smooth scroll for sidebar
+            $('.sidebar-menu a').click(function(e) {
+                if ($(this).attr('href').startsWith('#')) {
+                    e.preventDefault();
+                    var target = $(this).attr('href');
+                    $('html, body').animate({
+                        scrollTop: $(target).offset().top - 70
+                    }, 500);
+                }
+            });
+        });
+
+        // Global loading functions
+        function showLoading() {
+            $('#loadingOverlay').css('display', 'flex');
+        }
+
+        function hideLoading() {
+            $('#loadingOverlay').hide();
+        }
+
+        function showProcessing() {
+            $('#processingOverlay').css('display', 'flex');
+        }
+
+        function hideProcessing() {
+            $('#processingOverlay').hide();
+        }
+
+        // Show loading on form submissions
+        $('form').submit(function() {
+            showProcessing();
+        });
+
+        // Show loading on page navigation
+        $('a:not([href^="#"], [data-bs-toggle], [onclick])').click(function(e) {
+            if (this.href && !e.ctrlKey && !e.metaKey) {
+                setTimeout(showLoading, 100);
+            }
         });
     </script>
 

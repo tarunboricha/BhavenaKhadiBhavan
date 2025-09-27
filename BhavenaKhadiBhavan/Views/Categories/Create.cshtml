@@ -1,0 +1,391 @@
+﻿@model Category
+
+@{
+    ViewData["Title"] = "Create Category";
+}
+
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="text-primary">
+                    <i class="fas fa-plus-circle me-3"></i>Create New Category
+                </h2>
+                <p class="text-muted mb-0">Add a new product category to organize your inventory</p>
+            </div>
+            <div>
+                <a href="@Url.Action("Index")" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Categories
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8 col-xl-6">
+        <div class="card shadow border-0">
+            <div class="card-header bg-light border-bottom">
+                <div class="d-flex align-items-center">
+                    <div class="bg-primary rounded-circle p-2 me-3">
+                        <i class="fas fa-tags text-white"></i>
+                    </div>
+                    <div>
+                        <h5 class="card-title mb-0">Category Information</h5>
+                        <small class="text-muted">Fill in the details for the new category</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-body p-4">
+                <form asp-action="Create" method="post" id="categoryForm">
+                    @Html.AntiForgeryToken()
+
+                    <div class="row">
+                        <div class="col-12">
+                            <!-- Category Name -->
+                            <div class="mb-4">
+                                <label asp-for="Name" class="form-label fw-bold">
+                                    <i class="fas fa-tag me-2 text-primary"></i>Category Name *
+                                </label>
+                                <input asp-for="Name" class="form-control form-control-lg"
+                                       placeholder="Enter category name (e.g., Men's Clothing, Accessories)"
+                                       maxlength="100" required />
+                                <div class="form-text">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Choose a clear, descriptive name for easy identification
+                                </div>
+                                <span asp-validation-for="Name" class="text-danger"></span>
+                            </div>
+
+                            <!-- Category Description -->
+                            <div class="mb-4">
+                                <label asp-for="Description" class="form-label fw-bold">
+                                    <i class="fas fa-align-left me-2 text-secondary"></i>Description (Optional)
+                                </label>
+                                <textarea asp-for="Description" class="form-control" rows="4"
+                                          placeholder="Provide a detailed description of this category and what products it includes..."
+                                          maxlength="500"></textarea>
+                                <div class="form-text">
+                                    <i class="fas fa-lightbulb me-1"></i>
+                                    Help staff understand what products belong in this category
+                                </div>
+                                <span asp-validation-for="Description" class="text-danger"></span>
+                            </div>
+
+                            <!-- Active Status -->
+                            <div class="mb-4">
+                                <div class="form-check form-switch">
+                                    <input asp-for="IsActive" class="form-check-input" type="checkbox"
+                                           id="isActiveSwitch" checked />
+                                    <label class="form-check-label fw-bold" for="isActiveSwitch">
+                                        <i class="fas fa-toggle-on me-2 text-success"></i>Active Category
+                                    </label>
+                                </div>
+                                <div class="form-text">
+                                    <i class="fas fa-eye me-1"></i>
+                                    Active categories are visible when creating products and in reports
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                        <button type="button" class="btn btn-outline-secondary btn-lg me-md-2" onclick="history.back()">
+                            <i class="fas fa-times me-2"></i>Cancel
+                        </button>
+                        <button type="reset" class="btn btn-outline-warning btn-lg me-md-2">
+                            <i class="fas fa-redo me-2"></i>Reset
+                        </button>
+                        <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">
+                            <i class="fas fa-save me-2"></i>Create Category
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Help Card -->
+        <div class="card mt-4 border-info">
+            <div class="card-body">
+                <h6 class="card-title text-info">
+                    <i class="fas fa-lightbulb me-2"></i>Category Best Practices
+                </h6>
+                <div class="row">
+                    <div class="col-md-6">
+                        <ul class="list-unstyled small">
+                            <li class="mb-2">
+                                <i class="fas fa-check text-success me-2"></i>
+                                Use clear, specific names
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-check text-success me-2"></i>
+                                Keep categories broad but meaningful
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-check text-success me-2"></i>
+                                Avoid duplicate or similar names
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <ul class="list-unstyled small">
+                            <li class="mb-2">
+                                <i class="fas fa-info text-primary me-2"></i>
+                                Categories help organize products
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-info text-primary me-2"></i>
+                                Used in reports and filtering
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-info text-primary me-2"></i>
+                                Can be edited or deactivated later
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats Sidebar -->
+    <div class="col-lg-4 col-xl-3 offset-xl-1">
+        <div class="card border-0 bg-light">
+            <div class="card-body text-center">
+                <i class="fas fa-tags fa-3x text-primary mb-3"></i>
+                <h6 class="text-muted">Category Management</h6>
+                <p class="small text-muted">
+                    Categories help you organize products and make them easier to find and manage.
+                </p>
+
+                <div class="mt-4">
+                    <div class="d-grid gap-2">
+                        <a href="@Url.Action("Index")" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-list me-2"></i>View All Categories
+                        </a>
+                        <a href="@Url.Action("Index", "Products")" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-cube me-2"></i>Manage Products
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Sample Categories -->
+                <div class="mt-4 text-start">
+                    <h6 class="small text-muted mb-2">Example Categories:</h6>
+                    <div class="d-flex flex-wrap gap-1">
+                        <span class="badge bg-secondary">Men's Clothing</span>
+                        <span class="badge bg-secondary">Women's Wear</span>
+                        <span class="badge bg-secondary">Accessories</span>
+                        <span class="badge bg-secondary">Home Textiles</span>
+                        <span class="badge bg-secondary">Fabrics</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        $(document).ready(function() {
+            // Focus on the name field when page loads
+            $('#Name').focus();
+
+            // Form validation and submission
+            $('#categoryForm').on('submit', function(e) {
+                var name = $('#Name').val().trim();
+
+                if (name.length < 2) {
+                    e.preventDefault();
+                    showAlert('error', 'Category name must be at least 2 characters long.');
+                    $('#Name').focus();
+                    return false;
+                }
+
+                // Show loading state
+                $('#submitBtn').prop('disabled', true)
+                    .html('<i class="fas fa-spinner fa-spin me-2"></i>Creating Category...');
+
+                showProcessing();
+            });
+
+            // Real-time character counting for description
+            $('#Description').on('input', function() {
+                var maxLength = 500;
+                var currentLength = $(this).val().length;
+                var remaining = maxLength - currentLength;
+
+                var counterClass = remaining < 50 ? 'text-warning' : remaining < 20 ? 'text-danger' : 'text-muted';
+
+                if (!$('#charCounter').length) {
+                    $(this).parent().append('<div id="charCounter" class="form-text"></div>');
+                }
+
+                $('#charCounter').html(`<i class="fas fa-keyboard me-1"></i>${currentLength}/${maxLength} characters used`)
+                    .removeClass('text-muted text-warning text-danger')
+                    .addClass(counterClass);
+            });
+
+            // Name validation - prevent special characters
+            $('#Name').on('input', function() {
+                var value = $(this).val();
+                // Remove any characters that are not letters, numbers, spaces, hyphens, or apostrophes
+                var cleaned = value.replace(/[^a-zA-Z0-9\s\-'&]/g, '');
+                if (value !== cleaned) {
+                    $(this).val(cleaned);
+                    showAlert('warning', 'Special characters are not allowed in category names.');
+                }
+            });
+
+            // Check for duplicate names (debounced)
+            var checkTimeout;
+            $('#Name').on('input', function() {
+                var name = $(this).val().trim();
+
+                clearTimeout(checkTimeout);
+
+                if (name.length >= 2) {
+                    checkTimeout = setTimeout(function() {
+                        checkDuplicateName(name);
+                    }, 500);
+                }
+            });
+
+            // Auto-capitalize first letter of each word
+            $('#Name').on('blur', function() {
+                var value = $(this).val();
+                var capitalized = value.replace(/\b\w/g, function(letter) {
+                    return letter.toUpperCase();
+                });
+                $(this).val(capitalized);
+            });
+
+            // Reset form
+            $('button[type="reset"]').on('click', function() {
+                setTimeout(function() {
+                    $('#Name').focus();
+                    $('#charCounter').remove();
+                    $('.is-valid, .is-invalid').removeClass('is-valid is-invalid');
+                }, 100);
+            });
+        });
+
+        // Check for duplicate category names
+        function checkDuplicateName(name) {
+            $.ajax({
+                url: '@Url.Action("CheckDuplicateName", "Categories")',
+                type: 'GET',
+                data: { name: name },
+                success: function(response) {
+                    if (response.exists) {
+                        $('#Name').addClass('is-invalid').removeClass('is-valid');
+                        if (!$('#nameError').length) {
+                            $('#Name').parent().append('<div id="nameError" class="invalid-feedback">A category with this name already exists.</div>');
+                        }
+                    } else {
+                        $('#Name').addClass('is-valid').removeClass('is-invalid');
+                        $('#nameError').remove();
+                    }
+                }
+            });
+        }
+
+        // Utility function for showing alerts
+        function showAlert(type, message) {
+            var alertClass = 'alert-' + (type === 'error' ? 'danger' : type);
+            var iconClass = type === 'error' ? 'exclamation-circle' :
+                           type === 'warning' ? 'exclamation-triangle' : 'info-circle';
+
+            var alert = $(`
+                <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+                    <i class="fas fa-${iconClass} me-2"></i>
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `);
+
+            $('.card-body').prepend(alert);
+
+            // Auto-dismiss after 5 seconds
+            setTimeout(function() {
+                alert.fadeOut();
+            }, 5000);
+        }
+
+        // Keyboard shortcuts
+        $(document).keydown(function(e) {
+            // Ctrl+S to save
+            if (e.ctrlKey && e.key === 's') {
+                e.preventDefault();
+                $('#categoryForm').submit();
+            }
+
+            // Escape to cancel
+            if (e.key === 'Escape') {
+                history.back();
+            }
+        });
+    </script>
+
+    <style>
+        .form-control:focus {
+            border-color: var(--khadi-primary);
+            box-shadow: 0 0 0 0.2rem rgba(139, 69, 19, 0.25);
+        }
+
+        .form-check-input:checked {
+            background-color: var(--khadi-primary);
+            border-color: var(--khadi-primary);
+        }
+
+        .card {
+            transition: all 0.3s ease;
+        }
+
+            .card:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 25px rgba(0,0,0,0.1) !important;
+            }
+
+        .btn-primary {
+            background-color: var(--khadi-primary);
+            border-color: var(--khadi-primary);
+        }
+
+            .btn-primary:hover {
+                background-color: #654321;
+                border-color: #654321;
+            }
+
+        .text-primary {
+            color: var(--khadi-primary) !important;
+        }
+
+        .badge {
+            font-size: 0.7rem;
+        }
+
+        .form-text {
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+        }
+
+        @@media (max-width: 768px) {
+            .card-body
+
+        {
+            padding: 1.5rem !important;
+        }
+
+        .btn-lg {
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+        }
+
+        }
+    </style>
+}

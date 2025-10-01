@@ -31,5 +31,6 @@ namespace BhavenaKhadiBhavan.Services
         Task<List<Sale>> GetAllSalesAsync(DateTime? fromDate = null, DateTime? toDate = null);
         Task<List<Sale>> GetSalesByStatusAsync(string status, DateTime? fromDate = null, DateTime? toDate = null);
         Task<object> GetSalesStatusSummaryAsync(DateTime? fromDate = null, DateTime? toDate = null);
+        Task<(bool isValid, List<string> errors)> ValidateStockAvailabilityAsync(List<CartItemViewModel> cartItems);
     }
 }

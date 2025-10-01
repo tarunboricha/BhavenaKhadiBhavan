@@ -23,12 +23,47 @@ namespace BhavenaKhadiBhavan.Services
         public async Task<Sale> CreateSaleAsync(Sale sale, List<SaleItem> saleItems)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
-
             try
             {
                 // Generate invoice number
                 sale.InvoiceNumber = await GenerateInvoiceNumberAsync();
                 sale.SaleDate = DateTime.Now;
+
+                // CRITICAL FIX: Validate and update stock atomically FIRST
+                foreach (var item in saleItems)
+                {
+                    // Use atomic SQL update to prevent race conditions
+                    var stockUpdateQuery = @"
+                UPDATE Products 
+                SET StockQuantity = StockQuantity - @quantity,
+                    UpdatedAt = GETDATE()
+                WHERE Id = @productId 
+                AND StockQuantity >= @quantity 
+                AND IsActive = 1";
+
+                    var rowsAffected = await _context.Database.ExecuteSqlRawAsync(
+                        stockUpdateQuery,
+                        new Microsoft.Data.SqlClient.SqlParameter("@quantity", item.Quantity),
+                        new Microsoft.Data.SqlClient.SqlParameter("@productId", item.ProductId));
+
+                    if (rowsAffected == 0)
+                    {
+                        // Get current product info for error message
+                        var product = await _context.Products
+                            .Where(p => p.Id == item.ProductId)
+                            .Select(p => new { p.Name, p.StockQuantity, p.IsActive })
+                            .FirstOrDefaultAsync();
+
+                        if (product == null || !product.IsActive)
+                        {
+                            throw new InvalidOperationException($"Product with ID {item.ProductId} not found or inactive");
+                        }
+                        else
+                        {
+                            throw new InvalidOperationException($"Insufficient stock for '{product.Name}'. Available: {product.StockQuantity}, Required: {item.Quantity}");
+                        }
+                    }
+                }
 
                 // CRITICAL: Calculate totals with item-level discounts
                 decimal subtotal = 0;
@@ -71,30 +106,19 @@ namespace BhavenaKhadiBhavan.Services
                 _context.Sales.Add(sale);
                 await _context.SaveChangesAsync();
 
-                // Add sale items and update stock
+                // Add sale items with proper unit of measure
                 foreach (var item in saleItems)
                 {
                     item.SaleId = sale.Id;
 
-                    // Get product for stock update
-                    var product = await _context.Products.FindAsync(item.ProductId);
-                    if (product == null)
-                    {
-                        throw new InvalidOperationException($"Product with ID {item.ProductId} not found");
-                    }
-
-                    // CRITICAL: Update stock with decimal quantity
-                    if (product.StockQuantity < item.Quantity)
-                    {
-                        throw new InvalidOperationException($"Insufficient stock for {product.Name}. Available: {product.StockQuantity}, Required: {item.Quantity}");
-                    }
-
-                    // Update stock with decimal precision
-                    product.StockQuantity -= item.Quantity;
-                    product.UpdatedAt = DateTime.Now;
+                    // Get product info for unit of measure
+                    var product = await _context.Products
+                        .Where(p => p.Id == item.ProductId)
+                        .Select(p => new { p.UnitOfMeasure })
+                        .FirstOrDefaultAsync();
 
                     // Set unit of measure
-                    item.UnitOfMeasure = product.UnitOfMeasure ?? "Piece";
+                    item.UnitOfMeasure = product?.UnitOfMeasure ?? "Piece";
 
                     _context.SaleItems.Add(item);
                 }
@@ -108,13 +132,13 @@ namespace BhavenaKhadiBhavan.Services
                 }
 
                 await transaction.CommitAsync();
-
                 return sale;
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
-                throw;
+                // Re-throw with more context for debugging
+                throw new InvalidOperationException($"Failed to create sale: {ex.Message}", ex);
             }
         }
 
@@ -281,23 +305,99 @@ namespace BhavenaKhadiBhavan.Services
             var today = DateTime.Today;
             var prefix = $"INV{today:yyyyMMdd}";
 
-            var lastInvoice = await _context.Sales
-                .Where(s => s.InvoiceNumber.StartsWith(prefix))
-                .OrderByDescending(s => s.InvoiceNumber)
-                .FirstOrDefaultAsync();
-
-            int sequence = 1;
-            if (lastInvoice != null && lastInvoice.InvoiceNumber.Length > prefix.Length)
+            // Use a more robust approach to prevent collisions
+            var maxRetries = 10;
+            for (int retry = 0; retry < maxRetries; retry++)
             {
-                var lastSequence = lastInvoice.InvoiceNumber.Substring(prefix.Length);
-                if (int.TryParse(lastSequence, out int lastNum))
+                var lastInvoice = await _context.Sales
+                    .Where(s => s.InvoiceNumber.StartsWith(prefix))
+                    .OrderByDescending(s => s.InvoiceNumber)
+                    .FirstOrDefaultAsync();
+
+                int sequence = 1;
+                if (lastInvoice != null && lastInvoice.InvoiceNumber.Length > prefix.Length)
                 {
-                    sequence = lastNum + 1;
+                    var lastSequence = lastInvoice.InvoiceNumber.Substring(prefix.Length);
+                    if (int.TryParse(lastSequence, out int lastNum))
+                    {
+                        sequence = lastNum + 1;
+                    }
+                }
+
+                var newInvoiceNumber = $"{prefix}{sequence:D3}";
+
+                // Check if this invoice number already exists (race condition check)
+                var exists = await _context.Sales
+                    .AnyAsync(s => s.InvoiceNumber == newInvoiceNumber);
+
+                if (!exists)
+                {
+                    return newInvoiceNumber;
+                }
+
+                // If collision, wait briefly and retry
+                await Task.Delay(50);
+            }
+
+            // Fallback: use timestamp if all retries failed
+            return $"{prefix}{DateTime.Now:HHmmssff}";
+        }
+
+        public async Task<bool> SafeUpdateCustomerTotalsAsync(int customerId)
+        {
+            try
+            {
+                var customer = await _context.Customers.FindAsync(customerId);
+                if (customer == null) return false;
+
+                // Calculate totals from completed sales only
+                var salesData = await _context.Sales
+                    .Where(s => s.CustomerId == customerId && s.Status == "Completed")
+                    .Select(s => new { s.TotalAmount, s.SaleDate })
+                    .ToListAsync();
+
+                customer.TotalOrders = salesData.Count;
+                customer.TotalPurchases = salesData.Sum(s => s.TotalAmount);
+                customer.LastPurchaseDate = salesData.Any() ?
+                    salesData.Max(s => s.SaleDate) : (DateTime?)null;
+
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch (Exception)
+            {
+                // Log error if needed, but don't fail the entire sale
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// ADDED: Validate stock availability before sale creation
+        /// </summary>
+        public async Task<(bool isValid, List<string> errors)> ValidateStockAvailabilityAsync(List<CartItemViewModel> cartItems)
+        {
+            var errors = new List<string>();
+
+            foreach (var item in cartItems)
+            {
+                var product = await _context.Products
+                    .Where(p => p.Id == item.ProductId && p.IsActive)
+                    .Select(p => new { p.Name, p.StockQuantity, p.IsActive })
+                    .FirstOrDefaultAsync();
+
+                if (product == null || !product.IsActive)
+                {
+                    errors.Add($"Product '{item.ProductName}' is no longer available");
+                }
+                else if (product.StockQuantity < item.Quantity)
+                {
+                    errors.Add($"Insufficient stock for '{product.Name}'. Available: {product.StockQuantity}, Required: {item.Quantity}");
                 }
             }
 
-            return $"{prefix}{sequence:D3}";
+            return (errors.Count == 0, errors);
         }
+
 
         public async Task<decimal> CalculateGSTAmountAsync(List<SaleItem> items)
         {

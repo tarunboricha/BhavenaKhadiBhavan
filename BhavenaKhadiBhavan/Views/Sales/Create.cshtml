@@ -53,6 +53,100 @@
             </div>
         </div>
 
+        <div class="card mb-4 border-primary">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-barcode"></i> Quick Add with Barcode Scanner
+                    <span class="badge badge-light text-primary ms-2">New!</span>
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <!-- Camera Scanner -->
+                    <div class="col-md-6">
+                        <div class="text-center mb-3">
+                            <button type="button" class="btn btn-success btn-lg" id="startScanner">
+                                <i class="fas fa-camera"></i> Start Camera Scanner
+                            </button>
+                            <button type="button" class="btn btn-danger btn-lg d-none" id="stopScanner">
+                                <i class="fas fa-stop"></i> Stop Scanner
+                            </button>
+                        </div>
+
+                        <!-- Camera Preview Area -->
+                        <div id="scannerContainer" class="position-relative border rounded d-none" style="height: 300px;">
+                            <video id="scannerVideo" class="w-100 h-100 object-fit-cover"></video>
+                            <div id="scannerOverlay" class="position-absolute top-0 start-0 w-100 h-100">
+                                <!-- Scanning reticle will be drawn here -->
+                                <div class="scanner-line"></div>
+                            </div>
+                            <div id="scannerStatus" class="position-absolute bottom-0 start-0 w-100 bg-dark bg-opacity-75 text-white text-center py-2">
+                                <small>Position barcode in the frame</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Manual Entry & Results -->
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="manualBarcodeInput" class="form-label">
+                                <i class="fas fa-keyboard"></i> Manual SKU/Barcode Entry
+                            </label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="manualBarcodeInput"
+                                       placeholder="Enter SKU (e.g., KHD-CK-W-M-001) or barcode">
+                                <button class="btn btn-outline-primary" type="button" id="searchByCodeBtn">
+                                    <i class="fas fa-search"></i> Search
+                                </button>
+                            </div>
+                            <small class="form-text text-muted">
+                                You can also scan or type product codes here
+                            </small>
+                        </div>
+
+                        <!-- Scanned Product Preview -->
+                        <div id="scannedProductPreview" class="d-none">
+                            <div class="card border-success">
+                                <div class="card-body">
+                                    <h6 class="card-title text-success">
+                                        <i class="fas fa-check-circle"></i> Product Found
+                                    </h6>
+                                    <div id="productDetails">
+                                        <!-- Product details will be populated here -->
+                                    </div>
+                                    <div class="mt-3">
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <label class="form-label">Quantity</label>
+                                                <input type="number" class="form-control" id="scannedQuantity"
+                                                       value="1" min="0.001" step="0.001">
+                                            </div>
+                                            <div class="col-6">
+                                                <label class="form-label">Discount %</label>
+                                                <input type="number" class="form-control" id="scannedDiscount"
+                                                       value="0" min="0" max="100" step="0.01">
+                                            </div>
+                                        </div>
+                                        <div class="mt-2">
+                                            <button type="button" class="btn btn-success w-100" id="addScannedToCart">
+                                                <i class="fas fa-cart-plus"></i> Add to Cart
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Scanner Messages -->
+                        <div id="scannerMessages">
+                            <!-- Success/Error messages will appear here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
         <!-- Step-by-Step Product Selection -->
         <div class="card mb-3">
             <div class="card-header bg-primary text-white">
@@ -401,6 +495,7 @@
 </div>
 
 @section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
     <script>
         let cart = [];
         let calculatedTotal = 0;
@@ -740,19 +835,20 @@
         }
 
         // Update cart item quantity
-        function updateCartItemQuantity(productId, quantity) {
+                function updateCartItemQuantity(productId, quantity) {
             if (quantity <= 0) {
                 removeFromCart(productId);
                 return;
             }
 
-            $.post('@Url.Action("UpdateCartQuantity")', {
+            $.post('/Sales/UpdateCartQuantity', {
                 productId: productId,
                 quantity: quantity,
                 __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
             })
             .done(function(response) {
                 if (response.success) {
+                    // **CRITICAL: Always refresh cart to get updated calculations**
                     refreshCart();
                 } else {
                     showToast(response.message, 'error');
@@ -1085,5 +1181,406 @@
                 toast.fadeOut(function() { $(this).remove(); });
             }, 5000);
         }
+
+                class BarcodeScanner {
+            constructor() {
+                this.isScanning = false;
+                this.currentProductId = null;
+                this.initializeEventHandlers();
+                this.setupKeyboardShortcuts();
+            }
+
+            initializeEventHandlers() {
+                // Start/Stop scanner buttons
+                document.getElementById('startScanner').addEventListener('click', () => this.startScanner());
+                document.getElementById('stopScanner').addEventListener('click', () => this.stopScanner());
+
+                // Manual barcode entry
+                document.getElementById('manualBarcodeInput').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        this.searchByCode();
+                    }
+                });
+
+                document.getElementById('searchByCodeBtn').addEventListener('click', () => this.searchByCode());
+
+                // Add scanned product to cart
+                document.getElementById('addScannedToCart').addEventListener('click', () => this.addScannedToCart());
+
+                // Auto-focus on manual input
+                document.getElementById('manualBarcodeInput').focus();
+            }
+
+            setupKeyboardShortcuts() {
+                // F2 key to start scanner
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'F2' && !e.ctrlKey && !e.altKey) {
+                        e.preventDefault();
+                        if (!this.isScanning) {
+                            this.startScanner();
+                        } else {
+                            this.stopScanner();
+                        }
+                    }
+                    // F3 key to focus on manual input
+                    else if (e.key === 'F3' && !e.ctrlKey && !e.altKey) {
+                        e.preventDefault();
+                        document.getElementById('manualBarcodeInput').focus();
+                        document.getElementById('manualBarcodeInput').select();
+                    }
+                });
+            }
+
+            async startScanner() {
+                try {
+                    this.showMessage('Starting camera...', 'info');
+
+                    // Request camera permission
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        video: {
+                            facingMode: 'environment', // Use back camera if available
+                            width: { ideal: 640 },
+                            height: { ideal: 480 }
+                        }
+                    });
+
+                    // Initialize Quagga barcode scanner
+                    Quagga.init({
+                        inputStream: {
+                            name: "Live",
+                            type: "LiveStream",
+                            target: document.querySelector('#scannerVideo'),
+                            constraints: {
+                                width: 640,
+                                height: 480,
+                                facingMode: "environment"
+                            }
+                        },
+                        decoder: {
+                            readers: [
+                                "code_128_reader",
+                                "ean_reader",
+                                "ean_8_reader",
+                                "code_39_reader",
+                                "code_39_vin_reader",
+                                "codabar_reader",
+                                "upc_reader",
+                                "upc_e_reader"
+                            ],
+                            debug: {
+                                showCanvas: false,
+                                showPatches: false,
+                                showFoundPatches: false,
+                                showSkeleton: false,
+                                showLabels: false,
+                                showPatchLabels: false,
+                                showRemainingPatchLabels: false,
+                                boxFromPatches: {
+                                    showTransformed: false,
+                                    showTransformedBox: false,
+                                    showBB: false
+                                }
+                            }
+                        },
+                        locate: true,
+                        locator: {
+                            patchSize: "medium",
+                            halfSample: true
+                        },
+                        numOfWorkers: 2,
+                        frequency: 10,
+                    }, (err) => {
+                        if (err) {
+                            console.error('Scanner initialization error:', err);
+                            this.showMessage('Failed to start camera: ' + err.message, 'danger');
+                            return;
+                        }
+
+                        console.log("Scanner initialized successfully");
+                        Quagga.start();
+                        this.isScanning = true;
+                        this.updateScannerUI(true);
+                        this.showMessage('Camera ready! Point at a barcode to scan', 'success');
+
+                        // Set up barcode detection
+                        Quagga.onDetected((result) => {
+                            this.handleBarcodeDetected(result.codeResult.code);
+                        });
+                    });
+
+                } catch (error) {
+                    console.error('Camera access error:', error);
+                    this.showMessage('Camera access denied. Please enable camera permissions or use manual entry.', 'warning');
+                }
+            }
+
+            stopScanner() {
+                if (this.isScanning) {
+                    Quagga.stop();
+                    this.isScanning = false;
+                    this.updateScannerUI(false);
+                    this.showMessage('Scanner stopped', 'info');
+                }
+            }
+
+            updateScannerUI(isActive) {
+                const startBtn = document.getElementById('startScanner');
+                const stopBtn = document.getElementById('stopScanner');
+                const container = document.getElementById('scannerContainer');
+
+                if (isActive) {
+                    startBtn.classList.add('d-none');
+                    stopBtn.classList.remove('d-none');
+                    container.classList.remove('d-none');
+                } else {
+                    startBtn.classList.remove('d-none');
+                    stopBtn.classList.add('d-none');
+                    container.classList.add('d-none');
+                }
+            }
+
+            async handleBarcodeDetected(code) {
+                console.log('Barcode detected:', code);
+
+                // Stop scanning temporarily to prevent multiple reads
+                this.stopScanner();
+
+                // Vibrate if supported (mobile devices)
+                if (navigator.vibrate) {
+                    navigator.vibrate(200);
+                }
+
+                // Search for product
+                await this.searchProduct(code);
+            }
+
+            async searchByCode() {
+                const code = document.getElementById('manualBarcodeInput').value.trim();
+                if (!code) {
+                    this.showMessage('Please enter a SKU or barcode', 'warning');
+                    return;
+                }
+                await this.searchProduct(code);
+            }
+
+            async searchProduct(code) {
+                try {
+                    this.showMessage('Searching for product...', 'info');
+
+                    const response = await fetch(`/Sales/ScanBarcode?code=${encodeURIComponent(code)}`);
+                    const result = await response.json();
+
+                    if (result.success) {
+                        this.displayProductPreview(result.product);
+                        this.currentProductId = result.product.id;
+                        this.showMessage(result.message, 'success');
+
+                        // Auto-focus on quantity field
+                        setTimeout(() => {
+                            document.getElementById('scannedQuantity').focus();
+                            document.getElementById('scannedQuantity').select();
+                        }, 100);
+
+                    } else {
+                        this.hideProductPreview();
+                        this.showMessage(result.message, 'danger');
+
+                        if (result.suggestManualSearch) {
+                            this.showMessage('Try using the regular product search above', 'info');
+                        }
+                    }
+
+                } catch (error) {
+                    console.error('Search error:', error);
+                    this.showMessage('Error searching for product: ' + error.message, 'danger');
+                }
+            }
+
+            displayProductPreview(product) {
+                const preview = document.getElementById('scannedProductPreview');
+                const details = document.getElementById('productDetails');
+
+                details.innerHTML = `
+                    <div class="row">
+                        <div class="col-12">
+                            <h6 class="text-primary">${product.name}</h6>
+                            <p class="mb-1"><strong>Category:</strong> ${product.category}</p>
+                            <p class="mb-1"><strong>Price:</strong> ₹${product.price.toFixed(2)}
+                                <small class="text-muted">(₹${product.priceWithGST.toFixed(2)} incl. GST)</small></p>
+                            <p class="mb-1"><strong>Stock:</strong>
+                                <span class="badge ${product.isLowStock ? 'bg-warning' : 'bg-success'}">
+                                    ${product.stock} ${product.unitOfMeasure}
+                                </span>
+                            </p>
+                            <p class="mb-0"><strong>Code:</strong> <code>${product.scannedCode}</code></p>
+                        </div>
+                    </div>
+                `;
+
+                preview.classList.remove('d-none');
+
+                // Set maximum quantity based on stock
+                const quantityInput = document.getElementById('scannedQuantity');
+                quantityInput.max = product.stock;
+
+                // Clear previous values
+                document.getElementById('scannedDiscount').value = 0;
+            }
+
+            hideProductPreview() {
+                document.getElementById('scannedProductPreview').classList.add('d-none');
+                this.currentProductId = null;
+            }
+
+            async addScannedToCart() {
+                if (!this.currentProductId) {
+                    this.showMessage('No product selected', 'warning');
+                    return;
+                }
+
+                const quantity = parseFloat(document.getElementById('scannedQuantity').value);
+                const discount = parseFloat(document.getElementById('scannedDiscount').value || 0);
+
+                if (quantity <= 0) {
+                    this.showMessage('Please enter a valid quantity', 'warning');
+                    return;
+                }
+
+                try {
+                    this.showMessage('Adding to cart...', 'info');
+
+                    const formData = new FormData();
+                    formData.append('productId', this.currentProductId);
+                    formData.append('quantity', quantity);
+                    formData.append('discountPercentage', discount);
+
+                    const response = await fetch('/Sales/AddScannedProductToCart', {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                        }
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        this.showMessage(result.message, 'success');
+                        this.hideProductPreview();
+
+                        // Clear inputs
+                        document.getElementById('manualBarcodeInput').value = '';
+                        document.getElementById('scannedQuantity').value = 1;
+                        document.getElementById('scannedDiscount').value = 0;
+
+                        // Update cart display
+                        this.updateCartDisplay(result);
+
+                        // Focus back on manual input for next scan
+                        document.getElementById('manualBarcodeInput').focus();
+
+                    } else {
+                        this.showMessage(result.message, 'danger');
+                    }
+
+                } catch (error) {
+                    console.error('Add to cart error:', error);
+                    this.showMessage('Error adding to cart: ' + error.message, 'danger');
+                }
+            }
+
+            updateCartDisplay(result) {
+                // Update cart totals if elements exist
+                const cartCountElement = document.querySelector('.cart-count');
+                if (cartCountElement) {
+                    cartCountElement.textContent = result.cartCount;
+                }
+
+                const cartTotalElement = document.querySelector('.cart-total');
+                if (cartTotalElement) {
+                    cartTotalElement.textContent = `₹${result.cartTotal.toFixed(2)}`;
+                }
+
+                // Refresh the page's cart section if your existing code has a refresh function
+                if (typeof refreshCart === 'function') {
+                    refreshCart();
+                }
+            }
+
+            showMessage(message, type = 'info') {
+                const container = document.getElementById('scannerMessages');
+                const alertClass = `alert-${type}`;
+
+                container.innerHTML = `
+                    <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+                        ${message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                `;
+
+                // Auto-dismiss after 5 seconds for non-error messages
+                if (type !== 'danger') {
+                    setTimeout(() => {
+                        const alert = container.querySelector('.alert');
+                        if (alert) {
+                            alert.remove();
+                        }
+                    }, 5000);
+                }
+            }
+        }
+
+        // Initialize scanner when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            window.barcodeScanner = new BarcodeScanner();
+            console.log('Barcode scanner initialized');
+
+            // Show keyboard shortcuts info
+            console.log('Keyboard shortcuts:');
+            console.log('F2 - Start/Stop camera scanner');
+            console.log('F3 - Focus on manual barcode input');
+            console.log('Enter - Search when typing in manual input');
+        });
     </script>
 }
+
+<style>
+    .scanner-line {
+        position: absolute;
+        top: 50%;
+        left: 10%;
+        right: 10%;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, #ff0000, transparent);
+        animation: scannerMove 2s ease-in-out infinite;
+        z-index: 10;
+    }
+
+    @@keyframes scannerMove {
+        0%, 100% {
+            transform: translateY(-20px);
+            opacity: 0.7;
+        }
+
+        50% {
+            transform: translateY(20px);
+            opacity: 1;
+        }
+    }
+
+    #scannerVideo {
+        border-radius: 0.375rem;
+    }
+
+    .object-fit-cover {
+        object-fit: cover;
+    }
+
+    /* Responsive adjustments */
+    @@media (max-width: 768px) {
+        #scannerContainer {
+            height: 250px !important;
+        }
+    }
+</style>

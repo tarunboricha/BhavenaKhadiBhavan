@@ -91,6 +91,34 @@ namespace BhavenaKhadiBhavan.Models
 
         // Display stock with proper formatting
         public string DisplayStock => $"{StockQuantity:0.###} {UnitOfMeasure}";
+
+        // Add this new field to the Product class (around line 25)
+        [StringLength(50)]
+        [Display(Name = "Barcode/EAN")]
+        public string? Barcode { get; set; }  // Optional traditional barcode (EAN/UPC)
+
+        // Add this computed property to the Product class (around line 95, with other computed properties)
+        /// <summary>
+        /// Gets the primary scannable code (SKU takes priority, then Barcode)
+        /// </summary>
+        [NotMapped]
+        public string PrimaryBarcodeValue => !string.IsNullOrEmpty(SKU) ? SKU : (Barcode ?? string.Empty);
+
+        /// <summary>
+        /// Check if product has any scannable code
+        /// </summary>
+        [NotMapped]
+        public bool HasScannableCode => !string.IsNullOrEmpty(SKU) || !string.IsNullOrEmpty(Barcode);
+
+        /// <summary>
+        /// Display text for scanning
+        /// </summary>
+        [NotMapped]
+        public string ScannableCodeDisplay => !string.IsNullOrEmpty(SKU) ? $"SKU: {SKU}" :
+                                             (!string.IsNullOrEmpty(Barcode) ? $"Barcode: {Barcode}" : "No Code");
+
+        // INSTRUCTION: Add these fields to your existing Product class in Models.cs
+        // Do not replace the entire class, just add these new properties
     }
 
     /// <summary>

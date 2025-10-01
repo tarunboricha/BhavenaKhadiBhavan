@@ -39,6 +39,8 @@ namespace BhavenaKhadiBhavan.Data
                 entity.HasIndex(p => p.SKU);
                 entity.HasIndex(p => p.IsActive);
                 entity.HasIndex(p => p.CategoryId);
+
+                entity.HasIndex(p => p.Barcode).HasDatabaseName("IX_Product_Barcode");
             });
 
             modelBuilder.Entity<Category>(entity =>

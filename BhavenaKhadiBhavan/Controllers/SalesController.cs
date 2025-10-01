@@ -778,6 +778,23 @@ namespace BhavenaKhadiBhavan.Controllers
         {
             try
             {
+                // ENHANCED: Input validation
+                if (model.AmountReceived < 0)
+                {
+                    ModelState.AddModelError("AmountReceived", "Amount received cannot be negative");
+                }
+
+                if (model.Sale.CustomerId.HasValue && model.Sale.CustomerId <= 0)
+                {
+                    ModelState.AddModelError("Sale.CustomerId", "Invalid customer ID");
+                }
+
+                if (!string.IsNullOrEmpty(model.Sale.CustomerPhone) &&
+                    (model.Sale.CustomerPhone.Length != 10 || !model.Sale.CustomerPhone.All(char.IsDigit)))
+                {
+                    ModelState.AddModelError("Sale.CustomerPhone", "Phone number must be 10 digits");
+                }
+
                 // Get cart from session
                 var cartItems = GetCartFromSession();
 
@@ -785,6 +802,15 @@ namespace BhavenaKhadiBhavan.Controllers
                 if (!cartItems.Any())
                 {
                     TempData["Error"] = "Please add items to cart before creating sale.";
+                    await LoadSalesViewModelAsync(model);
+                    return View("Create", model);
+                }
+
+                // ENHANCED: Validate stock availability before processing
+                var (isStockValid, stockErrors) = await _salesService.ValidateStockAvailabilityAsync(cartItems);
+                if (!isStockValid)
+                {
+                    TempData["Error"] = string.Join("; ", stockErrors);
                     await LoadSalesViewModelAsync(model);
                     return View("Create", model);
                 }
@@ -801,35 +827,41 @@ namespace BhavenaKhadiBhavan.Controllers
                     return View("Create", model);
                 }
 
-                // Check for significant underpayment (more than 10% short)
+                // ENHANCED: Better payment validation for local use
                 var paymentAdjustment = model.AmountReceived - calculatedTotal;
                 var adjustmentPercentage = calculatedTotal > 0 ? Math.Abs(paymentAdjustment) / calculatedTotal * 100 : 0;
 
-                if (paymentAdjustment < -50 || adjustmentPercentage > 10)
+                // For local use, allow reasonable adjustments but warn about large discrepancies
+                if (Math.Abs(paymentAdjustment) > 100 || adjustmentPercentage > 20)
                 {
-                    TempData["Error"] = $"Payment amount seems incorrect. Expected: ₹{calculatedTotal:N2}, Received: ₹{model.AmountReceived:N2}. Please verify.";
-                    await LoadSalesViewModelAsync(model);
-                    return View("Create", model);
+                    TempData["Warning"] = $"Large payment difference detected. Expected: ₹{calculatedTotal:N2}, Received: ₹{model.AmountReceived:N2}. Please verify amounts.";
                 }
 
-                // Handle customer validation (existing code)
+                // Handle customer validation (existing logic with better error handling)
                 Customer? customer = null;
                 if (!string.IsNullOrWhiteSpace(model.Sale.CustomerName) || !string.IsNullOrWhiteSpace(model.Sale.CustomerPhone))
                 {
-                    // Customer handling logic (same as before)
-                    if (!string.IsNullOrWhiteSpace(model.Sale.CustomerPhone))
+                    try
                     {
-                        customer = await _customerService.GetCustomerByPhoneAsync(model.Sale.CustomerPhone);
-                    }
-
-                    if (customer == null && (!string.IsNullOrWhiteSpace(model.Sale.CustomerName) || !string.IsNullOrWhiteSpace(model.Sale.CustomerPhone)))
-                    {
-                        customer = new Customer
+                        if (!string.IsNullOrWhiteSpace(model.Sale.CustomerPhone))
                         {
-                            Name = model.Sale.CustomerName ?? "Walk-in Customer",
-                            Phone = model.Sale.CustomerPhone
-                        };
-                        customer = await _customerService.CreateCustomerAsync(customer);
+                            customer = await _customerService.GetCustomerByPhoneAsync(model.Sale.CustomerPhone);
+                        }
+
+                        if (customer == null && (!string.IsNullOrWhiteSpace(model.Sale.CustomerName) || !string.IsNullOrWhiteSpace(model.Sale.CustomerPhone)))
+                        {
+                            customer = new Customer
+                            {
+                                Name = model.Sale.CustomerName ?? "Walk-in Customer",
+                                Phone = model.Sale.CustomerPhone
+                            };
+                            customer = await _customerService.CreateCustomerAsync(customer);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        // Don't fail the sale if customer creation fails
+                        TempData["Warning"] = $"Customer information could not be saved: {ex.Message}";
                     }
                 }
 
@@ -838,40 +870,32 @@ namespace BhavenaKhadiBhavan.Controllers
                     model.Sale.CustomerId = customer.Id;
                 }
 
-                // Stock validation (existing code)
-                foreach (var item in cartItems)
+                // Create sale with enhanced error handling
+                Sale sale;
+                try
                 {
-                    var product = await _productService.GetProductByIdAsync(item.ProductId);
-                    if (product == null || !product.IsActive)
-                    {
-                        TempData["Error"] = $"Product '{item.ProductName}' is no longer available.";
-                        await LoadSalesViewModelAsync(model);
-                        return View("Create", model);
-                    }
-                    if (product.StockQuantity < item.Quantity)
-                    {
-                        TempData["Error"] = $"Insufficient stock for '{product.Name}'. Available: {product.StockQuantity}, Required: {item.Quantity}";
-                        await LoadSalesViewModelAsync(model);
-                        return View("Create", model);
-                    }
+                    sale = await _salesService.CreateSaleFromCartAsync(model.Sale, cartItems);
                 }
-
-                // Create sale with original total (before payment adjustment)
-                var sale = await _salesService.CreateSaleFromCartAsync(model.Sale, cartItems);
-
-                // Process payment with adjustment if needed
-                var paymentResult = await _paymentService.ProcessPaymentAsync(
-                    sale.Id,
-                    model.AmountReceived,
-                    model.PaymentAdjustmentReason,
-                    User.Identity?.Name ?? "Staff"
-                );
-
-                if (!paymentResult.Success)
+                catch (Exception ex)
                 {
-                    TempData["Error"] = "Payment processing failed: " + paymentResult.Message;
+                    TempData["Error"] = $"Failed to create sale: {ex.Message}";
                     await LoadSalesViewModelAsync(model);
                     return View("Create", model);
+                }
+
+                // Process payment with adjustment if needed
+                PaymentResult? paymentResult = null;
+                try
+                {
+                    paymentResult = await _paymentService.ProcessPaymentAsync(
+                        sale.Id,
+                        model.AmountReceived,
+                        model.PaymentAdjustmentReason,
+                        "Local User");
+                }
+                catch (Exception ex)
+                {
+                    TempData["Warning"] = $"Payment processing issue: {ex.Message}. Sale created successfully.";
                 }
 
                 // Clear cart after successful sale
@@ -881,18 +905,16 @@ namespace BhavenaKhadiBhavan.Controllers
                 var successMessage = GenerateSuccessMessage(sale, paymentResult);
                 TempData["Success"] = successMessage;
 
-                // Redirect based on approval requirement
-                if (paymentResult.RequiresApproval)
+                if (paymentResult?.RequiresApproval == true)
                 {
-                    TempData["Warning"] = "Sale created but requires manager approval due to payment adjustment.";
-                    return RedirectToAction("PendingApprovals");
+                    TempData["Info"] = "Sale created successfully. Payment adjustment noted for review.";
                 }
 
                 return RedirectToAction(nameof(Details), new { id = sale.Id });
             }
             catch (Exception ex)
             {
-                TempData["Error"] = "Error creating sale: " + ex.Message;
+                TempData["Error"] = $"Unexpected error creating sale: {ex.Message}";
                 await LoadSalesViewModelAsync(model);
                 return View("Create", model);
             }
@@ -1037,6 +1059,197 @@ namespace BhavenaKhadiBhavan.Controllers
             if (absAdjustment <= 5 && percentage <= 1) return "Minor (Customer convenience)";
             if (absAdjustment <= 20 && percentage <= 2) return "Moderate (Cash shortage)";
             return "Significant (Requires review)";
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> ScanBarcode(string code)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(code))
+                {
+                    return Json(new { success = false, message = "Barcode cannot be empty" });
+                }
+
+                // Clean the scanned code
+                code = code.Trim().ToUpper();
+
+                // Search by SKU first, then by Barcode field
+                var product = await _context.Products
+                    .Include(p => p.Category)
+                    .Where(p => p.IsActive && p.StockQuantity > 0)
+                    .Where(p => p.SKU == code || p.Barcode == code)
+                    .FirstOrDefaultAsync();
+
+                if (product == null)
+                {
+                    return Json(new
+                    {
+                        success = false,
+                        message = $"Product not found with code: {code}",
+                        suggestManualSearch = true
+                    });
+                }
+
+                if (product.StockQuantity <= 0)
+                {
+                    return Json(new
+                    {
+                        success = false,
+                        message = $"Product '{product.Name}' is out of stock",
+                        productName = product.DisplayName
+                    });
+                }
+
+                // Return product details for cart addition
+                return Json(new
+                {
+                    success = true,
+                    product = new
+                    {
+                        id = product.Id,
+                        name = product.DisplayName,
+                        category = product.Category?.Name ?? "Uncategorized",
+                        price = product.SalePrice,
+                        priceWithGST = product.PriceWithGST,
+                        stock = product.StockQuantity,
+                        gstRate = product.GSTRate,
+                        unitOfMeasure = product.UnitOfMeasure ?? "Piece",
+                        sku = product.SKU,
+                        barcode = product.Barcode,
+                        scannedCode = code,
+                        stockStatus = product.StockStatus,
+                        isLowStock = product.IsLowStock
+                    },
+                    message = $"Product found: {product.DisplayName}"
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = $"Error scanning barcode: {ex.Message}"
+                });
+            }
+        }
+
+        /// <summary>
+        /// AJAX endpoint to add scanned product to cart with quantity
+        /// </summary>
+        [HttpPost]
+        public async Task<IActionResult> AddScannedProductToCart(int productId, decimal quantity = 1, decimal discountPercentage = 0)
+        {
+            try
+            {
+                // Validate quantity
+                if (quantity <= 0)
+                {
+                    return Json(new { success = false, message = "Quantity must be greater than 0" });
+                }
+
+                var product = await _productService.GetProductByIdAsync(productId);
+                if (product == null || !product.IsActive)
+                {
+                    return Json(new { success = false, message = "Product not found or inactive" });
+                }
+
+                if (product.StockQuantity < quantity)
+                {
+                    return Json(new
+                    {
+                        success = false,
+                        message = $"Insufficient stock. Available: {product.StockQuantity}, Requested: {quantity}"
+                    });
+                }
+
+                // Check if product is already in cart
+                var cart = GetCartFromSession();
+                var existingItem = cart.FirstOrDefault(c => c.ProductId == productId);
+
+                if (existingItem != null)
+                {
+                    // Update existing item quantity
+                    var newQuantity = existingItem.Quantity + quantity;
+                    if (newQuantity > product.StockQuantity)
+                    {
+                        return Json(new
+                        {
+                            success = false,
+                            message = $"Total quantity ({newQuantity}) would exceed available stock ({product.StockQuantity})"
+                        });
+                    }
+                    existingItem.Quantity = newQuantity;
+
+                    // Apply discount if provided
+                    if (discountPercentage > 0)
+                    {
+                        existingItem.ApplyDiscountPercentage(discountPercentage);
+                    }
+                }
+                else
+                {
+                    // Add new item to cart
+                    var cartItem = new CartItemViewModel
+                    {
+                        ProductId = product.Id,
+                        ProductName = product.DisplayName,
+                        Quantity = quantity,
+                        UnitPrice = product.SalePrice,
+                        GSTRate = product.GSTRate,
+                        UnitOfMeasure = product.UnitOfMeasure ?? "Piece"
+                    };
+
+                    // Apply discount if provided
+                    if (discountPercentage > 0)
+                    {
+                        cartItem.ApplyDiscountPercentage(discountPercentage);
+                    }
+
+                    cart.Add(cartItem);
+                }
+
+                SaveCartToSession(cart);
+
+                // Calculate updated cart totals
+                var cartTotals = _salesService.CalculateCartTotalsWithDiscounts(cart);
+
+                return Json(new
+                {
+                    success = true,
+                    message = $"Added {quantity} x {product.DisplayName} to cart",
+                    cartCount = cartTotals.ItemCount,
+                    cartTotal = cartTotals.Total,
+                    hasDiscounts = cartTotals.ItemsWithDiscounts > 0,
+                    discountAmount = cartTotals.DiscountAmount,
+                    productAdded = new
+                    {
+                        name = product.DisplayName,
+                        quantity = quantity,
+                        unitPrice = product.SalePrice,
+                        lineTotal = quantity * product.SalePrice
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = $"Error adding product to cart: {ex.Message}" });
+            }
+        }
+
+        /// <summary>
+        /// AJAX endpoint for manual SKU/Barcode entry (keyboard input)
+        /// </summary>
+        [HttpPost]
+        public async Task<IActionResult> SearchByCode(string code)
+        {
+            if (string.IsNullOrWhiteSpace(code))
+            {
+                return Json(new { success = false, message = "Please enter a SKU or barcode" });
+            }
+
+            // Use the same logic as ScanBarcode
+            return await ScanBarcode(code);
         }
     }
 }
